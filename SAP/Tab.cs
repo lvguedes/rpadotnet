@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SapLegacy = RpaLib.SAP.Legacy.Sap;
 
 namespace RpaLib.SAP
 {
@@ -18,7 +19,7 @@ namespace RpaLib.SAP
             Tracing.Log.Write(string.Join(Environment.NewLine,
                 $"Trying to select tab \"{Name}\"",
                 $"({fullPathId})"));
-            (Sap.Session.FindById(fullPathId) as GuiTab).Select();
+            (SapLegacy.Session.FindById(fullPathId) as GuiTab).Select();
             Tracing.Log.Write(string.Join(Environment.NewLine,
                 $"Tab \"{Name}\" selected.",
                 $"{fullPathId}"));

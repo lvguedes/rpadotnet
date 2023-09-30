@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SapLegacy = RpaLib.SAP.Legacy.Sap;
 
 namespace RpaLib.SAP
 {
@@ -33,11 +34,11 @@ namespace RpaLib.SAP
 
         public void UpdateParentParams()
         {
-            Sap.UpdateConnections();
-            Sap.MapExistingSessions();
+            SapLegacy.UpdateConnections();
+            SapLegacy.MapExistingSessions();
         }
 
-        public static dynamic FindById(string fullPathId) => Sap.Session.FindById(fullPathId);
-        public static U FindById<U>(string fullPathId) => (U)Sap.Session.FindById(fullPathId);
+        public static dynamic FindById(string fullPathId) => SapLegacy.Session.FindById(fullPathId);
+        public static U FindById<U>(string fullPathId) => (U)SapLegacy.Session.FindById(fullPathId);
     }
 }

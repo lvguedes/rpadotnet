@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using SapLegacy = RpaLib.SAP.Legacy.Sap;
 
 namespace RpaLib.SAP
 {
@@ -20,10 +21,10 @@ namespace RpaLib.SAP
             _index = session.Info.SessionNumber;
         }
 
-        public void AccessTransaction(string transactionId) => Sap.AccessTransaction(this, transactionId);
+        public void AccessTransaction(string transactionId) => SapLegacy.AccessTransaction(this, transactionId);
         public T FindById<T>(string id) => (T)FindById(id);
 
-        public T[] FindByText<T>(string labelText) => Sap.FindByText<T>(GuiSession, labelText);
+        public T[] FindByText<T>(string labelText) => SapLegacy.FindByText<T>(GuiSession, labelText);
 
         public void CreateNewSession() => CreateNewSession(this);
         public void CreateNewSession(Session session)
@@ -32,11 +33,11 @@ namespace RpaLib.SAP
             session.GuiSession.CreateSession();
             Thread.Sleep(2000); // wait otherwise new session cannot be captured
             //Log.MessageBox("New session created.");
-            Sap.UpdateConnections();
-            Sap.MapExistingSessions();
+            SapLegacy.UpdateConnections();
+            SapLegacy.MapExistingSessions();
             Tracing.Log.Write(string.Join(Environment.NewLine,
                 $"The connection after creating a new session and updating connection through interop engine:",
-                Sap.ConnectionInfo()));
+                SapLegacy.ConnectionInfo()));
             //Log.MessageBox("Verify info");
         }
 

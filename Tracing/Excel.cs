@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Office.Interop.Excel; // add Microsoft Excel COM reference
 using DT = System.Data;
+using RpaLib.ProcessAutomation;
 
 namespace RpaLib.Tracing
 {
@@ -30,7 +31,7 @@ namespace RpaLib.Tracing
             Application = new Application();
             Application.DisplayAlerts = false; // disable pop-ups when overwriting
 
-            FullFilePath = Path.GetFullPath(filePath);
+            FullFilePath = Rpa.GetFullPath(filePath);
             SheetName = sheetName;
 
             Workbook = Application.Workbooks.Open(FullFilePath);
@@ -69,7 +70,7 @@ namespace RpaLib.Tracing
             if (path == null)
                 Workbook.Save();
             else
-                Workbook.SaveAs(Path.GetFullPath(path));
+                Workbook.SaveAs(Rpa.GetFullPath(path));
         }
 
         public Dictionary<string, string> GetActiveSheet()
@@ -189,6 +190,12 @@ namespace RpaLib.Tracing
                 WriteCell(i + row, col, tableOfValues[i], InsertMethod.AsRow);
         }
 
+        // Finalizer method
+        ~Excel()
+        {
+            Application.Quit();
+        }
+
         public static dynamic Helper(
             string file,
             string worksheet,
@@ -209,7 +216,7 @@ namespace RpaLib.Tracing
             bool appendCol = false)
         {
             dynamic returnValue = null;
-            string fileFullPath = Path.GetFullPath(file);
+            string fileFullPath = Rpa.GetFullPath(file);
             Excel excel = new Excel(fileFullPath, worksheet);
 
             excel.ToggleVisible(makeVisible: visible);
@@ -264,5 +271,73 @@ namespace RpaLib.Tracing
 
             return returnValue;
         }
+
+        public static string[][] ReadAll(string filePath, string sheetName, bool visible = false)
+        {
+            string fileFullPath = Rpa.GetFullPath(filePath);
+            Excel excel = new Excel(fileFullPath, sheetName);
+
+            excel.ToggleVisible(visible);
+
+            int startRow = 1;
+            int startCol = 1;
+
+            var contents = excel.ReadCell(startRow, startCol,
+                            excel.UsedRangeCount["rows"],
+                            excel.UsedRangeCount["cols"]);
+
+            return Transpose(contents);
+        }
+
+        public static string[][] Transpose(string[][] sheetArray)
+        {
+            List<List<string>> columns = new List<List<string>>();
+
+            foreach (string col in sheetArray[0])
+            {
+                var column = new List<string>();
+                columns.Add(column);
+            }
+
+            foreach (var row in sheetArray)
+            {
+                for (int i = 0; i < sheetArray[0].GetLength(0); i++)
+                {
+                    columns[i].Add(row[i]);
+                }
+            }
+
+            return ConvList2Array(columns);
+        }
+
+        private static string[][] ConvList2Array(List<List<string>> list)
+        {
+            List<string[]> wrapper = new List<string[]>();
+            
+            foreach (var item in list)
+            {
+                wrapper.Add(item.ToArray());
+            }
+
+            return wrapper.ToArray();
+        }
     }
 }
+
+
+/* Common Interop Error that might occur again once in while
+ * 
+ * System.InvalidCastException HResult=0x80004002 
+ *   Message=Unable to cast COM object of type 'Microsoft.Office.Interop.Excel.ApplicationClass' to interface type 'Microsoft.Office.Interop.Excel._Application'.
+ *   This operation failed because the QueryInterface call on the COM component for the interface with IID '{000208D5-0000-0000-C000-000000000046}' failed due
+ *   to the following error: 
+ *     Interface not registered (Exception from HRESULT: 0x80040155). 
+ *     Source=mscorlib StackTrace: 
+ *       at System.StubHelpers.StubHelpers.GetCOMIPFromRCW(Object objSrc, IntPtr pCPCMD, IntPtr& ppTarget, Boolean& pfNeedsRelease) 
+ *       at Microsoft.Office.Interop.Excel.ApplicationClass.set_DisplayAlerts(Boolean RHS) 
+ *       at RpaLib.Tracing.Excel..ctor(String filePath, String sheetName) in C:\lib_project\Tracing\Excel.cs:line 31 
+ *       at RpaLib.Tracing.Excel.ReadAll(String filePath, String sheetName) in C:\lib_project\Tracing\Excel.cs:line 271 
+ *       at AlteracaoEstrutura.Program.Main(String[] args) in C:\main_project\Program.cs:line 19
+ *
+ *  Whenever it occur again, REPAIR OFFICE to fix this issue.
+ */

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
 using System.Threading;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
@@ -229,6 +230,15 @@ namespace RpaLib.ProcessAutomation
             return yamlDeserialized;
         }
 
+        public static void RunAsAdmin(string fileName)
+        {
+            Process proc = new Process();
+            proc.StartInfo.FileName = GetFullPath(fileName);
+            proc.StartInfo.UseShellExecute = true;
+            proc.StartInfo.Verb = "runas";
+            proc.Start();
+        }
+
         public static string RunPromptCommand(string cmd, string arguments = null)
         {
 
@@ -251,6 +261,20 @@ namespace RpaLib.ProcessAutomation
             //Console.WriteLine($"The command output was:\n{cmdOutput}");
 
             return cmdOutput;
+        }
+
+        // returns true if file was downloaded, otherwise returns false
+        public static void DownloadFile(string url, string downloadPath)
+        {
+            downloadPath = GetFullPath(downloadPath);
+
+            using (WebClient client = new WebClient())
+            {
+                client.DownloadFile(url, downloadPath);
+            }
+
+            if (! File.Exists(downloadPath))
+                throw new FileNotFoundException(downloadPath);
         }
 
         public static string MakeApiCall(string url, string saveAs = null)

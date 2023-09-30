@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SapLegacy = RpaLib.SAP.Legacy.Sap;
 
 namespace RpaLib.SAP
 {
@@ -15,6 +16,6 @@ namespace RpaLib.SAP
             Click(FullPathId);
             Tracing.Log.Write($"Button \"{Name}\" ({Description}) clicked.");
         }
-        public static void Click(string fullPathId) => (Sap.Session.FindById(fullPathId) as GuiButton).Press();
+        public static void Click(string fullPathId) => (SapLegacy.Session.FindById(fullPathId) as GuiButton).Press();
     }
 }

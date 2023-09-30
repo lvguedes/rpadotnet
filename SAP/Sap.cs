@@ -1,47 +1,47 @@
-﻿using RpaLib.Tracing;
-using RpaLib.ProcessAutomation;
+﻿using RpaLib.ProcessAutomation;
 using sapfewse;
 using saprotwr.net;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Data;
+using System.Threading.Tasks;
+using SysTrace = System.Diagnostics.Trace;
 
 namespace RpaLib.SAP
 {
-    public static class Sap
+    public class Sap
     {
         private static readonly int connTimeoutSeconds = 10;
-        private static GuiConnection _connection;
-        private static Session _session;
-        public static Session Session
+        private GuiConnection _connection;
+        private Session _session;
+        public Session[] Sessions { get; set; }
+        public int TriedConnect { get; private set; } = 0;
+        public GuiApplication App { get; set; }
+        /*
+        public Session Session
         {
             get => _session;
             set
             {
                 _session = value;
-                Tracing.Log.Write(string.Join(Environment.NewLine,
+                SysTrace.WriteLine(string.Join(Environment.NewLine,
                     "Current session (Session) set to:",
                     Session.SessionInfo(value.GuiSession)));
             }
-        }
-        public static Session[] Sessions { get; set; }
-        public static int TriedConnect { get; private set; } = 0;
-        public static GuiApplication App { get; set; }
-        public static GuiConnection Connection
+        }*/
+        public GuiConnection Connection
         {
             get => _connection;
             set
             {
                 _connection = value;
-                Tracing.Log.Write(string.Join(Environment.NewLine,
+                SysTrace.WriteLine(string.Join(Environment.NewLine,
                     $"Current connection (Connection) set to:",
-                    ConnectionInfo(value)));
+                    ConnectionInfo(value, this)));
             }
         }
         public static GuiConnection[] Connections { get; set; }
@@ -50,6 +50,13 @@ namespace RpaLib.SAP
             BaseName = @"saplogon",
             FullPath = @"C:\Program Files (x86)\SAP\FrontEnd\SAPgui\saplogon.exe"
         };
+
+        public Sap(string connection, string transaction)
+        {
+            CreateSapConnection(connection);
+            MapExistingSessions();
+            AccessTransaction(transaction);
+        }
 
         public enum StatusType
         {
@@ -62,7 +69,7 @@ namespace RpaLib.SAP
 
         private static string GetStatusTypeLetter(StatusType statusType)
         {
-            switch(statusType)
+            switch (statusType)
             {
                 case StatusType.Error: return "E";
                 case StatusType.Warning: return "W";
@@ -85,7 +92,7 @@ namespace RpaLib.SAP
             return engine as GuiApplication;
         }
 
-        private static void CreateSapConnection(string connectionName)
+        private void CreateSapConnection(string connectionName)
         {
             App = GetSapInteropApp();
 
@@ -99,33 +106,33 @@ namespace RpaLib.SAP
             }
         }
 
-        public static void Connect(string connectionName, int tryingsLimitInSeconds)
+        public void Connect(string connectionName, int tryingsLimitInSeconds)
         {
             try
             {
-                Tracing.Log.Write($"Connecting with SAP: \"{connectionName}\"");
+                SysTrace.WriteLine($"Connecting with SAP: \"{connectionName}\"");
                 CreateSapConnection(connectionName);
                 MapExistingSessions();
-                Tracing.Log.Write($"Connection Succeeded.\n{ConnectionInfo()}");
+                SysTrace.WriteLine($"Connection Succeeded.\n{ConnectionInfo()}");
             }
             // exception thrown when SAP Connection window is not opened.
             catch (NullReferenceException ex)
             {
-                Tracing.Log.Write($"Caught exception\n{ex}");
+                SysTrace.WriteLine($"Caught exception\n{ex}");
                 // retry connection within config's file limit
                 TriedConnect++;
                 if (TriedConnect <= tryingsLimitInSeconds)
                 {
                     if (TriedConnect == 1)
                     {
-                        Tracing.Log.Write($"Killing SAP processes by name if it exists: {SapExe.BaseName}");
+                        SysTrace.WriteLine($"Killing SAP processes by name if it exists: {SapExe.BaseName}");
                         Rpa.KillProcess(SapExe.BaseName);
 
-                        Tracing.Log.Write($"Starting SAP exe: {SapExe.FullPath}");
+                        SysTrace.WriteLine($"Starting SAP exe: {SapExe.FullPath}");
                         Rpa.StartWaitProcess(SapExe.FullPath, outputProcesses: true);
                     }
 
-                    Tracing.Log.Write($"Tried connecting to SAP for: {TriedConnect} times. Trying again.");
+                    SysTrace.WriteLine($"Tried connecting to SAP for: {TriedConnect} times. Trying again.");
                     Thread.Sleep(1000);
                     Connect(connectionName, tryingsLimitInSeconds);
                 }
@@ -137,7 +144,7 @@ namespace RpaLib.SAP
         }
 
         // create a new connection or uses the current actually? (if it creates this is an error)
-        public static void UpdateConnections()
+        public void UpdateConnections()
         {
             List<GuiConnection> connections = new List<GuiConnection>();
             App = GetSapInteropApp();
@@ -148,25 +155,25 @@ namespace RpaLib.SAP
             }
             Connections = connections.ToArray();
 
-            Tracing.Log.Write(string.Join(Environment.NewLine,
+            SysTrace.WriteLine(string.Join(Environment.NewLine,
                 $"Updating connections...",
                 $"The number of existing connections: {connections.Count}",
                 $"Available connections:",
-                ConnectionsInfo()));
+                ConnectionsInfo(this)));
 
             Connection = App.Connections.ElementAt(0) as GuiConnection;
-            
+
         }
 
-        public static void MapExistingSessions()
+        public void MapExistingSessions()
         {
             List<Session> sessions = new List<Session>();
 
-            Tracing.Log.Write($"Trying to map existing sessions. Number of existing sessions: {Connection.Sessions.Count}");
+            SysTrace.WriteLine($"Trying to map existing sessions. Number of existing sessions: {Connection.Sessions.Count}");
 
             foreach (GuiSession session in Connection.Sessions)
             {
-                Tracing.Log.Write(string.Join(Environment.NewLine,
+                SysTrace.WriteLine(string.Join(Environment.NewLine,
                     "Mapping session:",
                     Session.SessionInfo(session)));
                 sessions.Add(new Session(session));
@@ -177,23 +184,23 @@ namespace RpaLib.SAP
         }
 
         // high-level function
-        public static Session CreateNewSession(string connectionName, string transactionId = null, int useSessionId = -1, int connectionTimeoutSeconds = 10)
+        public Session CreateNewSession(string connectionName, string transactionId = null, int useSessionId = -1, int connectionTimeoutSeconds = 10)
         {
             Session session;
 
-            if (Sap.Connection == null)
+            if (Connection == null)
             {
-                Sap.Connect(connectionName, connectionTimeoutSeconds);
+                Connect(connectionName, connectionTimeoutSeconds);
             }
             if (useSessionId >= 0)
             {
                 // to work with specific session id
-                session = Sap.Sessions[0];
+                session = Sessions[0];
             }
             else
             {
                 // to create a new session and work upon it
-                session = Sap.CreateNewSession();
+                session = CreateNewSession();
             }
             session.GuiSession.LockSessionUI();
             session.FindById<GuiFrameWindow>("wnd[0]").Iconify();
@@ -204,25 +211,26 @@ namespace RpaLib.SAP
         }
 
         // low-level function
-        private static Session CreateNewSession()
+        private Session CreateNewSession()
         {
-            int lastSession = Sap.Sessions.Length - 1;
-            Sap.Sessions[lastSession].CreateNewSession();
+            int lastSession = Sessions.Length - 1;
+            Sessions[lastSession].CreateNewSession();
             return FindSession("SESSION_MANAGER");
         }
 
-        public static Session FindSession(string transaction) => Sessions.Where(x => x.GuiSession.Info.Transaction.Equals(transaction)).FirstOrDefault();
+        public Session FindSession(string transaction) => Sessions.Where(x => x.GuiSession.Info.Transaction.Equals(transaction)).FirstOrDefault();
 
-        public static void AccessTransaction(string id) => AccessTransaction(Session, id);
-        public static void AccessTransaction(Session session, string id)
+        public void AccessTransaction(string id, string fromTransaction) => AccessTransaction(FindSession(fromTransaction), id);
+        public void AccessTransaction(string id) => AccessTransaction(FindSession("SESSION_MANAGER"), id);
+        public void AccessTransaction(Session session, string id)
         {
-            Tracing.Log.Write($"Trying to access transaction \"{id}\"");
+            SysTrace.WriteLine($"Trying to access transaction \"{id}\"");
             session.GuiSession.StartTransaction(id);
-            Tracing.Log.Write($"Transaction Access: Successful. Transaction assigned to session: [{session.Index}]");
+            SysTrace.WriteLine($"Transaction Access: Successful. Transaction assigned to session: [{session.Index}]");
         }
 
-        public static string ConnectionInfo() => ConnectionInfo(Connection);
-        public static string ConnectionInfo(GuiConnection connection)
+        public string ConnectionInfo() => ConnectionInfo(Connection, this);
+        public static string ConnectionInfo(GuiConnection connection, Sap sap2obj)
         {
             return string.Join(Environment.NewLine,
                 $"  Connection:",
@@ -233,11 +241,11 @@ namespace RpaLib.SAP
                 $"    DisabledByServer: \"{connection.DisabledByServer}\"",
                 $"",
                 $"  The Sessions/Children elements:",
-                SessionsInfo()
+                sap2obj.SessionsInfo()
                 );
         }
 
-        public static string ConnectionsInfo()
+        public static string ConnectionsInfo(Sap sap2obj)
         {
             StringBuilder info = new StringBuilder();
 
@@ -245,13 +253,13 @@ namespace RpaLib.SAP
             {
                 info.AppendLine(string.Join(Environment.NewLine,
                     $"[{i}]",
-                    ConnectionInfo(Connections[i])
+                    ConnectionInfo(Connections[i], sap2obj)
                     ));
             }
             return info.ToString();
         }
 
-        public static string SessionsInfo()
+        public string SessionsInfo()
         {
             StringBuilder info = new StringBuilder();
             if (Sessions == null) return "No Sessions";
@@ -263,9 +271,10 @@ namespace RpaLib.SAP
             return info.ToString();
         }
 
-        public static string MainWindowInfo()
+        public string MainWindowInfo(string transaction)
         {
-            GuiMainWindow mw = Session.FindById("wnd[0]") as GuiMainWindow;
+            Session session = FindSession(transaction);
+            GuiMainWindow mw = session.FindById("wnd[0]") as GuiMainWindow;
             return string.Join(Environment.NewLine,
                 $"GuiMainWindow info:",
                 $"  ButtonbarVisible: {mw.ButtonbarVisible}",
@@ -275,7 +284,10 @@ namespace RpaLib.SAP
                 );
         }
 
-        public static string AllSessionIdsInfo() => AllSessionIdsInfo(Session.GuiSession);
+        public string AllSessionIdsInfo(string transaction)
+        {
+            return AllSessionIdsInfo(FindSession(transaction).GuiSession);
+        }
 
         public static string AllSessionIdsInfo(GuiSession session)
         {
@@ -315,8 +327,8 @@ namespace RpaLib.SAP
                 })
                 //.Select( d => (T)d["Obj"] )
                 ///*
-                .Select( (d) => {
-                    Log.Write($"Converting to {typeof(T)} id: {d["PathId"]}");
+                .Select((d) => {
+                    SysTrace.WriteLine($"Converting to {typeof(T)} id: {d["PathId"]}");
                     try
                     {
                         return (T)d["Obj"];
@@ -326,7 +338,7 @@ namespace RpaLib.SAP
                         return default(T);
                     }
                 })
-                .Where(x => x != null )
+                .Where(x => x != null)
                 //*/
                 .ToArray();
 
@@ -342,7 +354,7 @@ namespace RpaLib.SAP
         public static Dictionary<string, dynamic>[] AllSessionIds(GuiSession session) => AllDescendantIds(session);
         public static Dictionary<string, dynamic>[] AllDescendantIds(dynamic root)
         {
-            List<Dictionary<string,dynamic>> ids = new List<Dictionary<string,dynamic>>();
+            List<Dictionary<string, dynamic>> ids = new List<Dictionary<string, dynamic>>();
 
             AllDescendantIds(ids, root);
 
@@ -384,38 +396,40 @@ namespace RpaLib.SAP
             return ids;
         }
 
-        public static string CurrentStatusBarInfo()
+        public string CurrentStatusBarInfo(string transaction)
         {
-            GuiStatusbar currentStatusBar = Sap.Session.FindById<GuiStatusbar>("wnd[0]/sbar");
+            Session session = FindSession(transaction);
+            GuiStatusbar currentStatusBar = session.FindById<GuiStatusbar>("wnd[0]/sbar");
 
             return string.Join(Environment.NewLine,
                 $"Current Status Bar properties:",
                 $"  MessageType: {currentStatusBar.MessageType}",
                 $"  Text: {currentStatusBar.Text}");
         }
-        public static bool IsStatusType(StatusType status)
+        public bool IsStatusType(StatusType status, string transaction)
         {
+            Session session = FindSession(transaction);
             string statusLetter = GetStatusTypeLetter(status);
-            if (Regex.IsMatch(Sap.Session.FindById<GuiStatusbar>("wnd[0]/sbar").MessageType, statusLetter, RegexOptions.IgnoreCase))
+            if (Regex.IsMatch(session.FindById<GuiStatusbar>("wnd[0]/sbar").MessageType, statusLetter, RegexOptions.IgnoreCase))
                 return true;
             else
                 return false;
         }
 
-        public static bool IsStatusMessage(string message)
+        public bool IsStatusMessage(string message, string transaction)
         {
-            if (Regex.IsMatch(Sap.Session.FindById<GuiStatusbar>("wnd[0]/sbar").Text, message, RegexOptions.IgnoreCase))
+            Session session = FindSession(transaction);
+            if (Regex.IsMatch(session.FindById<GuiStatusbar>("wnd[0]/sbar").Text, message, RegexOptions.IgnoreCase))
                 return true;
             else
                 return false;
         }
 
-        public static void PressEnter(long timesToPress = 1)
+        public void PressEnter(string transaction, long timesToPress = 1)
         {
+            Session session = FindSession(transaction);
             for (int i = 0; i < timesToPress; i++)
-                Sap.Session.FindById<GuiFrameWindow>("wnd[0]").SendVKey(0); //press enter
+                session.FindById<GuiFrameWindow>("wnd[0]").SendVKey(0); //press enter
         }
     }
 }
-
-    

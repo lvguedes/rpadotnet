@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SapLegacy = RpaLib.SAP.Legacy.Sap;
 
 namespace RpaLib.SAP
 {
@@ -40,7 +41,7 @@ namespace RpaLib.SAP
         {
             Tracing.Log.Write($"Starting to try to extract field {Name} text. ({FullPathId})");
 
-            string text = (RpaLib.SAP.Sap.Session.FindById(fullPathId) as GuiVComponent).Text;
+            string text = (SapLegacy.Session.FindById(fullPathId) as GuiVComponent).Text;
 
             Tracing.Log.Write(string.Join(Environment.NewLine,
                 $"Captured field text from some Tab:",
@@ -53,7 +54,7 @@ namespace RpaLib.SAP
         public void SetText(string value) => SetText(FullPathId, value);
         public void SetText(string fullPathId, string value)
         {
-            (RpaLib.SAP.Sap.Session.FindById(fullPathId) as GuiVComponent).Text = value;
+            (SapLegacy.Session.FindById(fullPathId) as GuiVComponent).Text = value;
             Tracing.Log.Write($"Field \"{Name}\" text changed. New value: \"{value}\"");
         }
 
@@ -61,8 +62,8 @@ namespace RpaLib.SAP
         public void Focus(string fullPathId)
         {
             Tracing.Log.Write($"Trying to move focus to field \"{Name}\"");
-            (RpaLib.SAP.Sap.Session.FindById(fullPathId) as GuiVComponent).SetFocus();
-            (RpaLib.SAP.Sap.Session.FindById(fullPathId) as GuiTextField).CaretPosition = 0;
+            (SapLegacy.Session.FindById(fullPathId) as GuiVComponent).SetFocus();
+            (SapLegacy.Session.FindById(fullPathId) as GuiTextField).CaretPosition = 0;
             Tracing.Log.Write($"Focus set to field: \"{Name}\". Carret position: 0.");
         }
     }
