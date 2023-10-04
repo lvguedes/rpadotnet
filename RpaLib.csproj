@@ -34,6 +34,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AutoItX3.Assembly, Version=3.0.0.0, Culture=neutral, PublicKeyToken=a646454c8d475470, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\AutoItX3.Assembly.dll</HintPath>
+    </Reference>
     <Reference Include="BouncyCastle.Cryptography, Version=2.0.0.0, Culture=neutral, PublicKeyToken=072edcf4a5328938, processorArchitecture=MSIL">
       <HintPath>..\DebugRpaLib\packages\BouncyCastle.Cryptography.2.2.1\lib\net461\BouncyCastle.Cryptography.dll</HintPath>
     </Reference>
@@ -178,8 +182,13 @@
     <Compile Include="SAP\SapComponent.cs" />
     <Compile Include="SAP\Sap.cs" />
     <Compile Include="SAP\Session.cs" />
+    <Compile Include="SAP\StatusTypeEnum.cs" />
     <Compile Include="SAP\Tab.cs" />
     <Compile Include="SAP\Table.cs" />
+    <Compile Include="SDKs\AutoIt\AutoIt.cs" />
+    <Compile Include="SDKs\AutoIt\Exceptions\ProcessNotFoundException.cs" />
+    <Compile Include="SDKs\AutoIt\SendKeysFlagEnum.cs" />
+    <Compile Include="SDKs\AutoIt\WindowStateEnum.cs" />
     <Compile Include="Tracing\Excel.cs" />
     <Compile Include="Tracing\Legacy\Log.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -228,6 +237,11 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Utils\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="SDKs\AutoIt\Assemblies\AutoItX3.Assembly.dll" />
+    <Content Include="SDKs\AutoIt\Assemblies\AutoItX3.Assembly.xml" />
+    <Content Include="SDKs\AutoIt\Assemblies\AutoItX3.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

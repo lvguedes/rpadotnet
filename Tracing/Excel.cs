@@ -7,7 +7,8 @@ using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Office.Interop.Excel; // add Microsoft Excel COM reference
-using DT = System.Data;
+using DataTable = System.Data.DataTable;
+using System.Data;
 using RpaLib.ProcessAutomation;
 
 namespace RpaLib.Tracing
@@ -133,25 +134,28 @@ namespace RpaLib.Tracing
             return cells.ToArray();
         }
 
-        public string[][] ReadCell(int[] rows, int[] cols)
+        public string[][] ReadCell(int[] rows, int[] cols, bool breakAtEmptyLine = false)
         {
             List<string[]> table = new List<string[]>();
 
             foreach (int row in rows)
             {
-                List<string> column = new List<string>();
+                List<string> line = new List<string>();
                 foreach (int col in cols)
                 {
-                    column.Add((string)Worksheet.Rows.Item[row].Columns.Item[col].Text);
+                    line.Add((string)Worksheet.Rows.Item[row].Columns.Item[col].Text);
                 }
-                table.Add(column.ToArray());
+                if (IsEmptyLine(line.ToArray()) && breakAtEmptyLine)
+                    break;
+                else
+                    table.Add(line.ToArray());
             }
             return table.ToArray();
         }
 
-        public string[][] ReadCell(int startRow, int startCol, int endRow, int endCol)
+        public string[][] ReadCell(int startRow, int startCol, int endRow, int endCol, bool breakAtEmptyLine = false)
         {
-            return ReadCell(Range(startRow, endRow), Range(startCol, endCol));
+            return ReadCell(Range(startRow, endRow), Range(startCol, endCol), breakAtEmptyLine);
         }
 
         public string[] ReadCell(int row, int startCol, int endCol)
@@ -204,7 +208,7 @@ namespace RpaLib.Tracing
             string[] writeRow = null,
             string[] writeCol = null,
             string[][] writeTable = null,
-            DT.DataTable writeDataTable = null,
+            DataTable writeDataTable = null,
             bool readAll = false,
             int readRow = -1,
             int readCol = -1,
@@ -272,7 +276,7 @@ namespace RpaLib.Tracing
             return returnValue;
         }
 
-        public static string[][] ReadAll(string filePath, string sheetName, bool visible = false)
+        public static DataTable ReadAll(string filePath, string sheetName, bool visible = false)
         {
             string fileFullPath = Rpa.GetFullPath(filePath);
             Excel excel = new Excel(fileFullPath, sheetName);
@@ -284,9 +288,12 @@ namespace RpaLib.Tracing
 
             var contents = excel.ReadCell(startRow, startCol,
                             excel.UsedRangeCount["rows"],
-                            excel.UsedRangeCount["cols"]);
+                            excel.UsedRangeCount["cols"],
+                            breakAtEmptyLine: true);
 
-            return Transpose(contents);
+            excel.Quit();
+
+            return ArrayStrTableToDataTable(contents);
         }
 
         public static string[][] Transpose(string[][] sheetArray)
@@ -320,6 +327,51 @@ namespace RpaLib.Tracing
             }
 
             return wrapper.ToArray();
+        }
+
+        public static bool IsEmptyLine(string[] line)
+        {
+            bool isEmpty = true;
+            foreach (var col in line)
+            {
+                if (!string.IsNullOrEmpty(col))
+                {
+                    isEmpty = false;
+                    break;
+                }
+            }
+            return isEmpty;
+        }
+
+        // converts an 2 dimensional array of strings (aka String Table) to a DataTable
+        public static DataTable ArrayStrTableToDataTable(string[][] arrayStrTable)
+        {
+            DataTable dataTable = new DataTable();
+
+            // Define dataColumns according to arrayStrTable header
+            var headerCols = arrayStrTable[0];
+            foreach (var col in headerCols)
+            {
+                var dataColumn = new DataColumn();
+                dataColumn.ColumnName = col;
+                dataColumn.DataType = typeof(string);
+                dataTable.Columns.Add(dataColumn);
+            }
+
+            // Define dataRows from definition of dataColumn and assign arrayStrTable values to it
+            var listStrTable = new List<string[]>(arrayStrTable);
+            listStrTable.RemoveAt(0); // remove the header row
+            foreach (var row in listStrTable)
+            {
+                DataRow dataRow = dataTable.NewRow();
+                for (var j = 0; j < row.Length; j++)
+                {
+                    dataRow[headerCols[j]] = row[j];
+                }
+                dataTable.Rows.Add(dataRow);
+            }
+
+            return dataTable;
         }
     }
 }

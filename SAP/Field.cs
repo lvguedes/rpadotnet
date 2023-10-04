@@ -5,19 +5,23 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SapLegacy = RpaLib.SAP.Legacy.Sap;
+using RpaLib.Tracing;
 
 namespace RpaLib.SAP
 {
-    public class Field : SapComponent<GuiTextField>
+    public class Field : SapComponent
     {
-        public string Xml { get; set; }
-        public string Sap { get; set; }
+        public Session Session { get; private set; }
         public Type Datatype { get; set; }
         public string Text
         {
             get => GetText();
             set => SetText(value);
+        }
+
+        public Field(Session session) : base(session)
+        {
+            Session = session;
         }
 
         public dynamic ConvertToDatatype(string value)
@@ -39,11 +43,11 @@ namespace RpaLib.SAP
         public string GetText() => GetText(FullPathId);
         public string GetText(string fullPathId)
         {
-            Tracing.Log.Write($"Starting to try to extract field {Name} text. ({FullPathId})");
+            Trace.WriteLine($"Starting to try to extract field {Name} text. ({FullPathId})");
 
-            string text = (SapLegacy.Session.FindById(fullPathId) as GuiVComponent).Text;
+            string text = Session.FindById<GuiVComponent>(fullPathId).Text;
 
-            Tracing.Log.Write(string.Join(Environment.NewLine,
+            Trace.WriteLine(string.Join(Environment.NewLine,
                 $"Captured field text from some Tab:",
                 $"    Field: {Name}",
                 $"    Value: {text}"));
@@ -54,17 +58,17 @@ namespace RpaLib.SAP
         public void SetText(string value) => SetText(FullPathId, value);
         public void SetText(string fullPathId, string value)
         {
-            (SapLegacy.Session.FindById(fullPathId) as GuiVComponent).Text = value;
-            Tracing.Log.Write($"Field \"{Name}\" text changed. New value: \"{value}\"");
+            Session.FindById<GuiVComponent>(fullPathId).Text = value;
+            Trace.WriteLine($"Field \"{Name}\" text changed. New value: \"{value}\"");
         }
 
         public void Focus() => Focus(FullPathId);
         public void Focus(string fullPathId)
         {
-            Tracing.Log.Write($"Trying to move focus to field \"{Name}\"");
-            (SapLegacy.Session.FindById(fullPathId) as GuiVComponent).SetFocus();
-            (SapLegacy.Session.FindById(fullPathId) as GuiTextField).CaretPosition = 0;
-            Tracing.Log.Write($"Focus set to field: \"{Name}\". Carret position: 0.");
+            Trace.WriteLine($"Trying to move focus to field \"{Name}\"");
+            Session.FindById<GuiVComponent>(fullPathId).SetFocus();
+            Session.FindById<GuiTextField>(fullPathId).CaretPosition = 0;
+            Trace.WriteLine($"Focus set to field: \"{Name}\". Carret position: 0.");
         }
     }
 }

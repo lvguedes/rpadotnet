@@ -7,9 +7,10 @@ using SapLegacy = RpaLib.SAP.Legacy.Sap;
 
 namespace RpaLib.SAP
 {
-    public abstract class SapComponent<T> //: Sap
+    public abstract class SapComponent
     {
         private string _fullPathId;
+        public Session Session { get; private set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public string FullPathId
@@ -27,18 +28,18 @@ namespace RpaLib.SAP
         public string Id { get; set; }
         public static string BasePathId { get; set; }
 
-        public SapComponent()
+        public SapComponent(Session session)
         {
-            //UpdateParentParams();
+            Session = session;
         }
 
         public void UpdateParentParams()
         {
-            SapLegacy.UpdateConnections();
-            SapLegacy.MapExistingSessions();
+            Session.Sap.UpdateConnections();
+            Session.Sap.MapExistingSessions();
         }
 
-        public static dynamic FindById(string fullPathId) => SapLegacy.Session.FindById(fullPathId);
-        public static U FindById<U>(string fullPathId) => (U)SapLegacy.Session.FindById(fullPathId);
+        //public dynamic FindById(string fullPathId) => Session.FindById(fullPathId);
+        //public U FindById<U>(string fullPathId) => Session.FindById<U>(fullPathId);
     }
 }

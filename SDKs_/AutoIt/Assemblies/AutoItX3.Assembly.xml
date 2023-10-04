@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RpaLib</name>
+    </assembly>
+    <members>
+        <member name="T:RpaLib.Database.QueryReturn">
+            <summary>
+            Class that represents the return type of any Query
+            </summary>
+        </member>
+        <member name="M:RpaLib.SAP.Grid.Parse">
+            <summary>
+            Generate the DataTable property by parsing the GuiGridView object.
+            </summary>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Rpa.WaitUntilFileAppear(System.String,System.Int32,System.Int32)">
+            <summary>
+            Waits until a file (full path string) appears within its base directory.
+            It will wait until file appear or timeout exceed. The refresh rate sleep 
+            is also configurable (defaults to 0.5 seconds).
+            </summary>
+            <param name="fileFullPath">The full path to the file it's needed to wait until appear</param>
+            <param name="timeoutSeconds">The timeout in seconds you need to wait</param>
+            <param name="refreshDelay">The time in milliseconds between each refresh in files parent dir </param>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Rpa.WaitUntilFileAppear(System.String,System.String,System.Int32,System.Int32,System.Text.RegularExpressions.RegexOptions)">
+            <summary>
+            Waits until a file that matches the Regex appear in the full path to its parent dir given
+            </summary>
+            <param name="parentDirFullPath">File's parent directory full path</param>
+            <param name="fileRegex">Regex to match the file name</param>
+            <param name="timeoutSeconds">Timeout representing the maximuma time to wait for file until FileNotFoundException be thrown</param>
+            <param name="refreshDelay">The time in milliseconds between each refresh in file's parent directory</param>
+            <param name="regexOpts">Regular Expression matching options to be considered when matching, such as Ignoring Case</param>
+            <exception cref="T:System.IO.FileNotFoundException"></exception>
+        </member>
+        <member name="M:DocuSign.CodeExamples.Authentication.JWTAuth.AuthenticateWithJWT(System.String,System.String,System.String,System.String,System.Byte[])">
+            <summary>
+            Uses Json Web Token (JWT) Authentication Method to obtain the necessary information needed to make API calls.
+            </summary>
+            <returns>Auth token needed for API calls</returns>
+        </member>
+    </members>
+</doc>

@@ -242,3 +242,5 @@ C:\lucas\cygwin\home\loki\git\csharp\rpalib\obj\Debug\RpaLib.csproj.CoreCompileI
 C:\lucas\cygwin\home\loki\git\csharp\rpalib\obj\Debug\RpaLib.csproj.CopyComplete
 C:\lucas\cygwin\home\loki\git\csharp\rpalib\obj\Debug\RpaLib.dll
 C:\lucas\cygwin\home\loki\git\csharp\rpalib\obj\Debug\RpaLib.pdb
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\AutoItX3.Assembly.dll
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\AutoItX3.Assembly.xml

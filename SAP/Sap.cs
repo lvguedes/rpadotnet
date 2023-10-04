@@ -15,24 +15,12 @@ namespace RpaLib.SAP
 {
     public class Sap
     {
-        private static readonly int connTimeoutSeconds = 10;
+        private const int _getSapObjTimeoutSeconds = 10;
+        private const int _connTimeoutSeconds = 10;
         private GuiConnection _connection;
-        private Session _session;
         public Session[] Sessions { get; set; }
         public int TriedConnect { get; private set; } = 0;
         public GuiApplication App { get; set; }
-        /*
-        public Session Session
-        {
-            get => _session;
-            set
-            {
-                _session = value;
-                SysTrace.WriteLine(string.Join(Environment.NewLine,
-                    "Current session (Session) set to:",
-                    Session.SessionInfo(value.GuiSession)));
-            }
-        }*/
         public GuiConnection Connection
         {
             get => _connection;
@@ -52,49 +40,62 @@ namespace RpaLib.SAP
         };
 
         public Sap(string connection, string transaction)
+            : this(connection, user: null, password: null, transaction) { }
+
+        public Sap(string connection, string user, string password, string transaction)
+            : this(connection, user, password, client: null, language: null, transaction) { }
+
+        public Sap(string connection, string user, string password, string client, string language, string transaction, int connTimeoutSeconds = _connTimeoutSeconds, int getSapObjTimeoutSeconds = _getSapObjTimeoutSeconds)
         {
-            CreateSapConnection(connection);
-            MapExistingSessions();
+            Connect(connection, connTimeoutSeconds, getSapObjTimeoutSeconds, user, password, client, language);
             AccessTransaction(transaction);
         }
 
-        public enum StatusType
-        {
-            Error,
-            Warning,
-            Success,
-            Abort,
-            Information
-        }
-
-        private static string GetStatusTypeLetter(StatusType statusType)
-        {
-            switch (statusType)
-            {
-                case StatusType.Error: return "E";
-                case StatusType.Warning: return "W";
-                case StatusType.Success: return "S";
-                case StatusType.Abort: return "A";
-                case StatusType.Information: return "I";
-                default: return null;
-            }
-        }
-
-        private static GuiApplication GetSapInteropApp()
+        private static GuiApplication GetSapInteropApp(int timeout = _getSapObjTimeoutSeconds)
         {
             CSapROTWrapper sapROTWrapper = new CSapROTWrapper();
-            object SapGuilRot = sapROTWrapper.GetROTEntry("SAPGUI");
-            object engine = SapGuilRot.GetType().InvokeMember(
+            object sapGuilRot = null;
+            int timePassed = 0;
+            
+            // try to get SapGuilRot within timeout
+            while(sapGuilRot == null && timePassed < timeout)
+            {
+                sapGuilRot = sapROTWrapper.GetROTEntry("SAPGUI");
+                Thread.Sleep(1000);
+                timePassed++;
+            }
+
+            // use GuilRot to get the scripting engine
+            object engine = sapGuilRot.GetType().InvokeMember(
                 "GetSCriptingEngine",
                 System.Reflection.BindingFlags.InvokeMethod,
-                null, SapGuilRot, null);
+                null, sapGuilRot, null);
 
             return engine as GuiApplication;
         }
 
-        private void CreateSapConnection(string connectionName)
+        private void Login(string user, string password, string client = null, string language = null)
         {
-            App = GetSapInteropApp();
+            GuiSession session = Connection.Children.ElementAt(0) as GuiSession;
+            GuiStatusbar statusBar = (GuiStatusbar)session.FindById("/app/con[0]/ses[0]/wnd[0]/sbar");
+            GuiMainWindow mainWindow = (GuiMainWindow)session.FindById("wnd[0]");
+
+            if (client != null)
+                (session.FindById("wnd[0]/usr/txtRSYST-MANDT") as GuiVComponent).Text = client;
+            if (user != null)
+                (session.FindById("wnd[0]/usr/txtRSYST-BNAME") as GuiVComponent).Text = user;
+            if (password != null)
+                (session.FindById("wnd[0]/usr/pwdRSYST-BCODE") as GuiVComponent).Text = password;
+            if (language != null)
+                (session.FindById("wnd[0]/usr/txtRSYST-LANGU") as GuiVComponent).Text = language;
+
+            if (client != null || user != null || password != null || language != null)
+                mainWindow.SendVKey(0); //press Enter
+        }
+
+        private void CreateSapConnection(string connectionName, int timeoutSeconds = _getSapObjTimeoutSeconds)
+        {
+            App = GetSapInteropApp(timeoutSeconds);
 
             if (App.Connections.Count == 0)
             {
@@ -106,12 +107,14 @@ namespace RpaLib.SAP
             }
         }
 
-        public void Connect(string connectionName, int tryingsLimitInSeconds)
+        public void Connect(string connectionName, int connTimeoutSeconds = _connTimeoutSeconds, int getSapObjTimeoutSeconds = _getSapObjTimeoutSeconds,
+            string user = null, string password = null, string client = null, string language = null)
         {
             try
             {
                 SysTrace.WriteLine($"Connecting with SAP: \"{connectionName}\"");
-                CreateSapConnection(connectionName);
+                CreateSapConnection(connectionName, getSapObjTimeoutSeconds);
+                Login(user, password, client, language);
                 MapExistingSessions();
                 SysTrace.WriteLine($"Connection Succeeded.\n{ConnectionInfo()}");
             }
@@ -121,7 +124,7 @@ namespace RpaLib.SAP
                 SysTrace.WriteLine($"Caught exception\n{ex}");
                 // retry connection within config's file limit
                 TriedConnect++;
-                if (TriedConnect <= tryingsLimitInSeconds)
+                if (TriedConnect <= connTimeoutSeconds)
                 {
                     if (TriedConnect == 1)
                     {
@@ -134,7 +137,7 @@ namespace RpaLib.SAP
 
                     SysTrace.WriteLine($"Tried connecting to SAP for: {TriedConnect} times. Trying again.");
                     Thread.Sleep(1000);
-                    Connect(connectionName, tryingsLimitInSeconds);
+                    Connect(connectionName, connTimeoutSeconds, getSapObjTimeoutSeconds, user, password, client, language);
                 }
                 else
                 {
@@ -176,7 +179,7 @@ namespace RpaLib.SAP
                 SysTrace.WriteLine(string.Join(Environment.NewLine,
                     "Mapping session:",
                     Session.SessionInfo(session)));
-                sessions.Add(new Session(session));
+                sessions.Add(new Session(session, this));
             }
 
             // sort by Session.GuiSession.Info.SessionNumber
@@ -184,7 +187,7 @@ namespace RpaLib.SAP
         }
 
         // high-level function
-        public Session CreateNewSession(string connectionName, string transactionId = null, int useSessionId = -1, int connectionTimeoutSeconds = 10)
+        public Session CreateNewSession(string connectionName, string transactionId = null, int useSessionId = -1, int connectionTimeoutSeconds = _connTimeoutSeconds)
         {
             Session session;
 
@@ -202,7 +205,7 @@ namespace RpaLib.SAP
                 // to create a new session and work upon it
                 session = CreateNewSession();
             }
-            session.GuiSession.LockSessionUI();
+            //session.GuiSession.LockSessionUI();
             session.FindById<GuiFrameWindow>("wnd[0]").Iconify();
             if (!string.IsNullOrEmpty(transactionId))
                 session.AccessTransaction(transactionId);
@@ -409,7 +412,7 @@ namespace RpaLib.SAP
         public bool IsStatusType(StatusType status, string transaction)
         {
             Session session = FindSession(transaction);
-            string statusLetter = GetStatusTypeLetter(status);
+            string statusLetter = StatusTypeEnum.GetStatusTypeLetter(status);
             if (Regex.IsMatch(session.FindById<GuiStatusbar>("wnd[0]/sbar").MessageType, statusLetter, RegexOptions.IgnoreCase))
                 return true;
             else

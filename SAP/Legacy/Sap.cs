@@ -14,6 +14,12 @@ using System.Data;
 
 namespace RpaLib.SAP.Legacy
 {
+    public static class Sap { }
+}
+
+/*
+namespace RpaLib.SAP.Legacy
+{
     public static class Sap
     {
         private static readonly int connTimeoutSeconds = 10;
@@ -327,14 +333,14 @@ namespace RpaLib.SAP.Legacy
                     }
                 })
                 .Where(x => x != null )
-                //*/
+                //
                 .ToArray();
 
             /* 
             // Not good when quering the result
             if (objFound.Count() == 0)
                 objFound = null;
-            */
+           // 
 
             return objFound;
         }
@@ -356,7 +362,7 @@ namespace RpaLib.SAP.Legacy
                 if (child.ContainerType)
                     AllDescendantIds(ids, child);
             }
-            */
+            
 
             Action<dynamic> addNodeToList =
                 (dynamic node) =>
@@ -418,4 +424,4 @@ namespace RpaLib.SAP.Legacy
     }
 }
 
-    
+*/

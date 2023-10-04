@@ -10,28 +10,33 @@ using RpaLib.Tracing;
 
 namespace RpaLib.SAP
 {
-    public class Grid : SapComponent<GuiGridView>, ISapTabular
+    public class Grid : SapComponent, ISapTabular
     {
         public GuiGridView GuiGridView { get; private set; }
         public DataTable DataTable { get; private set; }
 
-        public Grid() { }
-
-        public Grid(string fullPathId) : this()
+        public Grid(Session session, GuiGridView guiGridView) : base(session)
         {
-            FullPathId = fullPathId;
+            GuiGridView = guiGridView;
+            FullPathId = Rpa.Replace(guiGridView.Id, @"/app/con\[\d+\]/ses\[\d+\]/", string.Empty);
             Refresh();
         }
+
+        public Grid(Session session,  string fullPathId) : this(session, session.FindById<GuiGridView>(fullPathId))
+        { }
 
         // refreshes datatable info after updating the GuiGridView object
         public void Refresh()
         {
             DataTable = new DataTable();
-            GuiGridView = FindById(FullPathId);
+            GuiGridView = Session.FindById<GuiGridView>(FullPathId);
             Parse();
             Log.Write(Info());
         }
 
+        /// <summary>
+        /// Generate the DataTable property by parsing the GuiGridView object.
+        /// </summary>
         public void Parse()
         {
             GuiGridView.SelectAll();

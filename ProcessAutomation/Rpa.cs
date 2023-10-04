@@ -30,6 +30,8 @@ namespace RpaLib.ProcessAutomation
     public delegate void VoidFuncVoid();
     public static class Rpa
     {
+        public static string Replace(string input, string pattern, string replacement,
+            RegexOptions regexOptions = RegexOptions.IgnoreCase) => Regex.Replace(input, pattern, replacement);
         public static string Match(string input, string pattern, RegexOptions regexOptions = RegexOptions.IgnoreCase) => Regex.Match(input, pattern, regexOptions).Value;
 
         public static bool IsMatch(string input, string pattern, RegexOptions regexOptions = RegexOptions.IgnoreCase) => Regex.IsMatch(input, pattern, regexOptions);

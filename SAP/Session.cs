@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using SapLegacy = RpaLib.SAP.Legacy.Sap;
+using RpaLib.Tracing;
 
 namespace RpaLib.SAP
 {
@@ -14,30 +14,32 @@ namespace RpaLib.SAP
         private int _index;
         public int Index { get => _index; }
         public GuiSession GuiSession { get; set; }
+        public Sap Sap { get; private set; }
 
-        public Session(GuiSession session)
+        public Session(GuiSession session, Sap sap)
         {
             GuiSession = session;
             _index = session.Info.SessionNumber;
+            Sap = sap;
         }
 
-        public void AccessTransaction(string transactionId) => SapLegacy.AccessTransaction(this, transactionId);
+        public void AccessTransaction(string transactionId) => Sap.AccessTransaction(this, transactionId);
         public T FindById<T>(string id) => (T)FindById(id);
 
-        public T[] FindByText<T>(string labelText) => SapLegacy.FindByText<T>(GuiSession, labelText);
+        public T[] FindByText<T>(string labelText) => Sap.FindByText<T>(GuiSession, labelText);
 
         public void CreateNewSession() => CreateNewSession(this);
         public void CreateNewSession(Session session)
         {
-            Tracing.Log.Write($"Creating a new session from Session[{session.Index}]...");
+            Trace.WriteLine($"Creating a new session from Session[{session.Index}]...");
             session.GuiSession.CreateSession();
             Thread.Sleep(2000); // wait otherwise new session cannot be captured
             //Log.MessageBox("New session created.");
-            SapLegacy.UpdateConnections();
-            SapLegacy.MapExistingSessions();
-            Tracing.Log.Write(string.Join(Environment.NewLine,
+            Sap.UpdateConnections();
+            Sap.MapExistingSessions();
+            Trace.WriteLine(string.Join(Environment.NewLine,
                 $"The connection after creating a new session and updating connection through interop engine:",
-                SapLegacy.ConnectionInfo()));
+                Sap.ConnectionInfo()));
             //Log.MessageBox("Verify info");
         }
 
@@ -81,11 +83,17 @@ namespace RpaLib.SAP
 
         public GuiComponent FindById(string pathId)
         {
-            Tracing.Log.Write(string.Join(Environment.NewLine,
+            Trace.WriteLine(string.Join(Environment.NewLine,
                 $"Trying to find by id ({pathId})",
                 $"The current working session is:",
                 this));
             return GuiSession.FindById(pathId);
+        }
+
+        public Grid NewGridView(string idGuiGridView) => NewGridView(FindById<GuiGridView>(idGuiGridView));
+        public Grid NewGridView(GuiGridView guiGridView)
+        {
+            return new Grid(this, guiGridView);
         }
 
         public string AllSessionIdsInfo() => Sap.AllSessionIdsInfo(GuiSession);

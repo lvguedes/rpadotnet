@@ -12,8 +12,9 @@ using RpaLib.Tracing;
 namespace RpaLib.SAP
 {
 
-    public class Table : SapComponent<GuiTableControl>, ISapTabular
+    public class Table : SapComponent, ISapTabular
     {
+        public Session Session { get; private set; }
         public GuiTableControl GuiTableControl { get; private set; }
 
         private DataTable dt;
@@ -30,16 +31,17 @@ namespace RpaLib.SAP
             }
         }
 
-        public Table()
-            : this(name: string.Empty, fullPathId: string.Empty)
+        public Table(Session session)
+            : this(session: session, name: string.Empty, fullPathId: string.Empty)
         { }
 
-        public Table(string fullPathId)
-            : this(name: string.Empty, fullPathId)
+        public Table(Session session, string fullPathId)
+            : this(session, name: string.Empty, fullPathId)
         { }
 
-        public Table(string name, string fullPathId)
+        public Table(Session session, string name, string fullPathId) : base(null)
         {
+            Session = session;
             Name = name;
             FullPathId = fullPathId;
             DataTable = new DataTable();
@@ -51,7 +53,7 @@ namespace RpaLib.SAP
         private void RefreshTableObj()
         {
             Log.Write("Refreshing the GuiTableControl object...");
-            GuiTableControl = FindById<GuiTableControl>(FullPathId);
+            GuiTableControl = Session.FindById<GuiTableControl>(FullPathId);
         }
         private void ResetScrolling()
         {
