@@ -9,7 +9,6 @@ using System.Net;
 using System.Threading;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
-using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using System.Data;
@@ -30,12 +29,20 @@ namespace RpaLib.ProcessAutomation
     public delegate void VoidFuncVoid();
     public static class Rpa
     {
+        [DllImport("Kernel32.dll", SetLastError = true)]
+        public static extern int SetStdHandle(int device, IntPtr handle);
+
+        #region RegularExpressions
+
         public static string Replace(string input, string pattern, string replacement,
             RegexOptions regexOptions = RegexOptions.IgnoreCase) => Regex.Replace(input, pattern, replacement);
         public static string Match(string input, string pattern, RegexOptions regexOptions = RegexOptions.IgnoreCase) => Regex.Match(input, pattern, regexOptions).Value;
 
         public static bool IsMatch(string input, string pattern, RegexOptions regexOptions = RegexOptions.IgnoreCase) => Regex.IsMatch(input, pattern, regexOptions);
 
+        #endregion
+
+        #region FileSystem
         /// <summary>
         /// Waits until a file (full path string) appears within its base directory.
         /// It will wait until file appear or timeout exceed. The refresh rate sleep 
@@ -97,6 +104,36 @@ namespace RpaLib.ProcessAutomation
             return Directory.GetFiles(dirFullPath).Cast<string>().Where(x => IsMatch(x, fileNameRegex)).ToArray();
         }
 
+        public static string GetFullPath(string partialOrWithEnvVarsPath) =>
+            Path.GetFullPath(Environment.ExpandEnvironmentVariables(partialOrWithEnvVarsPath));
+
+        public static void Unzip(string sourceArchiveName, string destinationDirectoryName)
+        {
+            string sourceFile = GetFullPath(sourceArchiveName);
+            string destDir = GetFullPath(destinationDirectoryName);
+            ZipFile.ExtractToDirectory(sourceFile, destDir);
+        }
+
+        public static void MoveFileForced(string sourcePath, string destPath)
+        {
+            string sourceFullPath = GetFullPath(sourcePath);
+            string destFullPath = GetFullPath(destPath);
+
+            /*
+            foreach (string file in MatchAllFiles(Path.GetFileName(sourceFullPath), Path.GetDirectoryName(destFullPath)))
+                File.Delete(file);
+            */
+
+            if (IsFileInDir(Path.GetFileName(sourceFullPath), Path.GetDirectoryName(destFullPath)))
+                File.Delete(Path.Combine(Path.GetDirectoryName(destFullPath), Path.GetFileName(sourceFullPath)));
+
+            File.Move(sourceFullPath, destFullPath);
+        }
+
+        #endregion
+
+        #region Processes
+
         public static void WaitProcessStart(string processName, int timeoutSeconds = 300, int refreshDelayMillisec = 0, bool outputProcesses = false)
         {
             Stopwatch timer = new Stopwatch();
@@ -136,6 +173,16 @@ namespace RpaLib.ProcessAutomation
             }
         }
 
+        public static bool ProcessExists(string processNamePattern)
+        {
+            foreach (var proc in Process.GetProcesses())
+            {
+                if (IsMatch(proc.ProcessName, processNamePattern))
+                    return true;
+            }
+            return false;
+        }
+
         public static void KillProcess(string processName, bool outputProcesses = false)
         {
             foreach (Process proc in Process.GetProcessesByName(processName))
@@ -145,17 +192,17 @@ namespace RpaLib.ProcessAutomation
             }
         }
 
-        public static void StartWaitProcess(string processPath, int timeoutSeconds = 300, bool outputProcesses = false)
+        public static void StartWaitProcess(string exePath, int timeoutSeconds = 300, bool outputProcesses = false)
         {
-            string fullPath = Path.GetFullPath(processPath);
+            string fullPath = Path.GetFullPath(exePath);
             string name = Path.GetFileNameWithoutExtension(fullPath);
 
             StartWaitProcess(fullPath, name, timeoutSeconds, outputProcesses);
         }
 
-        public static void StartWaitProcess(string processPath, string processName, int timeoutSeconds = 300, bool outputProcesses = false)
+        public static void StartWaitProcess(string exePath, string processName, int timeoutSeconds = 300, bool outputProcesses = false)
         {
-            Process.Start(processPath);
+            Process.Start(exePath);
             WaitProcessStart(processName, timeoutSeconds, outputProcesses: outputProcesses);
         }
 
@@ -166,8 +213,37 @@ namespace RpaLib.ProcessAutomation
             if (showDebugMessages) Trace.WriteLine("Continuing execution");
         }
 
-        [DllImport("Kernel32.dll", SetLastError = true)]
-        public static extern int SetStdHandle(int device, IntPtr handle);
+        #endregion
+
+        #region Serialization
+
+        public static string Json(dynamic obj)
+        {
+            return JsonConvert.SerializeObject(obj, Formatting.Indented);
+        }
+
+        public static dynamic YamlDeserialize(string path)
+        {
+            return YamlDeserialize<dynamic>(path);
+        }
+
+        public static T YamlDeserialize<T>(string path)
+        {
+            string fullPath = Path.GetFullPath(path);
+            string yamlText = File.ReadAllText(fullPath);
+
+            var deserializer = new DeserializerBuilder()
+                .WithNamingConvention(PascalCaseNamingConvention.Instance)
+                .Build();
+
+            T yamlDeserialized = deserializer.Deserialize<T>(yamlText);
+
+            return yamlDeserialized;
+        }
+
+        #endregion
+
+        #region DataPrinting
 
         public static string PrintDataTable(DataTable dtable)
         {
@@ -203,6 +279,10 @@ namespace RpaLib.ProcessAutomation
             return dataRow.ToString();
         }
 
+        #endregion
+
+        #region DataConvertions
+
         public static ICollection<T> COMCollectionToICollection<T>(dynamic comObj)
         {
             ICollection<T> collection = new List<T>();
@@ -213,24 +293,9 @@ namespace RpaLib.ProcessAutomation
             return collection;
         }
 
-        public static dynamic YamlDeserialize(string path)
-        {
-            return YamlDeserialize<dynamic>(path);
-        }
+        #endregion
 
-        public static T YamlDeserialize<T>(string path)
-        {
-            string fullPath = Path.GetFullPath(path);
-            string yamlText = File.ReadAllText(fullPath);
-
-            var deserializer = new DeserializerBuilder()
-                .WithNamingConvention(PascalCaseNamingConvention.Instance)
-                .Build();
-
-            T yamlDeserialized = deserializer.Deserialize<T>(yamlText);
-
-            return yamlDeserialized;
-        }
+        #region CmdPrompt
 
         public static void RunAsAdmin(string fileName)
         {
@@ -264,6 +329,10 @@ namespace RpaLib.ProcessAutomation
 
             return cmdOutput;
         }
+
+        #endregion
+
+        #region APIs
 
         // returns true if file was downloaded, otherwise returns false
         public static void DownloadFile(string url, string downloadPath)
@@ -304,40 +373,6 @@ namespace RpaLib.ProcessAutomation
             return content;
         }
 
-        public static string GetFullPath(string partialOrWithEnvVarsPath) =>
-            Path.GetFullPath(Environment.ExpandEnvironmentVariables(partialOrWithEnvVarsPath));
-
-        public static void Unzip(string sourceArchiveName, string destinationDirectoryName)
-        {
-            string sourceFile = GetFullPath(sourceArchiveName);
-            string destDir = GetFullPath(destinationDirectoryName);
-            ZipFile.ExtractToDirectory(sourceFile, destDir);
-        }
-
-        public static void MoveFileForced(string sourcePath, string destPath)
-        {
-            string sourceFullPath = GetFullPath(sourcePath);
-            string destFullPath = GetFullPath(destPath);
-
-            /*
-            foreach (string file in MatchAllFiles(Path.GetFileName(sourceFullPath), Path.GetDirectoryName(destFullPath)))
-                File.Delete(file);
-            */
-
-            if (IsFileInDir(Path.GetFileName(sourceFullPath), Path.GetDirectoryName(destFullPath)))
-                File.Delete(Path.Combine(Path.GetDirectoryName(destFullPath), Path.GetFileName(sourceFullPath)));
-
-            File.Move(sourceFullPath, destFullPath);
-        }
-
-        public static string Json(dynamic obj)
-        {
-            return JsonConvert.SerializeObject(obj, Formatting.Indented);
-        }
-    }
-
-    public interface IRpaException
-    {
-        string UserMsg();
+        #endregion
     }
 }

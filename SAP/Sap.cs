@@ -399,35 +399,6 @@ namespace RpaLib.SAP
             return ids;
         }
 
-        public string CurrentStatusBarInfo(string transaction)
-        {
-            Session session = FindSession(transaction);
-            GuiStatusbar currentStatusBar = session.FindById<GuiStatusbar>("wnd[0]/sbar");
-
-            return string.Join(Environment.NewLine,
-                $"Current Status Bar properties:",
-                $"  MessageType: {currentStatusBar.MessageType}",
-                $"  Text: {currentStatusBar.Text}");
-        }
-        public bool IsStatusType(StatusType status, string transaction)
-        {
-            Session session = FindSession(transaction);
-            string statusLetter = StatusTypeEnum.GetStatusTypeLetter(status);
-            if (Regex.IsMatch(session.FindById<GuiStatusbar>("wnd[0]/sbar").MessageType, statusLetter, RegexOptions.IgnoreCase))
-                return true;
-            else
-                return false;
-        }
-
-        public bool IsStatusMessage(string message, string transaction)
-        {
-            Session session = FindSession(transaction);
-            if (Regex.IsMatch(session.FindById<GuiStatusbar>("wnd[0]/sbar").Text, message, RegexOptions.IgnoreCase))
-                return true;
-            else
-                return false;
-        }
-
         public void PressEnter(string transaction, long timesToPress = 1)
         {
             Session session = FindSession(transaction);

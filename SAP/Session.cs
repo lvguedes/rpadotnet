@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using RpaLib.Tracing;
+using RpaLib.ProcessAutomation;
 
 namespace RpaLib.SAP
 {
@@ -15,6 +16,20 @@ namespace RpaLib.SAP
         public int Index { get => _index; }
         public GuiSession GuiSession { get; set; }
         public Sap Sap { get; private set; }
+        public GuiStatusbar CurrentStatusBar
+        {
+            get
+            {
+                return FindById<GuiStatusbar>("wnd[0]/sbar");
+            }
+        }
+        public GuiFrameWindow CurrentFrameWindow
+        {
+            get
+            {
+                return FindById<GuiFrameWindow>("wnd[0]");
+            }
+        }
 
         public Session(GuiSession session, Sap sap)
         {
@@ -97,5 +112,42 @@ namespace RpaLib.SAP
         }
 
         public string AllSessionIdsInfo() => Sap.AllSessionIdsInfo(GuiSession);
+
+        public void ShowAllSessionIdsInfo() => Trace.WriteLine(AllSessionIdsInfo());
+
+        public string CurrentStatusBarInfo()
+        {
+            return string.Join(Environment.NewLine,
+                $"Current Status Bar properties:",
+                $"  MessageType: {CurrentStatusBar.MessageType}",
+                $"  Text: {CurrentStatusBar.Text}");
+        }
+
+        public void ShowCurrentStatusBarInfo()
+        {
+            Trace.WriteLine(CurrentStatusBarInfo());
+        }
+        public bool IsStatusType(StatusType status)
+        {
+            string statusLetter = StatusTypeEnum.GetStatusTypeLetter(status);
+            if (Rpa.IsMatch(CurrentStatusBar.MessageType, statusLetter))
+                return true;
+            else
+                return false;
+        }
+
+        public bool IsStatusMessage(string message)
+        {
+            if (Rpa.IsMatch(CurrentStatusBar.Text, message))
+                return true;
+            else
+                return false;
+        }
+
+        public void PressEnter(int timesToPress = 1)
+        {
+            for (int i = 0; i < timesToPress; i++)
+                CurrentFrameWindow.SendVKey(0);
+        }
     }
 }
