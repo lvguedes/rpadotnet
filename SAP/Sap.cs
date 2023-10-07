@@ -9,35 +9,47 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using SysTrace = System.Diagnostics.Trace;
+using RpaLib.Tracing;
 
 namespace RpaLib.SAP
 {
+    /// <summary>
+    /// Class to ease SAP controlling and data scrapping through SAPGui
+    /// </summary>
     public class Sap
     {
         private const int _getSapObjTimeoutSeconds = 10;
         private const int _connTimeoutSeconds = 10;
-        private GuiConnection _connection;
-        public Session[] Sessions { get; set; }
+        private const string _defaultFirstTransaction = "SESSION_MANAGER";
+        public App App { get; private set; } = new App();
+        private Connection _connection;
         public int TriedConnect { get; private set; } = 0;
-        public GuiApplication App { get; set; }
-        public GuiConnection Connection
+        public Session FirstSessionAfterConnection { get; private set; }
+        public Connection Connection
         {
             get => _connection;
-            set
+            private set
             {
                 _connection = value;
-                SysTrace.WriteLine(string.Join(Environment.NewLine,
+                Trace.WriteLine(string.Join(Environment.NewLine,
                     $"Current connection (Connection) set to:",
-                    ConnectionInfo(value, this)));
+                    value));
             }
         }
-        public static GuiConnection[] Connections { get; set; }
+        public static Connection[] Connections
+        {
+            get => App.GetConnections();
+        }
         public static dynamic SapExe { get; } = new
         {
             BaseName = @"saplogon",
             FullPath = @"C:\Program Files (x86)\SAP\FrontEnd\SAPgui\saplogon.exe"
         };
+
+        public Sap(Connection connection)
+        {
+            Connection = connection;
+        }
 
         public Sap(string connection, string transaction)
             : this(connection, user: null, password: null, transaction) { }
@@ -48,36 +60,22 @@ namespace RpaLib.SAP
         public Sap(string connection, string user, string password, string client, string language, string transaction, int connTimeoutSeconds = _connTimeoutSeconds, int getSapObjTimeoutSeconds = _getSapObjTimeoutSeconds)
         {
             Connect(connection, connTimeoutSeconds, getSapObjTimeoutSeconds, user, password, client, language);
-            AccessTransaction(transaction);
+            FirstSessionAfterConnection = AccessTransaction(transaction);
         }
 
-        private static GuiApplication GetSapInteropApp(int timeout = _getSapObjTimeoutSeconds)
-        {
-            CSapROTWrapper sapROTWrapper = new CSapROTWrapper();
-            object sapGuilRot = null;
-            int timePassed = 0;
-            
-            // try to get SapGuilRot within timeout
-            while(sapGuilRot == null && timePassed < timeout)
-            {
-                sapGuilRot = sapROTWrapper.GetROTEntry("SAPGUI");
-                Thread.Sleep(1000);
-                timePassed++;
-            }
+        #region Connection
 
-            // use GuilRot to get the scripting engine
-            object engine = sapGuilRot.GetType().InvokeMember(
-                "GetSCriptingEngine",
-                System.Reflection.BindingFlags.InvokeMethod,
-                null, sapGuilRot, null);
-
-            return engine as GuiApplication;
-        }
-
+        /// <summary>
+        /// Low-level method to resolve login after starting a connection.
+        /// </summary>
+        /// <param name="user">The SAP user's username.</param>
+        /// <param name="password">The SAP user's password.</param>
+        /// <param name="client">???</param>
+        /// <param name="language">???</param>
         private void Login(string user, string password, string client = null, string language = null)
         {
-            GuiSession session = Connection.Children.ElementAt(0) as GuiSession;
-            GuiStatusbar statusBar = (GuiStatusbar)session.FindById("/app/con[0]/ses[0]/wnd[0]/sbar");
+            GuiSession session = Connection.GuiConnection.Children.ElementAt(0) as GuiSession;
+            GuiStatusbar statusBar = (GuiStatusbar)session.FindById("wnd[0]/sbar");
             GuiMainWindow mainWindow = (GuiMainWindow)session.FindById("wnd[0]");
 
             if (client != null)
@@ -93,49 +91,56 @@ namespace RpaLib.SAP
                 mainWindow.SendVKey(0); //press Enter
         }
 
+        /// <summary>
+        /// Low-level method to create a new connection to SAP Logon UI using the interop DLL.
+        /// </summary>
+        /// <param name="connectionName">The connection name (label-like description).</param>
+        /// <param name="timeoutSeconds">Timeout in seconds to stay retrying to get the SAP interop object.</param>
         private void CreateSapConnection(string connectionName, int timeoutSeconds = _getSapObjTimeoutSeconds)
         {
-            App = GetSapInteropApp(timeoutSeconds);
-
-            if (App.Connections.Count == 0)
-            {
-                Connection = App.OpenConnection(connectionName);
-            }
-            else
-            {
-                Connection = App.Connections.ElementAt(0) as GuiConnection;
-            }
+            var app = App.GetSapInteropApp(timeoutSeconds);
+            Connection = new Connection(app.OpenConnection(connectionName));
+            App.Update();
         }
-
+        /// <summary>
+        /// Connects to SAP UI object and possibly starts a transaction and do login if parameters were supplied.
+        /// </summary>
+        /// <param name="connectionName">Label-like connection name description.</param>
+        /// <param name="connTimeoutSeconds">Timeout to retry connection by function recall.</param>
+        /// <param name="getSapObjTimeoutSeconds">Internal timeout to keep trying to get SAP interop object.</param>
+        /// <param name="user">SAP login username.</param>
+        /// <param name="password">SAP login password.</param>
+        /// <param name="client">??? discover what it does later.</param>
+        /// <param name="language">??? discover what it does later.</param>
+        /// <exception cref="ExceededRetryLimitSapConnectionException"></exception>
         public void Connect(string connectionName, int connTimeoutSeconds = _connTimeoutSeconds, int getSapObjTimeoutSeconds = _getSapObjTimeoutSeconds,
             string user = null, string password = null, string client = null, string language = null)
         {
             try
             {
-                SysTrace.WriteLine($"Connecting with SAP: \"{connectionName}\"");
+                Trace.WriteLine($"Connecting with SAP: \"{connectionName}\"");
                 CreateSapConnection(connectionName, getSapObjTimeoutSeconds);
                 Login(user, password, client, language);
-                MapExistingSessions();
-                SysTrace.WriteLine($"Connection Succeeded.\n{ConnectionInfo()}");
+                Trace.WriteLine($"Connection Succeeded.\n{Connection}");
             }
             // exception thrown when SAP Connection window is not opened.
             catch (NullReferenceException ex)
             {
-                SysTrace.WriteLine($"Caught exception\n{ex}");
+                Trace.WriteLine($"Caught exception\n{ex}");
                 // retry connection within config's file limit
                 TriedConnect++;
                 if (TriedConnect <= connTimeoutSeconds)
                 {
                     if (TriedConnect == 1)
                     {
-                        SysTrace.WriteLine($"Killing SAP processes by name if it exists: {SapExe.BaseName}");
+                        Trace.WriteLine($"Killing SAP processes by name if it exists: {SapExe.BaseName}");
                         Rpa.KillProcess(SapExe.BaseName);
 
-                        SysTrace.WriteLine($"Starting SAP exe: {SapExe.FullPath}");
+                        Trace.WriteLine($"Starting SAP exe: {SapExe.FullPath}");
                         Rpa.StartWaitProcess(SapExe.FullPath, outputProcesses: true);
                     }
 
-                    SysTrace.WriteLine($"Tried connecting to SAP for: {TriedConnect} times. Trying again.");
+                    Trace.WriteLine($"Tried connecting to SAP for: {TriedConnect} times. Trying again.");
                     Thread.Sleep(1000);
                     Connect(connectionName, connTimeoutSeconds, getSapObjTimeoutSeconds, user, password, client, language);
                 }
@@ -146,48 +151,23 @@ namespace RpaLib.SAP
             }
         }
 
-        // create a new connection or uses the current actually? (if it creates this is an error)
-        public void UpdateConnections()
+        /// <summary>
+        /// Search for a GuiConnection in Connections array using its Id as identifier criteria.
+        /// </summary>
+        /// <param name="connectionId">Connection Id to search for.</param>
+        /// <returns></returns>
+        public Connection FindConnectionById(string connectionId)
         {
-            List<GuiConnection> connections = new List<GuiConnection>();
-            App = GetSapInteropApp();
-
-            foreach (GuiConnection conn in App.Connections)
-            {
-                connections.Add(conn);
-            }
-            Connections = connections.ToArray();
-
-            SysTrace.WriteLine(string.Join(Environment.NewLine,
-                $"Updating connections...",
-                $"The number of existing connections: {connections.Count}",
-                $"Available connections:",
-                ConnectionsInfo(this)));
-
-            Connection = App.Connections.ElementAt(0) as GuiConnection;
-
+            return App.FindConnectionById(connectionId);
         }
 
-        public void MapExistingSessions()
-        {
-            List<Session> sessions = new List<Session>();
+        #endregion
 
-            SysTrace.WriteLine($"Trying to map existing sessions. Number of existing sessions: {Connection.Sessions.Count}");
-
-            foreach (GuiSession session in Connection.Sessions)
-            {
-                SysTrace.WriteLine(string.Join(Environment.NewLine,
-                    "Mapping session:",
-                    Session.SessionInfo(session)));
-                sessions.Add(new Session(session, this));
-            }
-
-            // sort by Session.GuiSession.Info.SessionNumber
-            Sessions = sessions.OrderBy(x => x.GuiSession.Info.SessionNumber).ToArray();
-        }
+        #region Session
 
         // high-level function
-        public Session CreateNewSession(string connectionName, string transactionId = null, int useSessionId = -1, int connectionTimeoutSeconds = _connTimeoutSeconds)
+        public Session CreateNewSession(string connectionName, string transactionId = null, int useSessionId = -1,
+            bool iconify = false, bool lockSessionUi = false, int connectionTimeoutSeconds = _connTimeoutSeconds)
         {
             Session session;
 
@@ -195,18 +175,24 @@ namespace RpaLib.SAP
             {
                 Connect(connectionName, connectionTimeoutSeconds);
             }
+            
             if (useSessionId >= 0)
             {
                 // to work with specific session id
-                session = Sessions[0];
+                session = Connection.Sessions[useSessionId];
             }
             else
             {
                 // to create a new session and work upon it
                 session = CreateNewSession();
             }
-            //session.GuiSession.LockSessionUI();
-            session.FindById<GuiFrameWindow>("wnd[0]").Iconify();
+            
+            if (lockSessionUi)
+                session.GuiSession.LockSessionUI();
+            
+            if (iconify)
+                session.FindById<GuiFrameWindow>("wnd[0]").Iconify();
+            
             if (!string.IsNullOrEmpty(transactionId))
                 session.AccessTransaction(transactionId);
 
@@ -216,63 +202,32 @@ namespace RpaLib.SAP
         // low-level function
         private Session CreateNewSession()
         {
-            int lastSession = Sessions.Length - 1;
-            Sessions[lastSession].CreateNewSession();
-            return FindSession("SESSION_MANAGER");
+            int lastSession = Connection.Sessions.Length - 1;
+            Connection.Sessions[lastSession].CreateNewSession();
+            App.Update();
+            return FindSession(_defaultFirstTransaction);
         }
 
-        public Session FindSession(string transaction) => Sessions.Where(x => x.GuiSession.Info.Transaction.Equals(transaction)).FirstOrDefault();
+        public Session FindSession(string transaction) => Connection.Sessions.Where(x => x.GuiSession.Info.Transaction.Equals(transaction)).FirstOrDefault();
 
-        public void AccessTransaction(string id, string fromTransaction) => AccessTransaction(FindSession(fromTransaction), id);
-        public void AccessTransaction(string id) => AccessTransaction(FindSession("SESSION_MANAGER"), id);
-        public void AccessTransaction(Session session, string id)
+        #endregion
+
+        #region Transaction
+
+        public Session AccessTransaction(string id, string fromTransaction) => AccessTransaction(FindSession(fromTransaction), id);
+        public Session AccessTransaction(string id) => AccessTransaction(FindSession(_defaultFirstTransaction), id);
+        public static Session AccessTransaction(Session session, string id)
         {
-            SysTrace.WriteLine($"Trying to access transaction \"{id}\"");
+            Trace.WriteLine($"Trying to access transaction \"{id}\"");
             session.GuiSession.StartTransaction(id);
-            SysTrace.WriteLine($"Transaction Access: Successful. Transaction assigned to session: [{session.Index}]");
+            Trace.WriteLine($"Transaction Access: Successful. Transaction assigned to session: [{session.Index}]");
+
+            return session;
         }
 
-        public string ConnectionInfo() => ConnectionInfo(Connection, this);
-        public static string ConnectionInfo(GuiConnection connection, Sap sap2obj)
-        {
-            return string.Join(Environment.NewLine,
-                $"  Connection:",
-                $"    Description: \"{connection.Description}\"",
-                $"    ConnectionString: \"{connection.ConnectionString}\"",
-                $"    Sessions: \"{connection.Sessions}\"",
-                $"    Children: \"{connection.Children}\"",
-                $"    DisabledByServer: \"{connection.DisabledByServer}\"",
-                $"",
-                $"  The Sessions/Children elements:",
-                sap2obj.SessionsInfo()
-                );
-        }
+        #endregion
 
-        public static string ConnectionsInfo(Sap sap2obj)
-        {
-            StringBuilder info = new StringBuilder();
-
-            for (int i = 0; i < Connections.Length; i++)
-            {
-                info.AppendLine(string.Join(Environment.NewLine,
-                    $"[{i}]",
-                    ConnectionInfo(Connections[i], sap2obj)
-                    ));
-            }
-            return info.ToString();
-        }
-
-        public string SessionsInfo()
-        {
-            StringBuilder info = new StringBuilder();
-            if (Sessions == null) return "No Sessions";
-            foreach (Session session in Sessions)
-            {
-                info.AppendLine(string.Concat(Environment.NewLine, session));
-            }
-
-            return info.ToString();
-        }
+        #region Info
 
         public string MainWindowInfo(string transaction)
         {
@@ -310,6 +265,10 @@ namespace RpaLib.SAP
             return info.ToString();
         }
 
+        #endregion
+
+        #region UI_Elements
+
         public static T[] FindByText<T>(GuiSession session, string labelText)
         {
             T[] objFound = AllSessionIds(session)
@@ -331,7 +290,7 @@ namespace RpaLib.SAP
                 //.Select( d => (T)d["Obj"] )
                 ///*
                 .Select((d) => {
-                    SysTrace.WriteLine($"Converting to {typeof(T)} id: {d["PathId"]}");
+                    Trace.WriteLine($"Converting to {typeof(T)} id: {d["PathId"]}");
                     try
                     {
                         return (T)d["Obj"];
@@ -365,14 +324,6 @@ namespace RpaLib.SAP
         }
         private static List<Dictionary<string, dynamic>> AllDescendantIds(List<Dictionary<string, dynamic>> ids, dynamic root)
         {
-            /*
-            foreach (dynamic child in root.Children)
-            {
-                if (child.ContainerType)
-                    AllDescendantIds(ids, child);
-            }
-            */
-
             Action<dynamic> addNodeToList =
                 (dynamic node) =>
                 {
@@ -398,6 +349,8 @@ namespace RpaLib.SAP
 
             return ids;
         }
+
+        #endregion
 
         public void PressEnter(string transaction, long timesToPress = 1)
         {

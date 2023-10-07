@@ -13,11 +13,6 @@ using RpaLib.ProcessAutomation;
 
 namespace RpaLib.Tracing
 {
-    public enum InsertMethod
-    {
-        AsRow,
-        AsColumn
-    }
     public class Excel
     {
         public Application Application { get; }

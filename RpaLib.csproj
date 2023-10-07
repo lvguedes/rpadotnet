@@ -158,6 +158,7 @@
     <Compile Include="APIs\Pipefy\Model\CardConnection.cs" />
     <Compile Include="APIs\Pipefy\Model\CardEdge.cs" />
     <Compile Include="APIs\Pipefy\Model\CardField.cs" />
+    <Compile Include="APIs\Pipefy\Model\CardQuery.cs" />
     <Compile Include="APIs\Pipefy\Model\FieldLabel.cs" />
     <Compile Include="APIs\Pipefy\Model\MeQuery.cs" />
     <Compile Include="APIs\Pipefy\Model\PageInfo.cs" />
@@ -175,7 +176,9 @@
     <Compile Include="Database\SharePoint.cs" />
     <Compile Include="Database\Sqlite.cs" />
     <Compile Include="DataExtraction\XmlExceptions.cs" />
+    <Compile Include="SAP\App.cs" />
     <Compile Include="SAP\Button.cs" />
+    <Compile Include="SAP\Connection.cs" />
     <Compile Include="SAP\Field.cs" />
     <Compile Include="SAP\Grid.cs" />
     <Compile Include="SAP\ISapTabular.cs" />
@@ -190,6 +193,7 @@
     <Compile Include="SDKs\AutoIt\SendKeysFlagEnum.cs" />
     <Compile Include="SDKs\AutoIt\WindowStateEnum.cs" />
     <Compile Include="Tracing\Excel.cs" />
+    <Compile Include="Tracing\InsertMethodEnum.cs" />
     <Compile Include="Tracing\Legacy\Log.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProcessAutomation\Rpa.cs" />

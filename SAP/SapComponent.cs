@@ -33,12 +33,6 @@ namespace RpaLib.SAP
             Session = session;
         }
 
-        public void UpdateParentParams()
-        {
-            Session.Sap.UpdateConnections();
-            Session.Sap.MapExistingSessions();
-        }
-
         //public dynamic FindById(string fullPathId) => Session.FindById(fullPathId);
         //public U FindById<U>(string fullPathId) => Session.FindById<U>(fullPathId);
     }

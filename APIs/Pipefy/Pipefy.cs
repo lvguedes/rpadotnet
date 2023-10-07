@@ -144,7 +144,7 @@ namespace RpaLib.APIs.Pipefy
             return GraphQl.Query<PhaseQuery>(query, Uri, Token, JsonSerializerSettings);
         }
 
-        public GraphQlResponse<Card> QueryCard(string cardId)
+        public GraphQlResponse<CardQuery> QueryCard(string cardId)
         {
             string query = @"
             {
@@ -176,7 +176,7 @@ namespace RpaLib.APIs.Pipefy
             }
             ".Replace("$cardId", cardId);
 
-            return GraphQl.Query<Card>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<CardQuery>(query, Uri, Token, JsonSerializerSettings);
         }
 
         public void ShowInfo(PipefyInfo infoType, string phaseId = null)

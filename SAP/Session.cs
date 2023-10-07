@@ -13,9 +13,10 @@ namespace RpaLib.SAP
     public class Session
     {
         private int _index;
+        private const int _sessionWaitMilisec = 2000;
+        public Connection Connection { get; private set; }
         public int Index { get => _index; }
         public GuiSession GuiSession { get; set; }
-        public Sap Sap { get; private set; }
         public GuiStatusbar CurrentStatusBar
         {
             get
@@ -31,11 +32,16 @@ namespace RpaLib.SAP
             }
         }
 
-        public Session(GuiSession session, Sap sap)
+        public string Transaction
         {
-            GuiSession = session;
-            _index = session.Info.SessionNumber;
-            Sap = sap;
+            get => GuiSession.Info.Transaction;
+        }
+
+        public Session(GuiSession guiSession, Connection connection)
+        {
+            GuiSession = guiSession;
+            _index = guiSession.Info.SessionNumber;
+            Connection = connection;
         }
 
         public void AccessTransaction(string transactionId) => Sap.AccessTransaction(this, transactionId);
@@ -48,20 +54,19 @@ namespace RpaLib.SAP
         {
             Trace.WriteLine($"Creating a new session from Session[{session.Index}]...");
             session.GuiSession.CreateSession();
-            Thread.Sleep(2000); // wait otherwise new session cannot be captured
+            Thread.Sleep(_sessionWaitMilisec); // wait otherwise new session cannot be captured
             //Log.MessageBox("New session created.");
-            Sap.UpdateConnections();
-            Sap.MapExistingSessions();
+            //Sap.MapExistingSessions();
             Trace.WriteLine(string.Join(Environment.NewLine,
                 $"The connection after creating a new session and updating connection through interop engine:",
-                Sap.ConnectionInfo()));
-            //Log.MessageBox("Verify info");
+                Connection));
         }
 
         public static string SessionInfo(GuiSession session)
         {
             if (session == null) return "No Session";
             return string.Join(Environment.NewLine,
+                $"    ID: \"{session.Id}\"",
                 $"    ApplicationServer: \"{session.Info.ApplicationServer}\"",
                 $"    Client: \"{session.Info.Client}\"",
                 $"    Codepage: \"{session.Info.Codepage}\"",

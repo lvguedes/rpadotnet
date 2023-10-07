@@ -297,6 +297,11 @@ namespace RpaLib.ProcessAutomation
 
         #region CmdPrompt
 
+        public static void RunAsAdmin(object fileName)
+        {
+            RunAsAdmin(fileName as string);
+        }
+
         public static void RunAsAdmin(string fileName)
         {
             Process proc = new Process();
@@ -319,6 +324,8 @@ namespace RpaLib.ProcessAutomation
 
             startOptions.UseShellExecute = false; // must be false to be able to redirect output below
             startOptions.RedirectStandardOutput = true;
+
+            startOptions.Verb = "runas";
 
             Process ps = Process.Start(startOptions);
 
