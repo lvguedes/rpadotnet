@@ -130,6 +130,14 @@ namespace RpaLib.ProcessAutomation
             File.Move(sourceFullPath, destFullPath);
         }
 
+        public static void CreateFileIfNotExists(string filePath)
+        {
+            var fullFilePath = Rpa.GetFullPath(filePath);
+
+            if (!File.Exists(fullFilePath))
+                File.Create(fullFilePath);
+        }
+
         #endregion
 
         #region Processes

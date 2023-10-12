@@ -101,10 +101,10 @@
       <HintPath>packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.118.0\lib\net46\System.Data.SQLite.dll</HintPath>
     </Reference>
     <Reference Include="System.Data.SQLite.EF6, Version=1.0.118.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <HintPath>packages\System.Data.SQLite.EF6.1.0.118.0\lib\net46\System.Data.SQLite.EF6.dll</HintPath>
+      <HintPath>..\..\projects\cbshro\alteracao-gestor\AlteracaoEstrutura\packages\System.Data.SQLite.EF6.1.0.118.0\lib\net46\System.Data.SQLite.EF6.dll</HintPath>
     </Reference>
     <Reference Include="System.Data.SQLite.Linq, Version=1.0.118.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
-      <HintPath>packages\System.Data.SQLite.Linq.1.0.118.0\lib\net46\System.Data.SQLite.Linq.dll</HintPath>
+      <HintPath>..\..\projects\cbshro\alteracao-gestor\AlteracaoEstrutura\packages\System.Data.SQLite.Linq.1.0.118.0\lib\net46\System.Data.SQLite.Linq.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.IdentityModel.Tokens.Jwt, Version=5.4.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -155,6 +155,7 @@
     <Compile Include="APIs\DocuSignOfficialHelpers\DSHelper.cs" />
     <Compile Include="APIs\DocuSignOfficialHelpers\ExamplesAPIType.cs" />
     <Compile Include="APIs\DocuSignOfficialHelpers\JWTAuth.cs" />
+    <Compile Include="APIs\Pipefy\Exception\CardFieldNotFoundException.cs" />
     <Compile Include="APIs\Pipefy\Model\CardConnection.cs" />
     <Compile Include="APIs\Pipefy\Model\CardEdge.cs" />
     <Compile Include="APIs\Pipefy\Model\CardField.cs" />

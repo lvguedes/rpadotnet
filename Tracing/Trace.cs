@@ -34,7 +34,12 @@ namespace RpaLib.Tracing
         // Copy the Trace stream to a file
         public static void CopyTraceToFile(string filePath)
         {
-            LogFile = File.Open(Rpa.GetFullPath(filePath), FileMode.Append);
+            var fullFilePath = Rpa.GetFullPath(filePath);
+
+            //Rpa.CreateFileIfNotExists(fullFilePath);
+
+            LogFile = File.Open(fullFilePath, FileMode.Append);
+
             var textWritterTraceListener = new TextWriterTraceListener(LogFile);
             textWritterTraceListener.Name = "traceToFile";
             SysTrace.Listeners.Add(textWritterTraceListener);

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using RpaLib.APIs.GraphQL;
 using RpaLib.APIs.Pipefy.Model;
+using RpaLib.APIs.Pipefy.Exception;
 using RpaLib.Tracing;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -48,6 +49,8 @@ namespace RpaLib.APIs.Pipefy
 
             return jsonSerializerSettings;
         }
+
+        #region Queries
 
         public GraphQlResponse<MeQuery> QueryUserInfo()
         {
@@ -179,6 +182,14 @@ namespace RpaLib.APIs.Pipefy
             return GraphQl.Query<CardQuery>(query, Uri, Token, JsonSerializerSettings);
         }
 
+        #endregion
+
+        /// <summary>
+        /// Query pipefy info using API calls and redirects the info output to the Tracing.
+        /// </summary>
+        /// <param name="infoType">A PipefyInfo enum type indicating the kind of information to retrieve.</param>
+        /// <param name="phaseId">The Pipefy phase ID that is needed to perform some queries.</param>
+        /// <exception cref="ArgumentNullException">Thrown when a parameter is needed by some query but wasn't provided.</exception>
         public void ShowInfo(PipefyInfo infoType, string phaseId = null)
         {
             switch (infoType)
@@ -208,6 +219,34 @@ namespace RpaLib.APIs.Pipefy
                     }
                     break;
             }
+        }
+
+        /// <summary>
+        /// Search for a card field which name is equal to "fieldName" parameter. If more than one field is found with the same name
+        /// the first one in the sequence of found fields will be returned.
+        /// </summary>
+        /// <param name="card">The card object to look for.</param>
+        /// <param name="fieldName">The card field name to search.</param>
+        /// <returns></returns>
+        /// <exception cref="CardFieldNotFoundException">Thrown when the card could not be found by the name passed as argument.</exception>
+        public static string GetFieldValue(Card card, string fieldName)
+        {
+            string foundFieldValue = null;
+            var foundFields = from field in card.Fields
+                              where field.Name == fieldName
+                              select field.Value;
+
+            if (foundFields.Count() <= 0)
+            {
+                throw new CardFieldNotFoundException(card.Id, fieldName, foundFields.Count());
+            }
+            else if (foundFields.Count() > 0)
+            {
+                Trace.WriteLine($"Number of fields found: {foundFields.Count()}. The first (index 0) will be selected.");
+                foundFieldValue = foundFields.FirstOrDefault();
+            }
+
+            return foundFieldValue;
         }
     }
 }

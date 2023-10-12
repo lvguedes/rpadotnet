@@ -12,7 +12,7 @@ namespace RpaLib.APIs.GraphQL
 {
     public class GraphQlResponse<T>
     {
-        public dynamic Data { get; private set; }
+        public T Data { get; private set; }
         public dynamic Errors { get; private set; }
         public dynamic Extensions { get; private set; }
         public dynamic ResponseHeaders { get; private set; }

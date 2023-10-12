@@ -15,6 +15,7 @@ namespace RpaLib.Tracing
 {
     public class Excel
     {
+        public const string DefaultSheetName = "Sheet1";
         public Application Application { get; }
         public Workbook Workbook { get; private set; }
         public string FullFilePath { get; private set; }
@@ -289,6 +290,32 @@ namespace RpaLib.Tracing
             excel.Quit();
 
             return ArrayStrTableToDataTable(contents);
+        }
+
+        public static void WriteNextFreeRow(string filePath, DataTable table, string sheetName = DefaultSheetName, bool visible = false)
+        {
+            string fileFullPath = Rpa.GetFullPath(filePath);
+            Excel excel = new Excel(fileFullPath, sheetName);
+
+            excel.ToggleVisible(visible);
+
+            int startRow = excel.UsedRangeCount["rows"] + 1;
+            int startCol = 1;
+
+            List<string[]> rowList = new List<string[]>();
+            for (int i = 0; i < table.Rows.Count; i++)
+            {
+                List<string> row = new List<string>();
+                for (int j = 0; j < table.Columns.Count; j++)
+                {
+                    row.Add($"{table.Rows[i][j]}");
+                }
+                rowList.Add(row.ToArray());
+            }
+            excel.WriteCell(startRow, startCol, rowList.ToArray());
+
+            excel.Save();
+            excel.Quit();
         }
 
         public static string[][] Transpose(string[][] sheetArray)
