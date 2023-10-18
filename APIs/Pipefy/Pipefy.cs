@@ -99,9 +99,10 @@ namespace RpaLib.APIs.Pipefy
                     cursor
                     node {
             	      id
+                      age
             	      fields {
             	        name
-            		phase_field { id }
+            		    phase_field { id }
             	        value
                       }
             	      labels {
@@ -126,6 +127,64 @@ namespace RpaLib.APIs.Pipefy
             }
 
             return GraphQl.Query<PhaseQuery>(query, Uri, Token, JsonSerializerSettings);
+        }
+
+        public enum OrderCardsBy
+        {
+            Nothing,
+            Newer,
+            Older
+        }
+
+        public GraphQlResponse<PhaseQuery> QueryAllPhaseCards(string phaseId, int limit = 0, OrderCardsBy orderBy = OrderCardsBy.Nothing)
+        {
+            List<CardEdge> cardEdges = new List<CardEdge>();
+            GraphQlResponse<PhaseQuery> response;
+
+            string pageCursor = null;
+            bool hasNextPage = false;
+
+            do
+            {
+                response = QueryPhaseCards(phaseId, afterCursor: pageCursor);
+
+                var phaseCards = response.Data.Phase.Cards.Edges;
+                hasNextPage = response.Data.Phase.Cards.Pageinfo.Hasnextpage;
+
+                if (hasNextPage)
+                    pageCursor = response.Data.Phase.Cards.Pageinfo.Endcursor;
+
+                if (phaseCards.Count == 0)
+                {
+                    Trace.WriteLine($"No cards in phase \"[ID: {phaseId}]\". Cards total: {phaseCards.Count}");
+                    return null;
+                }
+
+                foreach (var cardEdge in phaseCards)
+                {
+                    cardEdges.Add(cardEdge);
+
+                    // limit results
+                    if (limit > 0)
+                        if (cardEdges.Count == limit)
+                            break;
+
+                }
+            } while (hasNextPage);
+
+            // order results
+            if (orderBy == OrderCardsBy.Older)
+            {
+                cardEdges = cardEdges.OrderBy(x => x.Node.Age).Reverse().ToList();
+            }
+            else if (orderBy == OrderCardsBy.Newer)
+            {
+                cardEdges = cardEdges.OrderBy(x => x.Node.Age).ToList();
+            }
+
+            response.Data.Phase.Cards.Edges = cardEdges;
+
+            return response;
         }
 
         public GraphQlResponse<PhaseQuery> QueryPhaseFields(string phaseId)
@@ -180,6 +239,34 @@ namespace RpaLib.APIs.Pipefy
             ".Replace("$cardId", cardId);
 
             return GraphQl.Query<CardQuery>(query, Uri, Token, JsonSerializerSettings);
+        }
+
+        #endregion
+
+        #region Mutations
+        /// <summary>
+        /// Move a card to a phase.
+        /// </summary>
+        /// <param name="cardId">The ID of a card. Can be string or int literal in GraphQL.</param>
+        /// <param name="destPhase">The ID of the destination phase. Can be string or int literal in GraphQL.</param>
+        /// <returns>A GraphQlResponse with Data of type CardQuery containing the new card phase.</returns>
+        public GraphQlResponse<CardQuery> MoveCardToPhase(string cardId, string destPhase)
+        {
+            var query = @"
+                mutation {
+                  moveCardToPhase(input: {
+                    card_id: ""<<IdCard>>"",
+                    destination_phase_id: ""<<IdPhase>>""
+                  }) {
+                    card {
+                      current_phase {
+                        id
+                      }
+                    }
+                  }
+                }".Replace("<<IdCard>>", cardId).Replace("<<IdPhase>>", destPhase);
+
+            return GraphQl.Query<CardQuery>(query, Uri, Token);
         }
 
         #endregion
