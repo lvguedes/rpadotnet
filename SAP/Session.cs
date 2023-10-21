@@ -28,7 +28,7 @@ namespace RpaLib.SAP
         {
             get
             {
-                return FindById<GuiFrameWindow>("wnd[0]");
+                return GetWindow(0);
             }
         }
 
@@ -47,9 +47,22 @@ namespace RpaLib.SAP
         public void AccessTransaction(string transactionId) => Sap.AccessTransaction(this, transactionId);
         public T FindById<T>(string id) => (T)FindById(id);
 
-        public T[] FindByText<T>(string labelText) => Sap.FindByText<T>(GuiSession, labelText);
+        /// <summary>
+        /// Search for an element by matching its text with a regex pattern parameter.
+        /// </summary>
+        /// <typeparam name="T">The type of the Sap element you're looking for.</typeparam>
+        /// <param name="labelTextPattern">Regex pattern to search within session. The first found will be returned.</param>
+        /// <returns></returns>
+        public T[] FindByText<T>(string labelTextPattern) => Sap.FindByText<T>(GuiSession, labelTextPattern);
 
+        /// <summary>
+        /// Create a new session using the existing session as creator.
+        /// </summary>
         public void CreateNewSession() => CreateNewSession(this);
+        /// <summary>
+        /// Create a new session from another existing session. The created session goes to collection of opened sessions within App COM object.
+        /// </summary>
+        /// <param name="session">Session used to create the new one.</param>
         public void CreateNewSession(Session session)
         {
             Trace.WriteLine($"Creating a new session from Session[{session.Index}]...");
@@ -149,10 +162,43 @@ namespace RpaLib.SAP
                 return false;
         }
 
-        public void PressEnter(int timesToPress = 1)
+        /// <summary>
+        /// Get session GuiFrameWindow by index.
+        /// </summary>
+        /// <param name="wndIndex">Index of the window. For example, to get the window of ID "/app/conn/wnd[0]" it should be 0.</param>
+        /// <returns></returns>
+        public GuiFrameWindow GetWindow(int wndIndex) => FindById<GuiFrameWindow>($"wnd[{wndIndex}]");
+
+        /// <summary>
+        /// Automate pressing enter for a number of times
+        /// </summary>
+        /// <param name="timesToPress">Number of times to press the enter key.</param>
+        /// <param name="pressingIntervalMillisec">Interval in milliseconds between each key press.</param>
+        /// <param name="wndIndex">GuiFrameWindow index of the window to apply the enter pressing action.</param>
+        public void PressEnter(int timesToPress = 1, int pressingIntervalMillisec = 0, int wndIndex = 0)
         {
             for (int i = 0; i < timesToPress; i++)
-                CurrentFrameWindow.SendVKey(0);
+            {
+                GetWindow(wndIndex).SendVKey(0);
+                Thread.Sleep(pressingIntervalMillisec);
+            }
+        }
+
+        /// <summary>
+        /// Unconditionally close the SAP session GuiFrameWindow. Auto-processes any confirmation pop-up that might appear.
+        /// </summary>
+        /// <param name="confirmButtonTxt">Text in the button to confirm to close the Session window.</param>
+        public void Close(string confirmButtonTxt = "Yes")
+        {
+            bool confirmationPopUpWillAppear = Connection.Sessions.Length == 1;
+
+            CurrentFrameWindow.Close();
+
+            if (confirmationPopUpWillAppear)
+            {
+                // Press "Yes" in confirmation pop-up.
+                FindByText<GuiButton>(confirmButtonTxt).First().Press();
+            }
         }
     }
 }

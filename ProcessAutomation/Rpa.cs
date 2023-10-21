@@ -34,10 +34,33 @@ namespace RpaLib.ProcessAutomation
 
         #region RegularExpressions
 
+        /// <summary>
+        /// Replace a regex pattern match with a replacement string.
+        /// </summary>
+        /// <param name="input">The input string.</param>
+        /// <param name="pattern">The Regular Expression pattern.</param>
+        /// <param name="replacement">The string to replace the pattern found.</param>
+        /// <param name="regexOptions">RegexOptions enum to set regex options.</param>
+        /// <returns>The input string with replacement applied.</returns>
         public static string Replace(string input, string pattern, string replacement,
             RegexOptions regexOptions = RegexOptions.IgnoreCase) => Regex.Replace(input, pattern, replacement);
+        
+        /// <summary>
+        /// Search for the first occurrence of pattern within input string.
+        /// </summary>
+        /// <param name="input">Text where to search for.</param>
+        /// <param name="pattern">Regex pattern representing what to look for.</param>
+        /// <param name="regexOptions">DotNet RegexOptions controling the Regular Expression options.</param>
+        /// <returns>The text found.</returns>
         public static string Match(string input, string pattern, RegexOptions regexOptions = RegexOptions.IgnoreCase) => Regex.Match(input, pattern, regexOptions).Value;
 
+        /// <summary>
+        /// Check if the regex pattern matches somewhere in input string.
+        /// </summary>
+        /// <param name="input">Input text where to search for.</param>
+        /// <param name="pattern">Regex pattern to look for within input text.</param>
+        /// <param name="regexOptions">RegexOptions from dotnet controling regex options.</param>
+        /// <returns>True if pattern was found within input text, false otherwise.</returns>
         public static bool IsMatch(string input, string pattern, RegexOptions regexOptions = RegexOptions.IgnoreCase) => Regex.IsMatch(input, pattern, regexOptions);
 
         #endregion

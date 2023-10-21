@@ -14,17 +14,45 @@ using RpaLib.Tracing;
 namespace RpaLib.SAP
 {
     /// <summary>
-    /// Class to ease SAP controlling and data scrapping through SAPGui
+    /// Class to ease SAP controlling and data scrapping through SAPGui.
+    /// This class is based in a single connection that must be passed somehow to the constructor when instantiating.
+    /// You must create a object of this class for each connection you want to manage.
     /// </summary>
     public class Sap
     {
         private const int _getSapObjTimeoutSeconds = 10;
         private const int _connTimeoutSeconds = 10;
         private const string _defaultFirstTransaction = "SESSION_MANAGER";
+
+        /// <summary>
+        /// Manage the Application COM object through the wrapper class App.
+        /// </summary>
         public App App { get; private set; } = new App();
+
+        /// <summary>
+        /// Backing field for the GuiConnection wrapper.
+        /// </summary>
         private Connection _connection;
+
+        /// <summary>
+        /// How many times a connection was tried to be established.
+        /// </summary>
         public int TriedConnect { get; private set; } = 0;
+
+        /// <summary>
+        /// The first session right after a new connection is opened.
+        /// </summary>
         public Session FirstSessionAfterConnection { get; private set; }
+
+        /// <summary>
+        /// Connection name (description) from the GuiConnection object this class manages.
+        /// The connection name is the same that appears in the connection description in GUI.
+        /// </summary>
+        public string ConnectionName { get => Connection.GuiConnection.Description; }
+
+        /// <summary>
+        /// Sap connection managed by this class. All other methods will refer to this connection.
+        /// </summary>
         public Connection Connection
         {
             get => _connection;
@@ -36,30 +64,75 @@ namespace RpaLib.SAP
                     value));
             }
         }
+
+        /// <summary>
+        /// All connections defined in the GuiApplication object got through its wrapper class App.
+        /// </summary>
         public static Connection[] Connections
         {
             get => App.GetConnections();
         }
-        public static dynamic SapExe { get; } = new
+
+        /// <summary>
+        /// Inner class that model SAP executable info
+        /// </summary>
+        public class SapExeInfo
+        {
+            public string BaseName { get; set; }
+            public string FullPath { get; set; }
+        }
+
+        /// <summary>
+        /// Property to get SAP executable info.
+        /// </summary>
+        public static SapExeInfo SapExe { get; } = new SapExeInfo
         {
             BaseName = @"saplogon",
             FullPath = @"C:\Program Files (x86)\SAP\FrontEnd\SAPgui\saplogon.exe"
         };
 
+        /// <summary>
+        /// Initiate the object of this class with the given connection.
+        /// </summary>
+        /// <param name="connection"></param>
         public Sap(Connection connection)
         {
             Connection = connection;
         }
 
-        public Sap(string connection, string transaction)
-            : this(connection, user: null, password: null, transaction) { }
+        /// <summary>
+        /// Open a new connection with connection description and transaction name. Don't make login, SAP user must be signed in.
+        /// </summary>
+        /// <param name="connectionName">The description name of the connection. The same that appear in GUI.</param>
+        /// <param name="transaction">The transaction name that should be accessed after opening the connection.</param>
+        public Sap(string connectionName, string transaction)
+            : this(connectionName, user: null, password: null, transaction) { }
 
-        public Sap(string connection, string user, string password, string transaction)
-            : this(connection, user, password, client: null, language: null, transaction) { }
+        /// <summary>
+        /// Open a new SAP connection and login to SAP.
+        /// </summary>
+        /// <param name="connectionName">The connection description that appear in GUI.</param>
+        /// <param name="user">The SAP user name.</param>
+        /// <param name="password">The SAP user password.</param>
+        /// <param name="transaction">The transaction name that must be accessed once connected.</param>
+        public Sap(string connectionName, string user, string password, string transaction)
+            : this(connectionName, user, password, client: null, language: null, transaction) { }
 
-        public Sap(string connection, string user, string password, string client, string language, string transaction, int connTimeoutSeconds = _connTimeoutSeconds, int getSapObjTimeoutSeconds = _getSapObjTimeoutSeconds)
+        /// <summary>
+        /// Open a new SAP connection and login. Additionally enable you to set up advanced settings to modify this class internal behavior.
+        /// </summary>
+        /// <param name="connectionName">The connection description that appear in GUI</param>
+        /// <param name="user">The SAP user name.</param>
+        /// <param name="password">The SAP user password.</param>
+        /// <param name="client">???</param>
+        /// <param name="language">???</param>
+        /// <param name="transaction">The transaction name that must be accessed once connected.</param>
+        /// <param name="connTimeoutSeconds">Try to connect by default 10 times waiting 1 second per attempt. 
+        ///                                  The attempts per second can be changed through this parameter.</param>
+        /// <param name="getSapObjTimeoutSeconds">Seconds to stay retrying to get the SAP object when the process is still starting.</param>
+        public Sap(string connectionName, string user, string password, string client, string language, string transaction, int connTimeoutSeconds = _connTimeoutSeconds, int getSapObjTimeoutSeconds = _getSapObjTimeoutSeconds)
         {
-            Connect(connection, connTimeoutSeconds, getSapObjTimeoutSeconds, user, password, client, language);
+            Connect(connectionName, connTimeoutSeconds, getSapObjTimeoutSeconds, user, password, client, language);
             FirstSessionAfterConnection = AccessTransaction(transaction);
         }
 
@@ -105,7 +178,7 @@ namespace RpaLib.SAP
         /// <summary>
         /// Connects to SAP UI object and possibly starts a transaction and do login if parameters were supplied.
         /// </summary>
-        /// <param name="connectionName">Label-like connection name description.</param>
+        /// <param name="connectionName">Label-like connection name description (the same that appear in the description in GUI).</param>
         /// <param name="connTimeoutSeconds">Timeout to retry connection by function recall.</param>
         /// <param name="getSapObjTimeoutSeconds">Internal timeout to keep trying to get SAP interop object.</param>
         /// <param name="user">SAP login username.</param>
@@ -113,7 +186,7 @@ namespace RpaLib.SAP
         /// <param name="client">??? discover what it does later.</param>
         /// <param name="language">??? discover what it does later.</param>
         /// <exception cref="ExceededRetryLimitSapConnectionException"></exception>
-        public void Connect(string connectionName, int connTimeoutSeconds = _connTimeoutSeconds, int getSapObjTimeoutSeconds = _getSapObjTimeoutSeconds,
+        private void Connect(string connectionName, int connTimeoutSeconds = _connTimeoutSeconds, int getSapObjTimeoutSeconds = _getSapObjTimeoutSeconds,
             string user = null, string password = null, string client = null, string language = null)
         {
             try
@@ -155,26 +228,39 @@ namespace RpaLib.SAP
         /// Search for a GuiConnection in Connections array using its Id as identifier criteria.
         /// </summary>
         /// <param name="connectionId">Connection Id to search for.</param>
-        /// <returns></returns>
+        /// <returns>The Connection wrapper object found within App connections collection.</returns>
         public Connection FindConnectionById(string connectionId)
         {
             return App.FindConnectionById(connectionId);
         }
 
+        /// <summary>
+        /// Close the connection managed by this class. Close the connection along with all its sessions.
+        /// </summary>
+        public void CloseConnection() => Connection.GuiConnection.CloseConnection();
+
         #endregion
 
         #region Session
 
-        // high-level function
-        public Session CreateNewSession(string connectionName, string transactionId = null, int useSessionId = -1,
+        /// <summary>
+        /// Create a new session using the last session of Sessions as default creator.
+        /// A new session makes a new SAP Frame window to open and a transaction be starte with it.
+        /// The first transaction opened is always the "SESSION_MANAGER", but you can also specify
+        /// a different transaction to be opened.
+        /// </summary>
+        /// <param name="transactionId">Transaction to be accessed after the connection is opened.</param>
+        /// <param name="useSessionId">Session ID to use as the new session creator.</param>
+        /// <param name="iconify">Option to reduce the frame window size to its minimum. Useful when trying to block user interactions when automating.</param>
+        /// <param name="lockSessionUi">Option to lock Session User Interface so that no user interaction is possible until the session is unlocked
+        ///                             using UnlockSessionUI from GuiSession.</param>
+        /// <param name="connectionTimeoutSeconds">Try to connect by default 10 times waiting 1 second per attempt. 
+        ///                                        The attempts per second can be changed through this parameter.</param>
+        /// <returns></returns>
+        public Session CreateNewSession(string transactionId = null, int useSessionId = -1,
             bool iconify = false, bool lockSessionUi = false, int connectionTimeoutSeconds = _connTimeoutSeconds)
         {
             Session session;
-
-            if (Connection == null)
-            {
-                Connect(connectionName, connectionTimeoutSeconds);
-            }
             
             if (useSessionId >= 0)
             {
@@ -208,18 +294,48 @@ namespace RpaLib.SAP
             return FindSession(_defaultFirstTransaction);
         }
 
+        /// <summary>
+        /// Search for the first session which has the transaction.
+        /// </summary>
+        /// <param name="transaction">Transaction name.</param>
+        /// <returns>A Session (wrapper to GuiSession) object.</returns>
         public Session FindSession(string transaction) => Connection.Sessions.Where(x => x.GuiSession.Info.Transaction.Equals(transaction)).FirstOrDefault();
+
+        /// <summary>
+        /// A session can be closed by calling this method of the connection. Closing the last session of a connection will close the connection, too.
+        /// </summary>
+        /// <param name="sessionId">The id of the session to close (like "/app/con[0]/ses[0]")</param>
+        public void CloseSession(string sessionId) => Connection.GuiConnection.CloseSession(sessionId);
 
         #endregion
 
         #region Transaction
 
-        public Session AccessTransaction(string id, string fromTransaction) => AccessTransaction(FindSession(fromTransaction), id);
-        public Session AccessTransaction(string id) => AccessTransaction(FindSession(_defaultFirstTransaction), id);
-        public static Session AccessTransaction(Session session, string id)
+        /// <summary>
+        /// Find the session with transaction and access the new transaction
+        /// </summary>
+        /// <param name="newTransaction">New transaction to be accessed.</param>
+        /// <param name="sessionWithTransaction">Session with this transaction will be found and changed to the new transaction.</param>
+        /// <returns>A Session wrapper containing the GuiSession object that controls the opened transaction.</returns>
+        public Session AccessTransaction(string newTransaction, string sessionWithTransaction) => AccessTransaction(FindSession(sessionWithTransaction), newTransaction);
+
+        /// <summary>
+        /// Change the transaction of the session opened after establishing the SAP connection.
+        /// </summary>
+        /// <param name="transaction">The name of the new transaction to be switched for.</param>
+        /// <returns>A Session wrapper containing the GuiSession object.</returns>
+        public Session AccessTransaction(string transaction) => AccessTransaction(FindSession(_defaultFirstTransaction), transaction);
+
+        /// <summary>
+        /// Access the transaction within the given session.
+        /// </summary>
+        /// <param name="session">Session in which we need to change the transaction</param>
+        /// <param name="transaction">The transaction name of the new transaction the session is going to access.</param>
+        /// <returns></returns>
+        public static Session AccessTransaction(Session session, string transaction)
         {
-            Trace.WriteLine($"Trying to access transaction \"{id}\"");
-            session.GuiSession.StartTransaction(id);
+            Trace.WriteLine($"Trying to access transaction \"{transaction}\"");
+            session.GuiSession.StartTransaction(transaction);
             Trace.WriteLine($"Transaction Access: Successful. Transaction assigned to session: [{session.Index}]");
 
             return session;
@@ -269,6 +385,13 @@ namespace RpaLib.SAP
 
         #region UI_Elements
 
+        /// <summary>
+        /// Search for an element by matching its text with a regex pattern parameter.
+        /// </summary>
+        /// <typeparam name="T">The type of the Sap element you're looking for.</typeparam>
+        /// <param name="session">The session in which to look for the element.</param>
+        /// <param name="labelText">Regex pattern to search within session. The first found will be returned.</param>
+        /// <returns>An array containing the SAP Gui elements found by text.</returns>
         public static T[] FindByText<T>(GuiSession session, string labelText)
         {
             T[] objFound = AllSessionIds(session)
@@ -312,8 +435,18 @@ namespace RpaLib.SAP
 
             return objFound;
         }
-
+        /// <summary>
+        /// Get all children objects from a given GuiSession recursively.
+        /// </summary>
+        /// <param name="session">The GuiSession object to get the children objects tree as a list.</param>
+        /// <returns>A list of dictionaries containing info about each child object found.</returns>
         public static Dictionary<string, dynamic>[] AllSessionIds(GuiSession session) => AllDescendantIds(session);
+
+        /// <summary>
+        /// Get all children objects recursively from a root object.
+        /// </summary>
+        /// <param name="root">The root object to start parsing the children tree.</param>
+        /// <returns>A list of dictionaries containing info about each child object found.</returns>
         public static Dictionary<string, dynamic>[] AllDescendantIds(dynamic root)
         {
             List<Dictionary<string, dynamic>> ids = new List<Dictionary<string, dynamic>>();
@@ -322,6 +455,13 @@ namespace RpaLib.SAP
 
             return ids.ToArray();
         }
+
+        /// <summary>
+        /// Auxiliar method to get all children objects recursively from a root object.
+        /// </summary>
+        /// <param name="ids">List of captured IDs.</param>
+        /// <param name="root">The root object that will be changed through each recursive call.</param>
+        /// <returns>A list of dictionaries containing info about each child object found.</returns>
         private static List<Dictionary<string, dynamic>> AllDescendantIds(List<Dictionary<string, dynamic>> ids, dynamic root)
         {
             Action<dynamic> addNodeToList =
@@ -352,11 +492,12 @@ namespace RpaLib.SAP
 
         #endregion
 
-        public void PressEnter(string transaction, long timesToPress = 1)
+
+        public void PressEnter(string transaction, long timesToPress = 1, int wndIndex = 0)
         {
             Session session = FindSession(transaction);
             for (int i = 0; i < timesToPress; i++)
-                session.FindById<GuiFrameWindow>("wnd[0]").SendVKey(0); //press enter
+                session.FindById<GuiFrameWindow>($"wnd[{wndIndex}]").SendVKey(0); //press enter
         }
     }
 }

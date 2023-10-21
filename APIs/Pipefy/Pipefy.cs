@@ -143,6 +143,7 @@ namespace RpaLib.APIs.Pipefy
 
             string pageCursor = null;
             bool hasNextPage = false;
+            bool limitReached = false;
 
             do
             {
@@ -156,7 +157,7 @@ namespace RpaLib.APIs.Pipefy
 
                 if (phaseCards.Count == 0)
                 {
-                    Trace.WriteLine($"No cards in phase \"[ID: {phaseId}]\". Cards total: {phaseCards.Count}");
+                    Trace.WriteLine($"No cards in phase \"[ID: {phaseId}]\". Total cards: {phaseCards.Count}");
                     return null;
                 }
 
@@ -167,10 +168,14 @@ namespace RpaLib.APIs.Pipefy
                     // limit results
                     if (limit > 0)
                         if (cardEdges.Count == limit)
+                        {
+                            limitReached = true;
                             break;
-
+                        }
+                
                 }
-            } while (hasNextPage);
+
+            } while (hasNextPage && !limitReached);
 
             // order results
             if (orderBy == OrderCardsBy.Older)
@@ -248,9 +253,9 @@ namespace RpaLib.APIs.Pipefy
         /// Move a card to a phase.
         /// </summary>
         /// <param name="cardId">The ID of a card. Can be string or int literal in GraphQL.</param>
-        /// <param name="destPhase">The ID of the destination phase. Can be string or int literal in GraphQL.</param>
+        /// <param name="destPhaseId">The ID of the destination phase. Can be string or int literal in GraphQL.</param>
         /// <returns>A GraphQlResponse with Data of type CardQuery containing the new card phase.</returns>
-        public GraphQlResponse<CardQuery> MoveCardToPhase(string cardId, string destPhase)
+        public GraphQlResponse<CardQuery> MoveCardToPhase(string cardId, string destPhaseId)
         {
             var query = @"
                 mutation {
@@ -264,7 +269,7 @@ namespace RpaLib.APIs.Pipefy
                       }
                     }
                   }
-                }".Replace("<<IdCard>>", cardId).Replace("<<IdPhase>>", destPhase);
+                }".Replace("<<IdCard>>", cardId).Replace("<<IdPhase>>", destPhaseId);
 
             return GraphQl.Query<CardQuery>(query, Uri, Token);
         }

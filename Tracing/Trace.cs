@@ -45,23 +45,23 @@ namespace RpaLib.Tracing
             SysTrace.Listeners.Add(textWritterTraceListener);
         }
 
-        public static void WriteLine(string message, bool withTimeSpec = true, bool breakLineBeforeP = true)
+        public static void WriteLine(string message, bool withTimeSpec = true, bool breakLineBeforeP = true, ConsoleColor color = ConsoleColor.White)
         {
             string msg = withTimeSpec ? DateTime.Now.ToString(@"[HH:mm:ss.fff] ") + message : message;
             msg = breakLineBeforeP ? "\n" + msg : msg;
-            SysTrace.WriteLine(msg);
+            WriteColorLine(msg, color);
         }
 
-        public static void WriteLine(object value, bool withTimeSpec = true)
+        public static void WriteLine(object value, bool withTimeSpec = true, ConsoleColor color = ConsoleColor.White)
         {
-            WriteLine(value.ToString(), withTimeSpec);
+            WriteLine(value.ToString(), withTimeSpec, color);
         }
 
-        public static void WriteRedLine(string message)
+        private static void WriteColorLine(string message, ConsoleColor color)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
+            Console.ForegroundColor = color;
             SysTrace.WriteLine(message);
-            Console.ForegroundColor = ConsoleColor.White;
+            Console.ForegroundColor = ConsoleColor.White; // turn console color back to default
         }
 
         public static void CloseLogFile()

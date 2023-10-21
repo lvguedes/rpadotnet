@@ -72,7 +72,7 @@ namespace RpaLib.Database
             }
             catch (Exception ex)
             {
-                Trace.WriteRedLine($"Error when trying to connect to OLE.DB Sharepoint.");
+                Trace.WriteLine($"Error when trying to connect to OLE.DB Sharepoint.", color: ConsoleColor.Red);
                 Trace.WriteLine(ex);
                 Console.ReadKey();
                 Environment.Exit(1);
