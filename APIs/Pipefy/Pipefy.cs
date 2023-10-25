@@ -99,6 +99,7 @@ namespace RpaLib.APIs.Pipefy
                     cursor
                     node {
             	      id
+                      createdAt
                       age
             	      fields {
             	        name
@@ -180,11 +181,11 @@ namespace RpaLib.APIs.Pipefy
             // order results
             if (orderBy == OrderCardsBy.Older)
             {
-                cardEdges = cardEdges.OrderBy(x => x.Node.Age).Reverse().ToList();
+                cardEdges = cardEdges.OrderBy(x => x.Node.Createdat).ToList();
             }
             else if (orderBy == OrderCardsBy.Newer)
             {
-                cardEdges = cardEdges.OrderBy(x => x.Node.Age).ToList();
+                cardEdges = cardEdges.OrderBy(x => x.Node.Createdat).Reverse().ToList();
             }
 
             response.Data.Phase.Cards.Edges = cardEdges;
@@ -221,6 +222,7 @@ namespace RpaLib.APIs.Pipefy
                   id
                 }
                 age
+                createdAt
                 expiration {
                   expiredAt
                   shouldExpireAt

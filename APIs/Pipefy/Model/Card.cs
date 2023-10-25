@@ -16,16 +16,16 @@ namespace RpaLib.APIs.Pipefy.Model
         public List<User> Assignees{ get; set; }
         //public List<Attachment> Attachments{ get; set; }
         public int AttachmentsCount { get; set; }
-        //public List<CardAssignee> CardAssignees { get; set; }
+        //public List<CardAssignee> Cardassignees { get; set; }
         public int ChecklistItemsCheckedCount { get; set; }
         public int ChecklistItemsCount { get; set; }
         //public List<CardRelationship> ChildRelations { get; set; }
         //public List<Comment> Comments { get; set; }
         public int CommentsCount { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public User CreatedBy { get; set; }
-        public string CreatorEmail { get; set; }
-        //public CardLateness CurrentLateness { get; set; }
+        public DateTime Createdat { get; set; }
+        public User Createdby { get; set; }
+        public string Creatoremail { get; set; }
+        //public CardLateness Currentlateness { get; set; }
         public Phase CurrentPhase { get; set; }
         public int CurrentPhaseAge { get; set; }
         public bool Done { get; set; }

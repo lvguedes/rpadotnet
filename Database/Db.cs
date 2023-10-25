@@ -27,6 +27,7 @@ namespace RpaLib.Database
 
     public static class Db
     {
+        public static readonly DateTime DEFAULT_DATETIME = DateTime.MinValue;
         public static QueryReturn DataReaderToDataTable(DbDataReader reader, bool debugMessages = false)
         {
             QueryReturn queryReturn = new QueryReturn();
@@ -60,7 +61,28 @@ namespace RpaLib.Database
 
                 for (int j = 0; j < reader.FieldCount; j++)
                 {
-                    queryReturn.Table.Rows[i][j] = reader.GetValue(j);
+                    object normalVal;
+                    object valFromDb = null;
+                    try
+                    {
+                        valFromDb = reader.GetValue(j);
+                    } 
+                    catch (FormatException ex)
+                    {
+                        if (Rpa.IsMatch(ex.Message, @"String was not recognized as a valid DateTime\."))
+                        {
+                            valFromDb = DEFAULT_DATETIME;
+                        }
+                    }
+
+                    DataColumn currentCol = queryReturn.Table.Columns[j];
+
+                    if (currentCol.DataType == typeof(DateTime))
+                        normalVal = valFromDb ?? DEFAULT_DATETIME;
+                    else
+                        normalVal = valFromDb;
+
+                    queryReturn.Table.Rows[i][j] = normalVal;
                 }
             }
 

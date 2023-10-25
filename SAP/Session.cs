@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RpaLib.Tracing;
 using RpaLib.ProcessAutomation;
+using System.Runtime.InteropServices;
 
 namespace RpaLib.SAP
 {
@@ -121,6 +122,28 @@ namespace RpaLib.SAP
                 $"The current working session is:",
                 this));
             return GuiSession.FindById(pathId);
+        }
+
+        /// <summary>
+        /// Verifies if a SAP Gui element exists within session.
+        /// </summary>
+        /// <param name="pathId">The full path id of the element</param>
+        /// <returns>True if found, false otherwise.</returns>
+        public bool Exists(string pathId)
+        {
+            try
+            {
+                FindById(pathId);
+            }
+            catch(COMException ex)
+            {
+                if (Rpa.IsMatch(ex.Message, @""))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public Grid NewGridView(string idGuiGridView) => NewGridView(FindById<GuiGridView>(idGuiGridView));

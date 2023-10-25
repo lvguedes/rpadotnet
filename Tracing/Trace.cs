@@ -52,9 +52,9 @@ namespace RpaLib.Tracing
             WriteColorLine(msg, color);
         }
 
-        public static void WriteLine(object value, bool withTimeSpec = true, ConsoleColor color = ConsoleColor.White)
+        public static void WriteLine(object value, bool withTimeSpec = true, bool breakLineBeforeP = true, ConsoleColor color = ConsoleColor.White)
         {
-            WriteLine(value.ToString(), withTimeSpec, color);
+            WriteLine(value.ToString(), withTimeSpec, breakLineBeforeP, color);
         }
 
         private static void WriteColorLine(string message, ConsoleColor color)

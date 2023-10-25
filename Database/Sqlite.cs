@@ -65,7 +65,7 @@ namespace RpaLib.Database
                 return s.Replace("'", string.Empty);
         }
 
-        public QueryReturn Query(string sqlcmd)
+        public QueryReturn Query(string sqlcmd, bool debugMessages = false)
         {
             QueryResult = new QueryReturn();
             Log.Write($"Trying to run the database query:\n{sqlcmd}");
@@ -80,7 +80,7 @@ namespace RpaLib.Database
 
                 if (sqlCommandType == SqlCommandType.Select)
                 {
-                    QueryResult = Db.DataReaderToDataTable(command.ExecuteReader());
+                    QueryResult = Db.DataReaderToDataTable(command.ExecuteReader(), debugMessages);
                     Trace.WriteLine($"The query result is: \"{QueryResult}\"");
                 }
                 else
