@@ -194,6 +194,8 @@
     <Compile Include="SDKs\AutoIt\SendKeysFlagEnum.cs" />
     <Compile Include="SDKs\AutoIt\WindowStateEnum.cs" />
     <Compile Include="Tracing\Excel.cs" />
+    <Compile Include="Tracing\Exceptions\ExcelException.cs" />
+    <Compile Include="Tracing\Exceptions\WorksheetNotFoundException.cs" />
     <Compile Include="Tracing\InsertMethodEnum.cs" />
     <Compile Include="Tracing\Legacy\Log.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

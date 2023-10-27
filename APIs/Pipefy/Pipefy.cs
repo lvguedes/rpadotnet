@@ -23,10 +23,7 @@ namespace RpaLib.APIs.Pipefy
 
         public Pipefy (string apiToken, string pipeId, string uri = null)
         {
-            if (string.IsNullOrEmpty(uri))
-            {
-                Uri = PipefyDefaultEndPoint;
-            }
+            Uri = uri ?? PipefyDefaultEndPoint;
             
             PipeId = pipeId;
             Token = apiToken;
@@ -99,6 +96,9 @@ namespace RpaLib.APIs.Pipefy
                     cursor
                     node {
             	      id
+                      current_phase {
+                        id
+                      }
                       createdAt
                       age
             	      fields {

@@ -10,6 +10,8 @@ using Microsoft.Office.Interop.Excel; // add Microsoft Excel COM reference
 using DataTable = System.Data.DataTable;
 using System.Data;
 using RpaLib.ProcessAutomation;
+using RpaLib.Tracing.Exceptions;
+using System.Runtime.InteropServices;
 
 namespace RpaLib.Tracing
 {
@@ -32,7 +34,22 @@ namespace RpaLib.Tracing
             SheetName = sheetName;
 
             Workbook = Application.Workbooks.Open(FullFilePath);
-            Worksheet = Workbook.Sheets.Item[SheetName];
+            try
+            {
+                Worksheet = Workbook.Sheets.Item[SheetName];
+            }
+            catch (COMException ex)
+            {
+                if (Rpa.IsMatch(ex.Message, @"Invalid index\. \(Exception from HRESULT: 0x8002000B \(DISP_E_BADINDEX\)\)"))
+                {
+                    throw new WorksheetNotFoundException(sheetName, filePath);
+                }
+                else
+                {
+                    throw ex;
+                }
+            }
+            
 
             UpdateUsedRangeCount();
         }
@@ -58,7 +75,7 @@ namespace RpaLib.Tracing
 
         public void Quit()
         {
-            Workbook.Close();
+            Workbook.Close(SaveChanges: false);
             Application.Quit();
         }
 
@@ -388,7 +405,9 @@ namespace RpaLib.Tracing
                 DataRow dataRow = dataTable.NewRow();
                 for (var j = 0; j < row.Length; j++)
                 {
-                    dataRow[headerCols[j]] = row[j];
+                    var currentColName = headerCols[j];
+                    var currentColIndex = j;
+                    dataRow[j] = row[j];
                 }
                 dataTable.Rows.Add(dataRow);
             }

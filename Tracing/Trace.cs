@@ -21,28 +21,53 @@ namespace RpaLib.Tracing
             CopyTraceToFile(filePath);
         }
 
+        private static TraceListener[] SearchListener(string listenerName)
+        {
+            var foundListeners = SysTrace.Listeners.Cast<TraceListener>().Where(x => x.Name == listenerName).ToArray();
+            return foundListeners;
+        }
+
         // Copy the Trace stream to stdOut or stdErr
         public static void CopyTraceToConsole(bool toStdErr = false)
         {
-            var consoleTracer = new ConsoleTraceListener(toStdErr);
+            const string consoleTracerName = "traceToConsole";
 
-            consoleTracer.Name = "traceToConsole";
+            // Add the listener only if it's not yet added
+            if (SearchListener(consoleTracerName).Length == 0)
+            {
+                var consoleTracer = new ConsoleTraceListener(toStdErr);
 
-            SysTrace.Listeners.Add(consoleTracer);
+                consoleTracer.Name = consoleTracerName;
+
+                SysTrace.Listeners.Add(consoleTracer);
+            }
+            else
+            {
+                Trace.WriteLine($"Trace listener \"{consoleTracerName}\" already exists", color: ConsoleColor.Yellow);
+            }
         }
 
         // Copy the Trace stream to a file
         public static void CopyTraceToFile(string filePath)
         {
-            var fullFilePath = Rpa.GetFullPath(filePath);
+            const string fileTracerName = "traceToFile";
 
-            //Rpa.CreateFileIfNotExists(fullFilePath);
+            if (SearchListener(fileTracerName).Length == 0)
+            {
+                var fullFilePath = Rpa.GetFullPath(filePath);
 
-            LogFile = File.Open(fullFilePath, FileMode.Append);
+                //Rpa.CreateFileIfNotExists(fullFilePath);
 
-            var textWritterTraceListener = new TextWriterTraceListener(LogFile);
-            textWritterTraceListener.Name = "traceToFile";
-            SysTrace.Listeners.Add(textWritterTraceListener);
+                LogFile = File.Open(fullFilePath, FileMode.Append);
+
+                var textWritterTraceListener = new TextWriterTraceListener(LogFile);
+                textWritterTraceListener.Name = "traceToFile";
+                SysTrace.Listeners.Add(textWritterTraceListener);
+            }
+            else
+            {
+                Trace.WriteLine($"Trace listener \"{fileTracerName}\" already exists", color: ConsoleColor.Yellow);
+            }
         }
 
         public static void WriteLine(string message, bool withTimeSpec = true, bool breakLineBeforeP = true, ConsoleColor color = ConsoleColor.White)
