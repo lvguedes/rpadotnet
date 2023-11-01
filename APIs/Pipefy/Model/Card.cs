@@ -22,19 +22,19 @@ namespace RpaLib.APIs.Pipefy.Model
         //public List<CardRelationship> ChildRelations { get; set; }
         //public List<Comment> Comments { get; set; }
         public int CommentsCount { get; set; }
-        public DateTime Createdat { get; set; }
+        public DateTime? Createdat { get; set; }
         public User Createdby { get; set; }
         public string Creatoremail { get; set; }
         //public CardLateness Currentlateness { get; set; }
         public Phase CurrentPhase { get; set; }
         public int CurrentPhaseAge { get; set; }
         public bool Done { get; set; }
-        public DateTime DueDate { get; set; }
+        public DateTime? DueDate { get; set; }
         public string EmailMessagingAddress { get; set; }
         //public CardExpiration expiration { get; set; }
         public bool Expired { get; set; }
         public List<CardField> Fields { get; set; }
-        public DateTime FinishedAt { get; set; }
+        public DateTime? FinishedAt { get; set; }
         public Id Id { get; set; }
         //public List<InboxEmail> InboxEmails { get; set; }
         //public List<Label> Labels { get; set; }
@@ -45,14 +45,14 @@ namespace RpaLib.APIs.Pipefy.Model
         //public List<PhaseDetail> PhasesHistory { get; set; }
         //public Pipe Pipe { get; set; }
         public string PublicFormSubmitterEmail { get; set; }
-        public DateTime StartedCurrentPhaseAt { get; set; }
+        public DateTime? StartedCurrentPhaseAt { get; set; }
         public List<Card> Subtitles { get; set; }
         public string Suid { get; set; }
         //public List<Summary> Summary { get; set; }
         //public List<Summary> SummaryAttributes { get; set; }
         //public List<Summary> SummaryFields { get; set; }
         public string Title { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         public string Url { get; set; }
         public string Uuid { get; set; }
 

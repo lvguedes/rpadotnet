@@ -162,6 +162,7 @@
     <Compile Include="APIs\Pipefy\Model\CardQuery.cs" />
     <Compile Include="APIs\Pipefy\Model\FieldLabel.cs" />
     <Compile Include="APIs\Pipefy\Model\MeQuery.cs" />
+    <Compile Include="APIs\Pipefy\Model\MinimalField.cs" />
     <Compile Include="APIs\Pipefy\Model\PageInfo.cs" />
     <Compile Include="APIs\Pipefy\Model\Phase.cs" />
     <Compile Include="APIs\Pipefy\Model\Card.cs" />

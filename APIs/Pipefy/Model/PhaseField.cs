@@ -30,7 +30,7 @@ namespace RpaLib.APIs.Pipefy.Model
         public Phase Phase { get; set; }
         public bool Required { get; set; }
         public bool SyncedWithCard { get; set; }
-        public String Type { get; set; }
+        public string Type { get; set; }
         public Id Uuid { get; set; }
 
         /*

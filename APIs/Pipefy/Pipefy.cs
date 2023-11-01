@@ -104,6 +104,12 @@ namespace RpaLib.APIs.Pipefy
             	      fields {
             	        name
             		    phase_field { id }
+                        field {
+                          id
+                          options
+                          label
+                          type
+                        }
             	        value
                       }
             	      labels {
@@ -230,6 +236,12 @@ namespace RpaLib.APIs.Pipefy
                 fields {
                   name
                   phase_field { id }
+                  field {
+                    id
+                    options
+                    label
+                    type
+                  }
                   value
                 }
                 labels {

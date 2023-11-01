@@ -11,10 +11,10 @@ namespace RpaLib.APIs.Pipefy.Model
         public List<string> ArrayValue { get; set; }
         public List<User> AssigneeValues { get; set; }
         //public List<PublicRepoItemTypes> ConnectedRepoItems { get; set; }
-        public DateTime Date_Value { get; set; }
-        public DateTime DatetimeValue { get; set; }
-        //public MinimalField Field { get; set; }
-        public DateTime FilledAt { get; set; }
+        public DateTime? Date_Value { get; set; }
+        public DateTime? DatetimeValue { get; set; }
+        public MinimalField Field { get; set; }
+        public DateTime? FilledAt { get; set; }
         public float FloatValue { get; set; }
         public string IndexName { get; set; }
         public List<FieldLabel> LabelValues { get; set; }
@@ -22,7 +22,7 @@ namespace RpaLib.APIs.Pipefy.Model
         public string NativeValues { get; set; }
         public PhaseField PhaseField { get; set; }
         public string ReportValue { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         public string Value { get; set; }
 
         /*
