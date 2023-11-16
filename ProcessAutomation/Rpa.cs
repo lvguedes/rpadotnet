@@ -314,6 +314,12 @@ namespace RpaLib.ProcessAutomation
 
         #region DataConvertions
 
+        /// <summary>
+        /// Converts a COMCollection, where it's impossible to use LINQ, to a ICollection which is LINQable.
+        /// </summary>
+        /// <typeparam name="T">Collection members type</typeparam>
+        /// <param name="comObj">COMCollection object</param>
+        /// <returns>ICollection from input COMCollection</returns>
         public static ICollection<T> COMCollectionToICollection<T>(dynamic comObj)
         {
             ICollection<T> collection = new List<T>();

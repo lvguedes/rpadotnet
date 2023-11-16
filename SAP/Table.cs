@@ -14,20 +14,20 @@ namespace RpaLib.SAP
 
     public class Table : SapComponent, ISapTabular
     {
-        public Session Session { get; private set; }
+        //public Session Session { get; private set; }
         public GuiTableControl GuiTableControl { get; private set; }
 
-        private DataTable dt;
+        private DataTable _dt;
         public DataTable DataTable
         {
             get
             {
                 //Parse();
-                return dt;
+                return _dt;
             }
             private set
             {
-                dt = value;
+                _dt = value;
             }
         }
 
@@ -101,7 +101,7 @@ namespace RpaLib.SAP
                     $"    Position: \"{table.GuiTableControl.VerticalScrollbar.Position}\"",
                     $"    PageSize: \"{table.GuiTableControl.VerticalScrollbar.PageSize}\"",
                     $" --- Table object methods ---"
-                    , $"Filled Rows: {table.dt.Rows.Count}"
+                    , $"Filled Rows: {table._dt.Rows.Count}"
                     //,$"  FulfilledRowsCount(): {table.FulfilledRowsCount()}"
                     //,$"  IsEmpty(): {table.IsEmpty()}"
                     );
@@ -311,11 +311,11 @@ namespace RpaLib.SAP
         public void Parse()
         {
             RefreshTableObj();
-            dt = new DataTable();
+            _dt = new DataTable();
 
             foreach (GuiTableColumn col in GuiTableControl.Columns)
             {
-                dt.Columns.Add(col.Title, typeof(string));
+                _dt.Columns.Add(col.Title, typeof(string));
             }
 
             int fulfilledRowsCount = FulfilledRowsCount();
@@ -323,18 +323,18 @@ namespace RpaLib.SAP
             {
                 ScrollDown(row);
 
-                DataRow datarow = dt.NewRow();
+                DataRow datarow = _dt.NewRow();
                 for (int col = 0; col < GetTableCounters()["columns"]; col++)
                 {
                     //rpa.MessageBox($"Getting cell ({row}, {col})...");
                     datarow[col] = GetCell(row, col).Text;
                 }
-                dt.Rows.Add(datarow);
+                _dt.Rows.Add(datarow);
             }
             ResetScrolling();
         }
 
-        public string PrintDataTable() => Rpa.PrintDataTable(dt);
+        public string PrintDataTable() => Rpa.PrintDataTable(_dt);
         /*
                 public void Find(TableAction action)
                 {

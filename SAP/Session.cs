@@ -124,27 +124,45 @@ namespace RpaLib.SAP
             return GuiSession.FindById(pathId);
         }
 
+        public enum ExistsFilter
+        {
+            ById,
+            ByText,
+        }
+
         /// <summary>
         /// Verifies if a SAP Gui element exists within session.
         /// </summary>
         /// <param name="pathId">The full path id of the element</param>
         /// <returns>True if found, false otherwise.</returns>
-        public bool Exists(string pathId)
+        public bool Exists<T>(string pathIdOrText, ExistsFilter filter = ExistsFilter.ById)
         {
-            try
+            switch (filter)
             {
-                FindById(pathId);
-            }
-            catch(COMException ex)
-            {
-                if (Rpa.IsMatch(ex.Message, @""))
-                {
-                    return false;
-                }
-            }
+                case ExistsFilter.ById:
+                    try
+                    {
+                        FindById<T>(pathIdOrText);
+                    }
+                    catch (COMException ex)
+                    {
+                        if (Rpa.IsMatch(ex.Message, @""))
+                        {
+                            return false;
+                        }
+                    }
+                    break;
 
+                case ExistsFilter.ByText:
+                    var resultList = FindByText<T>(pathIdOrText);
+                    if (resultList.Length == 0)
+                        return false;
+                    break;
+            }         
             return true;
         }
+
+        public bool Exists(string pathId, ExistsFilter filter = ExistsFilter.ById) => Exists<dynamic>(pathId, filter);
 
         public Grid NewGridView(string idGuiGridView) => NewGridView(FindById<GuiGridView>(idGuiGridView));
         public Grid NewGridView(GuiGridView guiGridView)

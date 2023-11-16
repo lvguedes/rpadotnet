@@ -370,12 +370,12 @@ namespace RpaLib.SAP
 
         public static string AllDescendantIdsInfo(dynamic guiContainer)
         {
-            Dictionary<string, dynamic>[] ids = AllDescendantIds(guiContainer);
+            SapGuiComponent[] ids = AllDescendantIds(guiContainer);
             StringBuilder info = new StringBuilder($"All IDs from \"[{guiContainer.Type}]: {guiContainer.Id}\" to its innermost descendant are:\n");
 
             foreach (var id in ids)
             {
-                info.AppendLine($"[{id["Type"]}]: {id["PathId"]}");
+                info.AppendLine($"[{id.Type}]: {id.PathId} \"{id.Text}\"");
             }
 
             return info.ToString();
@@ -395,13 +395,13 @@ namespace RpaLib.SAP
         public static T[] FindByText<T>(GuiSession session, string labelText)
         {
             T[] objFound = AllSessionIds(session)
-                .Cast<Dictionary<string, dynamic>>()
-                .Where(d =>
+                .Cast<SapGuiComponent>()
+                .Where(elt =>
                 {
                     GuiVComponent visualComponent;
                     try
                     {
-                        visualComponent = (GuiVComponent)d["Obj"];
+                        visualComponent = (GuiVComponent)elt.Obj;
                         return Rpa.IsMatch(visualComponent.Text, labelText);
                     }
                     catch (InvalidCastException)
@@ -410,13 +410,11 @@ namespace RpaLib.SAP
                         return false;
                     }
                 })
-                //.Select( d => (T)d["Obj"] )
-                ///*
-                .Select((d) => {
-                    Trace.WriteLine($"Converting to {typeof(T)} id: {d["PathId"]}");
+                .Select((elt) => {
+                    Trace.WriteLine($"Converting to {typeof(T)} id: {elt.PathId}");
                     try
                     {
-                        return (T)d["Obj"];
+                        return (T)elt.Obj;
                     }
                     catch (InvalidCastException)
                     {
@@ -424,7 +422,6 @@ namespace RpaLib.SAP
                     }
                 })
                 .Where(x => x != null)
-                //*/
                 .ToArray();
 
             /* 
@@ -440,20 +437,28 @@ namespace RpaLib.SAP
         /// </summary>
         /// <param name="session">The GuiSession object to get the children objects tree as a list.</param>
         /// <returns>A list of dictionaries containing info about each child object found.</returns>
-        public static Dictionary<string, dynamic>[] AllSessionIds(GuiSession session) => AllDescendantIds(session);
+        public static SapGuiComponent[] AllSessionIds(GuiSession session) => AllDescendantIds(session);
 
         /// <summary>
         /// Get all children objects recursively from a root object.
         /// </summary>
         /// <param name="root">The root object to start parsing the children tree.</param>
         /// <returns>A list of dictionaries containing info about each child object found.</returns>
-        public static Dictionary<string, dynamic>[] AllDescendantIds(dynamic root)
+        public static SapGuiComponent[] AllDescendantIds(dynamic root)
         {
-            List<Dictionary<string, dynamic>> ids = new List<Dictionary<string, dynamic>>();
+            List<SapGuiComponent> ids = new List<SapGuiComponent>();
 
             AllDescendantIds(ids, root);
 
             return ids.ToArray();
+        }
+
+        public class SapGuiComponent
+        {
+            public string PathId { get; set; }
+            public string Type { get; set; }
+            public dynamic Obj { get; set; }
+            public string Text { get; set; }
         }
 
         /// <summary>
@@ -462,17 +467,18 @@ namespace RpaLib.SAP
         /// <param name="ids">List of captured IDs.</param>
         /// <param name="root">The root object that will be changed through each recursive call.</param>
         /// <returns>A list of dictionaries containing info about each child object found.</returns>
-        private static List<Dictionary<string, dynamic>> AllDescendantIds(List<Dictionary<string, dynamic>> ids, dynamic root)
+        private static List<SapGuiComponent> AllDescendantIds(List<SapGuiComponent> ids, dynamic root)
         {
             Action<dynamic> addNodeToList =
                 (dynamic node) =>
                 {
                     ids.Add(
-                        new Dictionary<string, dynamic>
+                        new SapGuiComponent
                         {
-                            { "PathId", (string)node.Id },
-                            { "Type", node.Type }, // Type prop from GuiComponent
-                            { "Obj", node}
+                            PathId = (string)node.Id,
+                            Type = (string)node.Type,
+                            Text = node is GuiVComponent? node.Text : string.Empty,
+                            Obj = node,
                         });
                 };
 

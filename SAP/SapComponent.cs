@@ -10,7 +10,7 @@ namespace RpaLib.SAP
     public abstract class SapComponent
     {
         private string _fullPathId;
-        public Session Session { get; private set; }
+        public Session Session { get; protected set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public string FullPathId

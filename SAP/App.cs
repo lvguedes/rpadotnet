@@ -17,7 +17,7 @@ namespace RpaLib.SAP
     /// </summary>
     public class App
     {
-        private const int _getSapObjTimeoutSeconds = 10;
+        private const int _getSapObjTimeoutSeconds = 20;
         public GuiApplication GuiApplication { get; private set; }
         public string ConnectionErrorText { get; private set; }
         public Connection[] Connections { get; private set; }
