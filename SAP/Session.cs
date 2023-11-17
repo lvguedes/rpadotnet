@@ -56,6 +56,11 @@ namespace RpaLib.SAP
         /// <returns></returns>
         public T[] FindByText<T>(string labelTextPattern) => Sap.FindByText<T>(GuiSession, labelTextPattern);
 
+        public Table FindTable(string pathId)
+        {
+            return new Table(this, pathId);
+        }
+
         /// <summary>
         /// Create a new session using the existing session as creator.
         /// </summary>
@@ -135,18 +140,18 @@ namespace RpaLib.SAP
         /// </summary>
         /// <param name="pathId">The full path id of the element</param>
         /// <returns>True if found, false otherwise.</returns>
-        public bool Exists<T>(string pathIdOrText, ExistsFilter filter = ExistsFilter.ById)
+        public bool Exists<T>(string pathIdOrTextRegex, ExistsFilter filter = ExistsFilter.ById)
         {
             switch (filter)
             {
                 case ExistsFilter.ById:
                     try
                     {
-                        FindById<T>(pathIdOrText);
+                        FindById<T>(pathIdOrTextRegex);
                     }
                     catch (COMException ex)
                     {
-                        if (Rpa.IsMatch(ex.Message, @""))
+                        if (Rpa.IsMatch(ex.Message, @"The control could not be found by id\."))
                         {
                             return false;
                         }
@@ -154,7 +159,7 @@ namespace RpaLib.SAP
                     break;
 
                 case ExistsFilter.ByText:
-                    var resultList = FindByText<T>(pathIdOrText);
+                    var resultList = FindByText<T>(pathIdOrTextRegex);
                     if (resultList.Length == 0)
                         return false;
                     break;
@@ -163,6 +168,10 @@ namespace RpaLib.SAP
         }
 
         public bool Exists(string pathId, ExistsFilter filter = ExistsFilter.ById) => Exists<dynamic>(pathId, filter);
+
+        public bool ExistsByText<T>(string textRegex) => Exists<T>(textRegex, ExistsFilter.ByText);
+
+        public bool ExistsByText(string textRegex) => Exists(textRegex, ExistsFilter.ByText);
 
         public Grid NewGridView(string idGuiGridView) => NewGridView(FindById<GuiGridView>(idGuiGridView));
         public Grid NewGridView(GuiGridView guiGridView)
@@ -195,9 +204,9 @@ namespace RpaLib.SAP
                 return false;
         }
 
-        public bool IsStatusMessage(string message)
+        public bool IsStatusMessage(string messageRegex)
         {
-            if (Rpa.IsMatch(CurrentStatusBar.Text, message))
+            if (Rpa.IsMatch(CurrentStatusBar.Text, messageRegex))
                 return true;
             else
                 return false;

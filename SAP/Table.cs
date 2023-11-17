@@ -31,6 +31,12 @@ namespace RpaLib.SAP
             }
         }
 
+        public int CurrentRow { get; private set; }
+
+        public int RowCount { get; private set; }
+        
+        public int VisibleRowCount { get; private set; }
+
         public Table(Session session)
             : this(session: session, name: string.Empty, fullPathId: string.Empty)
         { }
@@ -47,17 +53,20 @@ namespace RpaLib.SAP
             DataTable = new DataTable();
             RefreshTableObj();
             Parse();
-            Log.Write(Info());
+            Trace.WriteLine(Info());
         }
 
         private void RefreshTableObj()
         {
-            Log.Write("Refreshing the GuiTableControl object...");
+            Trace.WriteLine("Refreshing the GuiTableControl object...");
             GuiTableControl = Session.FindById<GuiTableControl>(FullPathId);
+            CurrentRow = GuiTableControl.CurrentRow;
+            RowCount = GuiTableControl.RowCount;
+            VisibleRowCount = GuiTableControl.VisibleRowCount;
         }
         private void ResetScrolling()
         {
-            Log.Write("Resetting scrollings' position to 0...");
+            Trace.WriteLine("Resetting scrollings' position to 0...");
             TryEmptyCellActionRelax(
                 () =>
                 {
@@ -125,16 +134,16 @@ namespace RpaLib.SAP
                 () =>
                 {
                     //rpa.MessageBox("Checking if scroll is needed");
-                    Log.Write($"Checking if scroll down is needed for row {row}");
+                    Trace.WriteLine($"Checking if scroll down is needed for row {row}");
                     if (row % GuiTableControl.VisibleRowCount == 0 && row != 0)
                     {
                         //rpa.MessageBox("Will scroll down now");
-                        Log.Write("Will scroll down now...");
+                        Trace.WriteLine("Will scroll down now...");
 
                         GuiTableControl.VerticalScrollbar.Position += GuiTableControl.VisibleRowCount;
                         RefreshTableObj();
 
-                        Log.Write(string.Join(Environment.NewLine,
+                        Trace.WriteLine(string.Join(Environment.NewLine,
                             $"Scrolling down...",
                             $"  Old position: {oldPos}",
                             $"  New position: {GuiTableControl.VerticalScrollbar.Position}"));
@@ -157,14 +166,17 @@ namespace RpaLib.SAP
             }
             catch (COMException ex)
             {
-                if (ex.Message.Equals("The server threw an exception. (Exception from HRESULT: 0x80010105 (RPC_E_SERVERFAULT))"))
+                // Add more messages here if different new messages appear for the same error when trying to access a Text property when 
+                // element is empty or there is no element at all.
+                if (ex.Message.Equals("The server threw an exception. (Exception from HRESULT: 0x80010105 (RPC_E_SERVERFAULT))")
+                    || ex.Message.Equals("The method got an invalid argument."))
                 {
                     RefreshTableObj();
                     catchBlock();
                 }
                 else
                 {
-                    Log.Write("Unknown COMException occurred." +
+                    Trace.WriteLine("Unknown COMException occurred." +
                         " It's different from the exception that signals empty cells." +
                         $" See:\n{ex}");
                     throw ex;
@@ -221,13 +233,45 @@ namespace RpaLib.SAP
             RefreshTableObj();
         }
 
-        public GuiTableRow GetRow(int row)
+        public GuiTableRow GetRow(int rowIndex)
         {
-            MakeRowVisible(row);
-            //Rpa.MessageBox($"Will get row {row} now...");
-            //return GuiTableControl.Rows.ElementAt(row % GuiTableControl.VisibleRowCount);
+            // put the rowIndex at the top of table after scrolling
+            MakeRowVisible(rowIndex);
+
+            //Trace.WriteLine($"Will get row {rowIndex} now...");
+            //return GuiTableControl.Rows.ElementAt(rowIndex % GuiTableControl.VisibleRowCount);
+
+            // Get the top row of table
             return GuiTableControl.Rows.ElementAt(0);
         }
+
+        public GuiTableRow GetRow(string cellValueRegex)
+        {
+            var foundRowIndex = _dt.Rows.Cast<DataRow>()
+                .Select((row, index) => (row, index))
+                .Where(
+                    x => x.row.ItemArray
+                        .Where(y => Rpa.IsMatch((string)y, cellValueRegex)).FirstOrDefault() != null)
+                .FirstOrDefault().index;
+
+            return GetRow(foundRowIndex);
+        }
+
+        public void SelectRow(int rowIndex) => GetRow(rowIndex).Selected = true;
+
+        public void SelectRow(string cellValueRegex) => GetRow(cellValueRegex).Selected = true;
+
+        public bool IsRowSelected(int rowIndex) => GetRow(rowIndex).Selected;
+
+        public bool IsRowSelected(string cellValueRegex) => GetRow(cellValueRegex).Selected;
+
+        public bool IsRowSelectable(int rowIndex) => GetRow(rowIndex).Selectable;
+
+        public bool IsRowSelectable(string cellValueRegex) => GetRow(cellValueRegex).Selectable;
+
+        public void SelectAllCols() => GuiTableControl.SelectAllColumns();
+
+        public void DeselectAllCols() => GuiTableControl.DeselectAllColumns();
 
         public int FulfilledRowsCount()
         {
@@ -241,7 +285,7 @@ namespace RpaLib.SAP
 
                 for (int col = 0; col < GetTableCounters()["columns"]; col++)
                 {
-                    Log.Write($"Iteration: row {row}, col {col}");
+                    Trace.WriteLine($"Iteration: row {row}, col {col}");
                     bool isCellNullOrEmpty = false;
                     TryEmptyCellActionRelax(
                         () =>
@@ -271,13 +315,13 @@ namespace RpaLib.SAP
                     {
                         if (ex.Message.Equals("The server threw an exception. (Exception from HRESULT: 0x80010105 (RPC_E_SERVERFAULT))"))
                         {
-                            Log.Write("Caught a null empty cell. Skipping...");
+                            Trace.WriteLine("Caught a null empty cell. Skipping...");
                             RefreshTableObj();
                             break;
                         }
                         else
                         {
-                            Log.Write("Unknown COMException occurred." +
+                            Trace.WriteLine("Unknown COMException occurred." +
                                 " It's different from the exception that signals empty cells." +
                                 $" See:\n{ex}");
                             throw ex;
@@ -303,7 +347,7 @@ namespace RpaLib.SAP
             if (FulfilledRowsCount() == 0)
                 isEmpty = true;
 
-            Log.Write($"Table \"{Name}\" is empty? {isEmpty}");
+            Trace.WriteLine($"Table \"{Name}\" is empty? {isEmpty}");
 
             return isEmpty;
         }
@@ -334,7 +378,7 @@ namespace RpaLib.SAP
             ResetScrolling();
         }
 
-        public string PrintDataTable() => Rpa.PrintDataTable(_dt);
+        public void PrintDataTable() => Trace.WriteLine(Rpa.PrintDataTable(_dt), withTimeSpec: false, color: ConsoleColor.Magenta);
         /*
                 public void Find(TableAction action)
                 {

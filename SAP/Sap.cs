@@ -390,9 +390,9 @@ namespace RpaLib.SAP
         /// </summary>
         /// <typeparam name="T">The type of the Sap element you're looking for.</typeparam>
         /// <param name="session">The session in which to look for the element.</param>
-        /// <param name="labelText">Regex pattern to search within session. The first found will be returned.</param>
+        /// <param name="labelTextRegex">Regex pattern to search within session. The first found will be returned.</param>
         /// <returns>An array containing the SAP Gui elements found by text.</returns>
-        public static T[] FindByText<T>(GuiSession session, string labelText)
+        public static T[] FindByText<T>(GuiSession session, string labelTextRegex)
         {
             T[] objFound = AllSessionIds(session)
                 .Cast<SapGuiComponent>()
@@ -402,7 +402,7 @@ namespace RpaLib.SAP
                     try
                     {
                         visualComponent = (GuiVComponent)elt.Obj;
-                        return Rpa.IsMatch(visualComponent.Text, labelText);
+                        return Rpa.IsMatch(visualComponent.Text, labelTextRegex);
                     }
                     catch (InvalidCastException)
                     {

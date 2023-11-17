@@ -244,3 +244,11 @@ C:\lucas\cygwin\home\loki\git\csharp\rpalib\obj\Debug\RpaLib.dll
 C:\lucas\cygwin\home\loki\git\csharp\rpalib\obj\Debug\RpaLib.pdb
 C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\AutoItX3.Assembly.dll
 C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\AutoItX3.Assembly.xml
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\CsvHelper.dll
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\Microsoft.Bcl.AsyncInterfaces.dll
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\Microsoft.Bcl.HashCode.dll
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\System.Memory.dll
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\CsvHelper.xml
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\Microsoft.Bcl.AsyncInterfaces.xml
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\Microsoft.Bcl.HashCode.xml
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\System.Memory.xml
