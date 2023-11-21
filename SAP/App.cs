@@ -1,5 +1,6 @@
 ﻿using Microsoft.Office.Interop.Excel;
 using RpaLib.ProcessAutomation;
+using RpaLib.SAP.Exceptions;
 using RpaLib.Tracing;
 using sapfewse;
 using saprotwr.net;
@@ -98,6 +99,22 @@ namespace RpaLib.SAP
                                select conn;
 
             return selectedConn.FirstOrDefault();
+        }
+
+        public static Session[] FindSessions(string transactionNameRegex)
+        {
+            var openedConnections = App.GetConnections();
+
+            if (openedConnections.Length != 1)
+                throw new ConnectionNotUniqueException(openedConnections.Length);
+
+            var currentConnection = openedConnections[0];
+
+            var sessions = from s in currentConnection.Sessions
+                           where Rpa.IsMatch(s.Transaction, transactionNameRegex)
+                           select s;
+
+            return sessions.ToArray();
         }
 
         /// <summary>

@@ -285,12 +285,12 @@ namespace RpaLib.SAP.Legacy
 
         public static string AllSessionIdsInfo(GuiSession session)
         {
-            return AllDescendantIdsInfo(session);
+            return AllDescendantsInfo(session);
         }
 
-        public static string AllDescendantIdsInfo(dynamic guiContainer)
+        public static string AllDescendantsInfo(dynamic guiContainer)
         {
-            Dictionary<string, dynamic>[] ids = AllDescendantIds(guiContainer);
+            Dictionary<string, dynamic>[] ids = AllDescendants(guiContainer);
             StringBuilder info = new StringBuilder($"All IDs from \"[{guiContainer.Type}]: {guiContainer.Id}\" to its innermost descendant are:\n");
 
             foreach (var id in ids)
@@ -345,22 +345,22 @@ namespace RpaLib.SAP.Legacy
             return objFound;
         }
 
-        public static Dictionary<string, dynamic>[] AllSessionIds(GuiSession session) => AllDescendantIds(session);
-        public static Dictionary<string, dynamic>[] AllDescendantIds(dynamic root)
+        public static Dictionary<string, dynamic>[] AllSessionIds(GuiSession session) => AllDescendants(session);
+        public static Dictionary<string, dynamic>[] AllDescendants(dynamic root)
         {
             List<Dictionary<string,dynamic>> ids = new List<Dictionary<string,dynamic>>();
 
-            AllDescendantIds(ids, root);
+            AllDescendants(ids, root);
 
             return ids.ToArray();
         }
-        private static List<Dictionary<string, dynamic>> AllDescendantIds(List<Dictionary<string, dynamic>> ids, dynamic root)
+        private static List<Dictionary<string, dynamic>> AllDescendants(List<Dictionary<string, dynamic>> ids, dynamic root)
         {
             /*
             foreach (dynamic child in root.Children)
             {
                 if (child.ContainerType)
-                    AllDescendantIds(ids, child);
+                    AllDescendants(ids, child);
             }
             
 
@@ -380,7 +380,7 @@ namespace RpaLib.SAP.Legacy
             {
                 dynamic child = root.Children.ElementAt[i];
                 if (child.ContainerType)
-                    AllDescendantIds(ids, child);
+                    AllDescendants(ids, child);
                 else
                     addNodeToList(child);
             }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RpaLib.Tracing;
+using RpaLib.SAP.Exceptions;
 
 namespace RpaLib.SAP
 {

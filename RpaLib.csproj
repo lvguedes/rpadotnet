@@ -194,9 +194,15 @@
     <Compile Include="SAP\App.cs" />
     <Compile Include="SAP\Button.cs" />
     <Compile Include="SAP\Connection.cs" />
+    <Compile Include="SAP\Exceptions\ConnectionNotUniqueException.cs" />
+    <Compile Include="SAP\Exceptions\ExceededRetryLimitSapConnectionException.cs" />
+    <Compile Include="SAP\Exceptions\FieldDatatypeConversionException.cs" />
+    <Compile Include="SAP\Exceptions\SapException.cs" />
     <Compile Include="SAP\Field.cs" />
     <Compile Include="SAP\Grid.cs" />
     <Compile Include="SAP\ISapTabular.cs" />
+    <Compile Include="SAP\ModalWindow.cs" />
+    <Compile Include="SAP\Model\SapGuiObject.cs" />
     <Compile Include="SAP\SapComponent.cs" />
     <Compile Include="SAP\Sap.cs" />
     <Compile Include="SAP\Session.cs" />
@@ -215,7 +221,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProcessAutomation\Rpa.cs" />
     <Compile Include="SAP\Legacy\Sap.cs" />
-    <Compile Include="SAP\SapExceptions.cs" />
     <Compile Include="Tracing\Log.cs" />
     <Compile Include="Tracing\LogTypeEnum.cs" />
     <Compile Include="Tracing\Trace.cs" />

@@ -10,6 +10,9 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using RpaLib.Tracing;
+using RpaLib.SAP.Model;
+using RpaLib.SAP.Exceptions;
+using System.Reflection;
 
 namespace RpaLib.SAP
 {
@@ -365,12 +368,12 @@ namespace RpaLib.SAP
 
         public static string AllSessionIdsInfo(GuiSession session)
         {
-            return AllDescendantIdsInfo(session);
+            return AllDescendantsInfo(session);
         }
 
-        public static string AllDescendantIdsInfo(dynamic guiContainer)
+        public static string AllDescendantsInfo(dynamic guiContainer)
         {
-            SapGuiComponent[] ids = AllDescendantIds(guiContainer);
+            SapGuiObject[] ids = AllDescendants(guiContainer);
             StringBuilder info = new StringBuilder($"All IDs from \"[{guiContainer.Type}]: {guiContainer.Id}\" to its innermost descendant are:\n");
 
             foreach (var id in ids)
@@ -395,7 +398,7 @@ namespace RpaLib.SAP
         public static T[] FindByText<T>(GuiSession session, string labelTextRegex)
         {
             T[] objFound = AllSessionIds(session)
-                .Cast<SapGuiComponent>()
+                .Cast<SapGuiObject>()
                 .Where(elt =>
                 {
                     GuiVComponent visualComponent;
@@ -432,48 +435,63 @@ namespace RpaLib.SAP
 
             return objFound;
         }
+
+        public static T[] FindByType<T>(dynamic rootContainer, bool showFound = false) => FindByType<T>(rootContainer, typeof(T).ToString(), showFound);
+
+        public static T[] FindByType<T>(dynamic rootContainer, string typeName, bool showFound = false)
+        {
+            SapGuiObject[] descendants = AllDescendants(rootContainer);
+
+            var descendantsFound = from descendant in descendants
+                                   where Rpa.IsMatch(typeName, descendant.Type)
+                                   select descendant;
+
+            if (showFound)
+            {
+                var descendantTypeRealtype = string.Join(",\n\t", descendantsFound.Select(x => $"{x.Type} ({x.Obj})"));
+                var root = (GuiComponent)rootContainer;
+                var rootText = rootContainer is GuiVComponent ? (rootContainer as GuiVComponent).Text : string.Empty;
+                Trace.WriteLine($"Looking for type [{typeName}] within object \"{root.Id}\"...");
+                Trace.WriteLine($"[{root.Type}] {root.Id} \"{rootText}\":\n\t{descendantTypeRealtype}");
+            }
+
+            return descendantsFound.Select(x => (T)x.Obj).ToArray();
+        }
+
         /// <summary>
         /// Get all children objects from a given GuiSession recursively.
         /// </summary>
         /// <param name="session">The GuiSession object to get the children objects tree as a list.</param>
         /// <returns>A list of dictionaries containing info about each child object found.</returns>
-        public static SapGuiComponent[] AllSessionIds(GuiSession session) => AllDescendantIds(session);
+        public static SapGuiObject[] AllSessionIds(GuiSession session) => AllDescendants(session);
 
         /// <summary>
         /// Get all children objects recursively from a root object.
         /// </summary>
-        /// <param name="root">The root object to start parsing the children tree.</param>
+        /// <param name="rootContainer">The root object to start parsing the children tree.</param>
         /// <returns>A list of dictionaries containing info about each child object found.</returns>
-        public static SapGuiComponent[] AllDescendantIds(dynamic root)
+        public static SapGuiObject[] AllDescendants(dynamic rootContainer)
         {
-            List<SapGuiComponent> ids = new List<SapGuiComponent>();
+            List<SapGuiObject> objects = new List<SapGuiObject>();
 
-            AllDescendantIds(ids, root);
+            AllDescendants(objects, rootContainer);
 
-            return ids.ToArray();
-        }
-
-        public class SapGuiComponent
-        {
-            public string PathId { get; set; }
-            public string Type { get; set; }
-            public dynamic Obj { get; set; }
-            public string Text { get; set; }
+            return objects.ToArray();
         }
 
         /// <summary>
         /// Auxiliar method to get all children objects recursively from a root object.
         /// </summary>
-        /// <param name="ids">List of captured IDs.</param>
+        /// <param name="objects">List of captured IDs.</param>
         /// <param name="root">The root object that will be changed through each recursive call.</param>
         /// <returns>A list of dictionaries containing info about each child object found.</returns>
-        private static List<SapGuiComponent> AllDescendantIds(List<SapGuiComponent> ids, dynamic root)
+        private static List<SapGuiObject> AllDescendants(List<SapGuiObject> objects, dynamic root)
         {
             Action<dynamic> addNodeToList =
                 (dynamic node) =>
                 {
-                    ids.Add(
-                        new SapGuiComponent
+                    objects.Add(
+                        new SapGuiObject
                         {
                             PathId = (string)node.Id,
                             Type = (string)node.Type,
@@ -486,14 +504,14 @@ namespace RpaLib.SAP
             {
                 dynamic child = root.Children.ElementAt[i];
                 if (child.ContainerType)
-                    AllDescendantIds(ids, child);
+                    AllDescendants(objects, child);
                 else
                     addNodeToList(child);
             }
 
             addNodeToList(root);
 
-            return ids;
+            return objects;
         }
 
         #endregion

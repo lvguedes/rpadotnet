@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RpaLib.Tracing;
 using RpaLib.ProcessAutomation;
+using RpaLib.SAP.Model;
 using System.Runtime.InteropServices;
 
 namespace RpaLib.SAP
@@ -38,6 +39,23 @@ namespace RpaLib.SAP
             get => GuiSession.Info.Transaction;
         }
 
+        public ModalWindow[] PopUps
+        {
+            get
+            {
+                List<ModalWindow> modalWindows = new List<ModalWindow>();
+                
+                var foundPopUps = FindByType<GuiModalWindow>(showFound: true);
+
+                foreach (var popUp in foundPopUps)
+                {
+                    modalWindows.Add(new ModalWindow(popUp.Id, this));
+                }
+
+                return modalWindows.ToArray();
+            }
+        }
+
         public Session(GuiSession guiSession, Connection connection)
         {
             GuiSession = guiSession;
@@ -46,6 +64,16 @@ namespace RpaLib.SAP
         }
 
         public void AccessTransaction(string transactionId) => Sap.AccessTransaction(this, transactionId);
+
+        public GuiComponent FindById(string pathId)
+        {
+            Trace.WriteLine(string.Join(Environment.NewLine,
+                $"Trying to find by id ({pathId})",
+                $"The current working session is:",
+                this));
+            return GuiSession.FindById(pathId);
+        }
+
         public T FindById<T>(string id) => (T)FindById(id);
 
         /// <summary>
@@ -55,6 +83,10 @@ namespace RpaLib.SAP
         /// <param name="labelTextPattern">Regex pattern to search within session. The first found will be returned.</param>
         /// <returns></returns>
         public T[] FindByText<T>(string labelTextPattern) => Sap.FindByText<T>(GuiSession, labelTextPattern);
+
+        public T[] FindByType<T>(bool showFound = false) => FindByType<T>(typeof(T).ToString(), showFound);
+
+        public T[] FindByType<T>(string typeName, bool showFound = false) => Sap.FindByType<T>(GuiSession, typeName, showFound);
 
         public Table FindTable(string pathId)
         {
@@ -120,15 +152,6 @@ namespace RpaLib.SAP
                 );
         }
 
-        public GuiComponent FindById(string pathId)
-        {
-            Trace.WriteLine(string.Join(Environment.NewLine,
-                $"Trying to find by id ({pathId})",
-                $"The current working session is:",
-                this));
-            return GuiSession.FindById(pathId);
-        }
-
         public enum ExistsFilter
         {
             ById,
@@ -178,6 +201,8 @@ namespace RpaLib.SAP
         {
             return new Grid(this, guiGridView);
         }
+
+        public SapGuiObject[] AllDescendants() => Sap.AllDescendants(GuiSession);
 
         public string AllSessionIdsInfo() => Sap.AllSessionIdsInfo(GuiSession);
 
