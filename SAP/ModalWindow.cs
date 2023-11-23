@@ -1,6 +1,7 @@
 ﻿using sapfewse;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,13 +13,18 @@ namespace RpaLib.SAP
     /// </summary>
     public class ModalWindow
     {
-        public GuiModalWindow GuiModalWindow { get; private set; }
+        public string PathId { get; }
+
+        public GuiModalWindow GuiModalWindow
+        {
+            get => Session.FindById<GuiModalWindow>(PathId);
+        }
 
         public Session Session { get; private set; }
 
         public ModalWindow(string pathId, Session session)
         {
-            GuiModalWindow = session.FindById<GuiModalWindow>(pathId);
+            PathId = pathId;
             Session = session;
         }
 

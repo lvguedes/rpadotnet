@@ -10,6 +10,7 @@ using RpaLib.Tracing;
 
 namespace RpaLib.SAP
 {
+    // Prefix: wnd[N]/usr/cntlGRID1/shellcont/shell/shellcont[N]/shell
     public class Grid : SapComponent, ISapTabular
     {
         public GuiGridView GuiGridView { get; private set; }
@@ -39,7 +40,7 @@ namespace RpaLib.SAP
         /// </summary>
         public void Parse()
         {
-            GuiGridView.SelectAll();
+            GuiGridView.SelectAll(); // auto-paginate the full table
             //Cols = _grid.SelectedColumns;
             //Rows = long.Parse(Regex.Match(_grid.SelectedRows, @"(?<=\d+-)\d+").Value) + 1;
 

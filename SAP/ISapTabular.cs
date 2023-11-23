@@ -11,8 +11,6 @@ namespace RpaLib.SAP
     {
         DataTable DataTable { get; }
         void Parse();
-        bool IsEmpty();
-        int FulfilledRowsCount();
         string Info();
     }
 }

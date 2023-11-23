@@ -63,18 +63,21 @@ namespace RpaLib.SAP
             Connection = connection;
         }
 
+        public void SendVKey(int vKeyNumber) => CurrentFrameWindow.SendVKey(vKeyNumber);
+
         public void AccessTransaction(string transactionId) => Sap.AccessTransaction(this, transactionId);
 
-        public GuiComponent FindById(string pathId)
+        public GuiComponent FindById(string pathId, bool suppressTrace = false)
         {
-            Trace.WriteLine(string.Join(Environment.NewLine,
-                $"Trying to find by id ({pathId})",
-                $"The current working session is:",
-                this));
+            if (! suppressTrace)
+                Trace.WriteLine(string.Join(Environment.NewLine,
+                    $"Trying to find by id ({pathId})",
+                    $"The current working session is:",
+                    this));
             return GuiSession.FindById(pathId);
         }
 
-        public T FindById<T>(string id) => (T)FindById(id);
+        public T FindById<T>(string id, bool suppressTrace = false) => (T)FindById(id, suppressTrace);
 
         /// <summary>
         /// Search for an element by matching its text with a regex pattern parameter.
@@ -88,9 +91,19 @@ namespace RpaLib.SAP
 
         public T[] FindByType<T>(string typeName, bool showFound = false) => Sap.FindByType<T>(GuiSession, typeName, showFound);
 
-        public Table FindTable(string pathId)
+        public Grid FindGrid(string pathId)
+        {
+            return new Grid(this, pathId);
+        }
+
+        public Table FindTable(string pathId, int delayAfterScroll = 0)
         {
             return new Table(this, pathId);
+        }
+
+        public LabelTable FindLabelTable(string guiUsrControlPathId)
+        {
+            return new LabelTable(this, guiUsrControlPathId);
         }
 
         /// <summary>
@@ -250,13 +263,23 @@ namespace RpaLib.SAP
         /// <param name="timesToPress">Number of times to press the enter key.</param>
         /// <param name="pressingIntervalMillisec">Interval in milliseconds between each key press.</param>
         /// <param name="wndIndex">GuiFrameWindow index of the window to apply the enter pressing action.</param>
-        public void PressEnter(int timesToPress = 1, int pressingIntervalMillisec = 0, int wndIndex = 0)
+        private void PressVKey(int vKeyNumber, int timesToPress = 1, int pressingIntervalMillisec = 0, int wndIndex = 0)
         {
             for (int i = 0; i < timesToPress; i++)
             {
-                GetWindow(wndIndex).SendVKey(0);
+                GetWindow(wndIndex).SendVKey(vKeyNumber);
                 Thread.Sleep(pressingIntervalMillisec);
             }
+        }
+
+        public void PressEnter(int timesToPress = 1, int pressingIntervalMillisec = 0, int wndIndex = 0)
+        {
+            PressVKey(0, timesToPress, pressingIntervalMillisec, wndIndex);
+        }
+
+        public void PressEsc(int timesToPress = 1, int pressingIntervalMillisec = 0, int wndIndex = 0)
+        {
+            PressVKey(12, timesToPress, pressingIntervalMillisec, wndIndex);
         }
 
         /// <summary>
