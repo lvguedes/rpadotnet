@@ -13,6 +13,7 @@ using RpaLib.Tracing;
 using RpaLib.SAP.Model;
 using RpaLib.SAP.Exceptions;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace RpaLib.SAP
 {
@@ -388,16 +389,39 @@ namespace RpaLib.SAP
 
         #region UI_Elements
 
+        public static T FindById<T>(GuiComponent parent, string pathId, bool showTypes = false)
+        {
+            T foundObj;
+
+            if (parent.ContainerType)
+                foundObj = parent is GuiContainer ? (T)(parent as GuiContainer).FindById(pathId) : (T)(parent as GuiVContainer);
+            else
+                throw new ArgumentException($"The argument parent must be a Container type (GuiContainer or GuiVContainer).");
+
+            if (showTypes)
+            {
+                Trace.WriteLine(string.Join("\n",
+                    $"Type of obj found: \"{((GuiComponent)foundObj).Type}\"",
+                    $"Is ContainerType? {((GuiComponent)foundObj).ContainerType}",
+                    $"Is GuiContainer? {foundObj is GuiContainer}",
+                    $"Is GuiVContainer? {foundObj is GuiVContainer}",
+                    $"Is GuiComponent? {foundObj is GuiComponent}",
+                    $"Is GuiVComponent? {foundObj is GuiVComponent}"), color: ConsoleColor.Yellow);
+            }
+
+            return foundObj;
+        }
+
         /// <summary>
         /// Search for an element by matching its text with a regex pattern parameter.
         /// </summary>
         /// <typeparam name="T">The type of the Sap element you're looking for.</typeparam>
-        /// <param name="session">The session in which to look for the element.</param>
+        /// <param name="parent">The parent object in which to look for the element.</param>
         /// <param name="labelTextRegex">Regex pattern to search within session. The first found will be returned.</param>
         /// <returns>An array containing the SAP Gui elements found by text.</returns>
-        public static T[] FindByText<T>(GuiSession session, string labelTextRegex)
+        public static T[] FindByText<T>(GuiComponent parent, string labelTextRegex)
         {
-            T[] objFound = AllSessionIds(session)
+            T[] objFound = AllDescendants(parent)
                 .Cast<SapGuiObject>()
                 .Where(elt =>
                 {
@@ -414,7 +438,7 @@ namespace RpaLib.SAP
                     }
                 })
                 .Select((elt) => {
-                    Trace.WriteLine($"Converting to {typeof(T)} id: {elt.PathId}");
+                    Trace.WriteLine($"Converting [{elt.Type}]{elt.PathId} \"{elt.Text}\" to {typeof(T)}");
                     try
                     {
                         return (T)elt.Obj;
@@ -450,12 +474,69 @@ namespace RpaLib.SAP
             {
                 var descendantTypeRealtype = string.Join(",\n\t", descendantsFound.Select(x => $"{x.Type} ({x.Obj})"));
                 var root = (GuiComponent)rootContainer;
-                var rootText = rootContainer is GuiVComponent ? (rootContainer as GuiVComponent).Text : string.Empty;
+                var rootText = rootContainer is GuiVComponent ? (rootContainer as GuiVComponent)?.Text : string.Empty;
                 Trace.WriteLine($"Looking for type [{typeName}] within object \"{root.Id}\"...");
                 Trace.WriteLine($"[{root.Type}] {root.Id} \"{rootText}\":\n\t{descendantTypeRealtype}");
             }
 
             return descendantsFound.Select(x => (T)x.Obj).ToArray();
+        }
+
+        public static bool ExistsByText<T>(GuiComponent parent, string textRegex)
+        {
+            var resultList = FindByText<T>(parent, textRegex);
+            if (resultList.Length == 0)
+                return false;
+            else
+                return true;
+        }
+
+        public static bool ExistsById<T>(GuiComponent parent, string pathId)
+        {
+            try
+            {
+                FindById<T>(parent, pathId);
+            }
+            catch (COMException ex)
+            {
+                if (Rpa.IsMatch(ex.Message, @"The control could not be found by id\."))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Verifies if a text exists inside any descendant objects of a parent object which is descendant of this Session.GuiSession.
+        /// </summary>
+        /// <typeparam name="P">Type of the parent object.</typeparam>
+        /// <typeparam name="C">Type of the object that contains a Text property in which the regex passed as parameter must match.
+        /// Note that it isn't the type of the parent object, instead, it's the type of its child that must contain the regex like text.</typeparam>
+        /// <param name="root">A GuiContainer from where to start the search.</param>
+        /// <param name="parentPathId">Path ID from the parent object which is inside root. All its children are considered recursively (children of children, etc.)</param>
+        /// <param name="textRegex">Pattern which any parent descendant's Text property must match</param>
+        /// <returns>Boolean indicating if there is at least one descendant with the text specified.</returns>
+        public static bool ExistsTextInside<P, C>(GuiComponent root, string parentPathId, string textRegex)
+        {
+            if (!ExistsById<P>(root, parentPathId))
+                return false;
+
+            try
+            {
+                var foundObj = FindById<P>(root, parentPathId, showTypes: false);
+
+                return ExistsByText<C>((GuiComponent)foundObj, textRegex);
+            }
+            catch (InvalidCastException)
+            {
+                return false;
+            }
+        }
+
+        public static C[] FindTextInside<P, C>(GuiComponent root, string parentPathId, string textRegex)
+        {
+            return FindByText<C>((GuiComponent)FindById<P>(root, parentPathId), textRegex);
         }
 
         /// <summary>

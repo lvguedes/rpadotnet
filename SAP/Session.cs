@@ -85,7 +85,7 @@ namespace RpaLib.SAP
         /// <typeparam name="T">The type of the Sap element you're looking for.</typeparam>
         /// <param name="labelTextPattern">Regex pattern to search within session. The first found will be returned.</param>
         /// <returns></returns>
-        public T[] FindByText<T>(string labelTextPattern) => Sap.FindByText<T>(GuiSession, labelTextPattern);
+        public T[] FindByText<T>(string labelTextPattern) => Sap.FindByText<T>((GuiComponent)GuiSession, labelTextPattern);
 
         public T[] FindByType<T>(bool showFound = false) => FindByType<T>(typeof(T).ToString(), showFound);
 
@@ -104,6 +104,12 @@ namespace RpaLib.SAP
         public LabelTable FindLabelTable(string guiUsrControlPathId)
         {
             return new LabelTable(this, guiUsrControlPathId);
+        }
+
+        public void SelectComboBoxEntry(string guiComboBoxPathId, string entryToSelectRegex)
+        {
+            var guiComboBox = FindById<GuiComboBox>(guiComboBoxPathId);
+            guiComboBox.Key = Rpa.COMCollectionToICollection<GuiComboBoxEntry>(guiComboBox.Entries).Where(x => Rpa.IsMatch(x.Value, entryToSelectRegex)).Select(x => x.Key).FirstOrDefault();
         }
 
         /// <summary>
@@ -165,49 +171,28 @@ namespace RpaLib.SAP
                 );
         }
 
-        public enum ExistsFilter
-        {
-            ById,
-            ByText,
-        }
+        public bool ExistsById<T>(string pathId) => Sap.ExistsById<T>(GuiSession as GuiComponent, pathId);
+
+        public bool ExistsById(string pathId) => Sap.ExistsById<dynamic>(GuiSession as GuiComponent, pathId);
+
+        public bool ExistsByText<T>(string textRegex) => Sap.ExistsByText<T>(GuiSession as GuiComponent, textRegex);
+
+        public bool ExistsByText(string textRegex) => Sap.ExistsByText<dynamic>(GuiSession as GuiComponent, textRegex);
+
+        public bool ExistsTextInside(string parentPathId, string textRegex) => ExistsTextInside<dynamic,dynamic>(parentPathId, textRegex);
 
         /// <summary>
-        /// Verifies if a SAP Gui element exists within session.
+        /// Verifies if a text exists inside any descendant objects of a parent object which is descendant of this Session.GuiSession.
         /// </summary>
-        /// <param name="pathId">The full path id of the element</param>
-        /// <returns>True if found, false otherwise.</returns>
-        public bool Exists<T>(string pathIdOrTextRegex, ExistsFilter filter = ExistsFilter.ById)
-        {
-            switch (filter)
-            {
-                case ExistsFilter.ById:
-                    try
-                    {
-                        FindById<T>(pathIdOrTextRegex);
-                    }
-                    catch (COMException ex)
-                    {
-                        if (Rpa.IsMatch(ex.Message, @"The control could not be found by id\."))
-                        {
-                            return false;
-                        }
-                    }
-                    break;
+        /// <typeparam name="P">Type of the parent object.</typeparam>
+        /// <typeparam name="C">Type of the object that contains a Text property in which the regex passed as parameter must match.
+        /// Note that it isn't the type of the parent object, instead, it's the type of its child that must contain the regex like text.</typeparam>
+        /// <param name="parentPathId">Path ID from the parent object. All its children are considered recursively (children of children, etc.)</param>
+        /// <param name="textRegex">Pattern which any descendant's Text property must match</param>
+        /// <returns>Boolean indicating if there is at least one descendant with the text specified.</returns>
+        public bool ExistsTextInside<P, C>(string parentPathId, string textRegex) => Sap.ExistsTextInside<P, C>((GuiComponent)GuiSession, parentPathId, textRegex);
 
-                case ExistsFilter.ByText:
-                    var resultList = FindByText<T>(pathIdOrTextRegex);
-                    if (resultList.Length == 0)
-                        return false;
-                    break;
-            }         
-            return true;
-        }
-
-        public bool Exists(string pathId, ExistsFilter filter = ExistsFilter.ById) => Exists<dynamic>(pathId, filter);
-
-        public bool ExistsByText<T>(string textRegex) => Exists<T>(textRegex, ExistsFilter.ByText);
-
-        public bool ExistsByText(string textRegex) => Exists(textRegex, ExistsFilter.ByText);
+        public C[] FindTextInside<P, C>(string parentPathId, string textRegex) => Sap.FindTextInside<P, C>((GuiComponent)GuiSession, parentPathId, textRegex);
 
         public Grid NewGridView(string idGuiGridView) => NewGridView(FindById<GuiGridView>(idGuiGridView));
         public Grid NewGridView(GuiGridView guiGridView)
