@@ -611,7 +611,7 @@ namespace RpaLib.SAP
             {
                 var foundObj = FindById<P>(root, parentPathId, showTypes: false);
 
-                return ExistsByText<C>((GuiComponent)foundObj, textRegex);
+                return ExistsByText<C>((GuiComponent)foundObj.Com, textRegex);
             }
             catch (InvalidCastException)
             {
@@ -621,7 +621,7 @@ namespace RpaLib.SAP
 
         public static SapComWrapper<C>[] FindTextInside<P, C>(GuiComponent root, string parentPathId, string textRegex)
         {
-            return FindByText<C>((GuiComponent)FindById<P>(root, parentPathId), textRegex);
+            return FindByText<C>((GuiComponent)FindById<P>(root, parentPathId).Com, textRegex);
         }
 
         /// <summary>

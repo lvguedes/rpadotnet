@@ -32,6 +32,7 @@ namespace RpaLib.SAP
         }
 
         public bool IsNeeded() => IsNeeded(GuiScrollbar);
+        public bool IsNeeded(int currentRow) => IsNeeded(GuiScrollbar, currentRow);
         public void NextPage(int pages = 1, int delayAfterScroll = DELAY_AFTER_SCROLL) => NextPage(GuiScrollbar);
         public void Reset() => Reset(GuiScrollbar);
         public void ShowCurrentStateInfo() => ShowCurrentStateInfo(GuiScrollbar);
@@ -39,6 +40,14 @@ namespace RpaLib.SAP
         public static bool IsNeeded(GuiScrollbar scrollbar)
         {
             if (scrollbar.Position < scrollbar.Maximum)
+                return true;
+            else
+                return false;
+        }
+
+        public static bool IsNeeded(GuiScrollbar scrollbar, int currentRow)
+        {
+            if (IsNeeded(scrollbar) && currentRow != 0 && currentRow % scrollbar.PageSize == 0)
                 return true;
             else
                 return false;

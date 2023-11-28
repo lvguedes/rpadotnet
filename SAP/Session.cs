@@ -109,14 +109,15 @@ namespace RpaLib.SAP
             return new Grid(this, pathId);
         }
 
-        public Table FindTable(string pathId, int delayAfterScroll = 0)
+        public Table FindTable(string pathId, string selectRegex = null, int regexMatches = 1, int[] selectRows = null, int delayAfterScroll = 0)
         {
-            return new Table(this, pathId);
+            return new Table(this, pathId, selectRegex, regexMatches, selectRows);
         }
 
-        public LabelTable FindLabelTable(string guiUsrControlPathId, bool readOnly = true, int header = 0, int[] dropLines = null)
+        public LabelTable FindLabelTable(string guiUsrControlPathId, bool readOnly = true, int header = 0, int[] dropLines = null,
+            string selectRegex = null, int regexMatches = 1, int[] selectRows = null)
         {
-            return new LabelTable(this, guiUsrControlPathId, readOnly, header, dropLines);
+            return new LabelTable(this, guiUsrControlPathId, readOnly, header, dropLines, selectRegex, regexMatches, selectRows);
         }
 
         public Field FindField(string cTextFieldId)

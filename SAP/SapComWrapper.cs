@@ -51,7 +51,7 @@ namespace RpaLib.SAP
 
         public void Maximize() => ((ISapWindowTarget)Com).Maximize();
 
-        public void Press() => ((ISapButtonTarget)Com).Press();
+        public void Press() => ((GuiButton)Com).Press();
 
         public void SetFocus() => ((GuiVComponent)Com).SetFocus();
 

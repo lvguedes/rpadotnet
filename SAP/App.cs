@@ -141,5 +141,14 @@ namespace RpaLib.SAP
         {
             Trace.WriteLine(ConnectionsInfo());
         }
+
+        public static void CloseAll()
+        {
+            foreach (var connection in GetConnections())
+            {
+                foreach (var session in connection.Sessions)
+                    session.Close();
+            }
+        }
     }
 }

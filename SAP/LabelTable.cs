@@ -27,7 +27,10 @@ namespace RpaLib.SAP
         {
             get => Session.FindById<GuiUserArea>(PathId, suppressTrace: true);
         }
-        public SapComWrapper<GuiLabel>[] GuiLabels { get; private set; }
+        public SapComWrapper<GuiLabel>[] GuiLabels
+        {
+            get => Sap.FindByType<GuiLabel>((GuiComponent)ParentGuiUserArea.Com);
+        }
         public Label[][] TableArray { get; private set; }
         public DataTable DataTable { get; private set; }
         public Scroll VerticalScrollbar
@@ -39,21 +42,20 @@ namespace RpaLib.SAP
             get => new Scroll(ParentGuiUserArea.Com.HorizontalScrollbar);
         }
 
-        public LabelTable(Session session, string guiUserAreaPathId, bool readOnly = true, int header = 0, int[] dropLines = null)
+        public LabelTable(Session session, string guiUserAreaPathId, bool readOnly = true, int header = 0, int[] dropLines = null,
+            string selectRegex = null, int regexMatches = 1, int[] selectRows = null)
             : base(session, guiUserAreaPathId)
         {
             Header = header;
             DropLines = dropLines ?? new int[] { };
 
-            GuiLabels = Sap.FindByType<GuiLabel>((GuiComponent)ParentGuiUserArea.Com);
-
-            ParseTable();
+            ParseTable(selectRegex: selectRegex, regexMatches: regexMatches, selectRows: selectRows);
             GetDataTable(readOnly);
         }
 
 
         // TODO: Add pagination using vertical and horizontal scrolls
-        private Label[][] ParseTable(List<Label[]> tableList = null)
+        private Label[][] ParseTable(List<Label[]> tableList = null, string selectRegex = null, int regexMatches = 1, int[] selectRows = null)
         {
             const string colRegex = @"(?<=lbl\[)\d+(?=,\s*\d+\]$)";
             const string rowRegex = @"(?<=lbl\[\d+,\s*)\d+(?=\]$)";
@@ -84,16 +86,52 @@ namespace RpaLib.SAP
             int rowIndex = 0;
             foreach (var nRow in orderedRows)
             {
+                // list of labels that represent a row in table array
                 Label[] rowList = labels.Where(x => x.Row == nRow).OrderBy(x => x.Col).ToArray();
-                if (!DropLines.Contains(rowIndex++))
-                    tableList.Add(rowList);
+
+                // add to table array only if current line is not to be dropped
+                if (DropLines.Contains(rowIndex))
+                {
+                    rowIndex++;
+                    continue;
+                }
+
+                tableList.Add(rowList); // add rowlist to table array
+
+                // Process quick select through regex string and counter params
+                if (selectRegex != null && regexMatches > 0)
+                {
+                    var columnsFound = rowList.Where(x => Rpa.IsMatch(x.Text, selectRegex)).ToArray();
+                    if (columnsFound.Length > 0)
+                    {
+                        columnsFound[0].GuiLabel.SetFocus();
+                        regexMatches--;
+
+                        if (regexMatches == 0)
+                            return TableArray;
+                    }
+                }
+
+                // Process quick select through row indexes param
+                if (selectRows != null && selectRows.Length > 0)
+                {
+                    if (selectRows.Contains(rowIndex))
+                    {
+                        rowList[0].GuiLabel.SetFocus();
+                        var selectRowsList = selectRows.ToList();
+                        selectRowsList.RemoveAt(rowIndex);
+                        selectRows = selectRowsList.ToArray();
+                    }
+                }
+
+                rowIndex++;
             }
 
             // Scroll down if needed
             if (VerticalScrollbar.IsNeeded())
             {
                 VerticalScrollbar.NextPage();
-                ParseTable(tableList);
+                ParseTable(tableList, selectRegex, regexMatches, selectRows);
             }
             else
             {

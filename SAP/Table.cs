@@ -12,7 +12,7 @@ using RpaLib.Tracing;
 namespace RpaLib.SAP
 {
 
-    public class Table : SapComponent<GuiTableControl>, ISapTabular
+    public class Table : SapComponent<GuiTableControl>
     {
         const int DELAY_AFTER_SCROLL = 0;
         public SapComWrapper<GuiTableControl> GuiTableControl
@@ -52,22 +52,18 @@ namespace RpaLib.SAP
             get => new Scroll(GuiTableControl.Com.HorizontalScrollbar, DelayAfterScroll);
         }
 
-        public Table(Session session, int delayAfterScroll = DELAY_AFTER_SCROLL)
-            : this(session: session, name: string.Empty, fullPathId: string.Empty, delayAfterScroll)
+        public Table(Session session, string fullPathId, string selectRegex = null, int regexMatches = 1, int[] selectRows = null, int delayAfterScroll = DELAY_AFTER_SCROLL)
+            : this(session, name: string.Empty, fullPathId, selectRegex, regexMatches, selectRows, delayAfterScroll)
         { }
 
-        public Table(Session session, string fullPathId, int delayAfterScroll = DELAY_AFTER_SCROLL)
-            : this(session, name: string.Empty, fullPathId, delayAfterScroll)
-        { }
-
-        public Table(Session session, string name, string fullPathId, int delayAfterScroll = DELAY_AFTER_SCROLL)
+        public Table(Session session, string name, string fullPathId, string selectRegex = null, int regexMatches = 1, int[] selectRows = null, int delayAfterScroll = DELAY_AFTER_SCROLL)
             : base(session, fullPathId)
         {
             Name = name;
             DelayAfterScroll = delayAfterScroll;
             DataTable = new DataTable();
             //RefreshTableObj();
-            Parse();
+            Parse(selectRegex, regexMatches, selectRows);
             Trace.WriteLine(Info());
         }
 
@@ -408,7 +404,7 @@ namespace RpaLib.SAP
         }
         */
 
-        public void Parse()
+        public void Parse(string selectRegex = null, int regexMatches = 1, int[] selectRows = null)
         {
             _dt = new DataTable();
 
@@ -420,14 +416,45 @@ namespace RpaLib.SAP
             int fulfilledRowsCount = VerticalScrollbar.Maximum + 1;
             for (int row = 0; row < fulfilledRowsCount; row++)
             {
-                if (row != 0 && row % VerticalScrollbar.PageSize == 0)
+                //if (row != 0 && row % VerticalScrollbar.PageSize == 0)
+                if (VerticalScrollbar.IsNeeded(row))
                     VerticalScrollbar.NextPage();
 
                 DataRow datarow = _dt.NewRow();
                 for (int col = 0; col < GetTableCounters()["columns"]; col++)
                 {
                     //rpa.MessageBox($"Getting cell ({row}, {col})...");
-                    datarow[col] = GetCell(row, col).Text;
+                    var currentCell = GetCell(row, col);
+                    datarow[col] = currentCell.Text;
+
+                    if (selectRegex != null && Rpa.IsMatch(currentCell.Text, selectRegex))
+                    {
+                        _dt.Rows.Add(datarow);
+                        //currentCell.SetFocus();
+                        SelectRow(row);
+                        regexMatches--;
+                        if (regexMatches == 0)
+                            return;
+                        else
+                            continue;
+                    }
+                    else if (selectRows != null && selectRows.Contains(row) && selectRows.Length > 1)
+                    {
+                        if (selectRows.Length > 1)
+                        {
+                            SelectRow(row);
+                            var selectQuickRowsList = selectRows.ToList();
+                            selectQuickRowsList.RemoveAt(row);
+                            selectRows = selectQuickRowsList.ToArray();
+                            continue;
+                        }
+                        else
+                        {
+                            _dt.Rows.Add(datarow);
+                            SelectRow(row);
+                            return;
+                        }
+                    }
                 }
                 _dt.Rows.Add(datarow);
             }
