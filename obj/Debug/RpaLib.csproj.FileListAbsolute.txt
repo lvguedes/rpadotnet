@@ -252,3 +252,6 @@ C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\CsvHelper.xml
 C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\Microsoft.Bcl.AsyncInterfaces.xml
 C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\Microsoft.Bcl.HashCode.xml
 C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\System.Memory.xml
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\sapfewse.dll
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\saprotwr.net.dll
+C:\lucas\cygwin\home\loki\git\csharp\rpalib\bin\Debug\stdole.dll

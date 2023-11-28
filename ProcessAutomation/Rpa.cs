@@ -418,5 +418,14 @@ namespace RpaLib.ProcessAutomation
         }
 
         #endregion
+
+        #region Aliases
+
+        public static int[] Range(int start, int count)
+        {
+            return Enumerable.Range(start, count).ToArray();
+        }
+
+        #endregion
     }
 }

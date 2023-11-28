@@ -11,26 +11,25 @@ using RpaLib.Tracing;
 namespace RpaLib.SAP
 {
     // Prefix: wnd[N]/usr/cntlGRID1/shellcont/shell/shellcont[N]/shell
-    public class Grid : SapComponent, ISapTabular
+    public class Grid : SapComponent<GuiGridView>, ISapTabular
     {
-        public GuiGridView GuiGridView { get; private set; }
+        public SapComWrapper<GuiGridView> GuiGridView { get; private set; }
         public DataTable DataTable { get; private set; }
 
-        public Grid(Session session, GuiGridView guiGridView) : base(session)
+        public Grid(Session session, GuiGridView guiGridView) : base(session, guiGridView)
         {
-            GuiGridView = guiGridView;
-            FullPathId = Rpa.Replace(guiGridView.Id, @"/app/con\[\d+\]/ses\[\d+\]/", string.Empty);
+            GuiGridView = new SapComWrapper<GuiGridView>(guiGridView);
             Refresh();
         }
 
-        public Grid(Session session,  string fullPathId) : this(session, session.FindById<GuiGridView>(fullPathId))
+        public Grid(Session session,  string fullPathId) : this(session, (GuiGridView)session.FindById<GuiGridView>(fullPathId).Com)
         { }
 
         // refreshes datatable info after updating the GuiGridView object
         public void Refresh()
         {
             DataTable = new DataTable();
-            GuiGridView = Session.FindById<GuiGridView>(FullPathId);
+            GuiGridView = Session.FindById<GuiGridView>(PathId);
             Parse();
             Log.Write(Info());
         }
@@ -40,28 +39,28 @@ namespace RpaLib.SAP
         /// </summary>
         public void Parse()
         {
-            GuiGridView.SelectAll(); // auto-paginate the full table
+            GuiGridView.Com.SelectAll(); // auto-paginate the full table
             //Cols = _grid.SelectedColumns;
             //Rows = long.Parse(Regex.Match(_grid.SelectedRows, @"(?<=\d+-)\d+").Value) + 1;
 
-            foreach (var col in GuiGridView.SelectedColumns)
+            foreach (var col in GuiGridView.Com.SelectedColumns as dynamic)
             {
                 DataTable.Columns.Add(col, typeof(string));
             }
 
-            for (int i = 0; i < GuiGridView.RowCount; i++)
+            for (int i = 0; i < GuiGridView.Com.RowCount; i++)
             {
                 DataRow datarow = DataTable.NewRow();
 
-                if (i != 0 && i % GuiGridView.VisibleRowCount == 0)
+                if (i != 0 && i % GuiGridView.Com.VisibleRowCount == 0)
                 {
-                    GuiGridView.FirstVisibleRow = i;
+                    GuiGridView.Com.FirstVisibleRow = i;
                 }
 
                 foreach (DataColumn col in DataTable.Columns)
                 {
                     //_grid.SetCurrentCell(i, col);
-                    datarow[col.ColumnName] = GuiGridView.GetCellValue(i, col.ColumnName);
+                    datarow[col.ColumnName] = GuiGridView.Com.GetCellValue(i, col.ColumnName);
                 }
                 DataTable.Rows.Add(datarow);
             }
@@ -82,28 +81,28 @@ namespace RpaLib.SAP
         public static string Info(Grid grid)
         {
             string[] columnNamesDatatable = grid.DataTable.Columns.Cast<DataColumn>().Select(x => x.ColumnName).ToArray();
-            string[] selectedColumns = Rpa.COMCollectionToICollection<string>(grid.GuiGridView.SelectedColumns).ToArray();
-            string[] selectedCells = Rpa.COMCollectionToICollection<string>(grid.GuiGridView.SelectedCells).ToArray();
-            string[] columnOrder = Rpa.COMCollectionToICollection<string>(grid.GuiGridView.ColumnOrder).ToArray();
+            string[] selectedColumns = Rpa.COMCollectionToICollection<string>(grid.GuiGridView.Com.SelectedColumns).ToArray();
+            string[] selectedCells = Rpa.COMCollectionToICollection<string>(grid.GuiGridView.Com.SelectedCells).ToArray();
+            string[] columnOrder = Rpa.COMCollectionToICollection<string>(grid.GuiGridView.Com.ColumnOrder).ToArray();
 
             return
               string.Join(Environment.NewLine,
                   $"Grid \"{grid.Name}\" captured:",
-                  $"  ColumnCount:         \"{grid.GuiGridView.ColumnCount}\"",
+                  $"  ColumnCount:         \"{grid.GuiGridView.Com.ColumnCount}\"",
                   $"  ColumnOrder :        \"{string.Join(", ", columnOrder)}\"",
-                  $"  CurrentCellColumn :  \"{grid.GuiGridView.CurrentCellColumn}\"",
-                  $"  CurrentCellRow :     \"{grid.GuiGridView.CurrentCellRow}\"",
-                  $"  FirstVisibleColumn : \"{grid.GuiGridView.FirstVisibleColumn}\"",
-                  $"  FirstVisibleRow :    \"{grid.GuiGridView.FirstVisibleRow}\"",
-                  $"  FrozenColumnCount :  \"{grid.GuiGridView.FrozenColumnCount}\"",
-                  $"  RowCount:            \"{grid.GuiGridView.RowCount}\"",
+                  $"  CurrentCellColumn :  \"{grid.GuiGridView.Com.CurrentCellColumn}\"",
+                  $"  CurrentCellRow :     \"{grid.GuiGridView.Com.CurrentCellRow}\"",
+                  $"  FirstVisibleColumn : \"{grid.GuiGridView.Com.FirstVisibleColumn}\"",
+                  $"  FirstVisibleRow :    \"{grid.GuiGridView.Com.FirstVisibleRow}\"",
+                  $"  FrozenColumnCount :  \"{grid.GuiGridView.Com.FrozenColumnCount}\"",
+                  $"  RowCount:            \"{grid.GuiGridView.Com.RowCount}\"",
                   $"  SelectedCells:       \"{string.Join(", ", selectedCells)}\"",
                   $"  SelectedColumns:     \"{string.Join(", ", selectedColumns)}\"",
-                  $"  SelectedRows:        \"{grid.GuiGridView.SelectedRows}\"",
-                  $"  SelectionMode:       \"{grid.GuiGridView.SelectionMode}\"",
-                  $"  Title:               \"{grid.GuiGridView.Title}\"",
-                  $"  ToolbarButtonCount:  \"{grid.GuiGridView.ToolbarButtonCount}\"",
-                  $"  VisibleRowCount:     \"{grid.GuiGridView.VisibleRowCount}\"",
+                  $"  SelectedRows:        \"{grid.GuiGridView.Com.SelectedRows}\"",
+                  $"  SelectionMode:       \"{grid.GuiGridView.Com.SelectionMode}\"",
+                  $"  Title:               \"{grid.GuiGridView.Com.Title}\"",
+                  $"  ToolbarButtonCount:  \"{grid.GuiGridView.Com.ToolbarButtonCount}\"",
+                  $"  VisibleRowCount:     \"{grid.GuiGridView.Com.VisibleRowCount}\"",
                   $"  Grid.DataTable.Columns.Count: {string.Join(", ", columnNamesDatatable)}",
                   $"  Grid.DataTable.Rows.Count: \"{grid.DataTable.Rows.Count}\""
                   );

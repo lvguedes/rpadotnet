@@ -12,12 +12,12 @@ using RpaLib.Tracing;
 namespace RpaLib.SAP
 {
 
-    public class Table : SapComponent, ISapTabular
+    public class Table : SapComponent<GuiTableControl>, ISapTabular
     {
         const int DELAY_AFTER_SCROLL = 0;
-        public GuiTableControl GuiTableControl
+        public SapComWrapper<GuiTableControl> GuiTableControl
         {
-            get => Session.FindById<GuiTableControl>(FullPathId, suppressTrace: true);
+            get => Session.FindById<GuiTableControl>(PathId, suppressTrace: true);
         }
 
         private DataTable _dt;
@@ -44,12 +44,12 @@ namespace RpaLib.SAP
 
         public Scroll VerticalScrollbar
         {
-            get => new Scroll(GuiTableControl.VerticalScrollbar, DelayAfterScroll);
+            get => new Scroll(GuiTableControl.Com.VerticalScrollbar, DelayAfterScroll);
         }
 
         public Scroll HorizontalScrollbar
         {
-            get => new Scroll(GuiTableControl.HorizontalScrollbar, DelayAfterScroll);
+            get => new Scroll(GuiTableControl.Com.HorizontalScrollbar, DelayAfterScroll);
         }
 
         public Table(Session session, int delayAfterScroll = DELAY_AFTER_SCROLL)
@@ -61,11 +61,9 @@ namespace RpaLib.SAP
         { }
 
         public Table(Session session, string name, string fullPathId, int delayAfterScroll = DELAY_AFTER_SCROLL)
-            : base(null)
+            : base(session, fullPathId)
         {
-            Session = session;
             Name = name;
-            FullPathId = fullPathId;
             DelayAfterScroll = delayAfterScroll;
             DataTable = new DataTable();
             //RefreshTableObj();
@@ -114,24 +112,24 @@ namespace RpaLib.SAP
             return
                 string.Join(Environment.NewLine,
                     $"Table \"{table.Name}\" captured:",
-                    $"  CharHeight: \"{table.GuiTableControl.CharHeight}\"",
-                    $"  CharWidth:  \"{table.GuiTableControl.CharWidth}\"",
-                    $"  CharTop:    \"{table.GuiTableControl.CharTop}\"",
-                    $"  CurrentCol: \"{table.GuiTableControl.CurrentCol}\"",
-                    $"  CurrentRow: \"{table.GuiTableControl.CurrentRow}\"",
-                    $"  RowCount:   \"{table.GuiTableControl.RowCount}\"",
-                    $"  Rows.Count: \"{table.GuiTableControl.Rows.Count}\"",
-                    $"  VisibleRowCount: \"{table.GuiTableControl.VisibleRowCount}\"",
+                    $"  CharHeight: \"{table.GuiTableControl.Com.Text}\"",
+                    $"  CharWidth:  \"{table.GuiTableControl.Com.Text}\"",
+                    $"  CharTop:    \"{table.GuiTableControl.Com.Text}\"",
+                    $"  CurrentCol: \"{table.GuiTableControl.Com.Text}\"",
+                    $"  CurrentRow: \"{table.GuiTableControl.Com.Text}\"",
+                    $"  RowCount:   \"{table.GuiTableControl.Com.Text}\"",
+                    $"  Rows.Count: \"{table.GuiTableControl.Com.Rows.Count}\"",
+                    $"  VisibleRowCount: \"{table.GuiTableControl.Com.Text}\"",
                     $"  HorizontalScrollbar:",
-                    $"    Minimum:  \"{table.GuiTableControl.HorizontalScrollbar.Minimum}\"",
-                    $"    Maximum:  \"{table.GuiTableControl.HorizontalScrollbar.Maximum}\"",
-                    $"    Position: \"{table.GuiTableControl.HorizontalScrollbar.Position}\"",
-                    $"    PageSize: \"{table.GuiTableControl.HorizontalScrollbar.PageSize}\"",
+                    $"    Minimum:  \"{table.GuiTableControl.Com.HorizontalScrollbar.Minimum}\"",
+                    $"    Maximum:  \"{table.GuiTableControl.Com.HorizontalScrollbar.Maximum}\"",
+                    $"    Position: \"{table.GuiTableControl.Com.HorizontalScrollbar.Position}\"",
+                    $"    PageSize: \"{table.GuiTableControl.Com.HorizontalScrollbar.PageSize}\"",
                     $"  VerticalScrollBar:",
-                    $"    Minimum:  \"{table.GuiTableControl.VerticalScrollbar.Minimum}\"",
-                    $"    Maximum:  \"{table.GuiTableControl.VerticalScrollbar.Maximum}\"",
-                    $"    Position: \"{table.GuiTableControl.VerticalScrollbar.Position}\"",
-                    $"    PageSize: \"{table.GuiTableControl.VerticalScrollbar.PageSize}\"",
+                    $"    Minimum:  \"{table.GuiTableControl.Com.VerticalScrollbar.Minimum}\"",
+                    $"    Maximum:  \"{table.GuiTableControl.Com.VerticalScrollbar.Maximum}\"",
+                    $"    Position: \"{table.GuiTableControl.Com.VerticalScrollbar.Position}\"",
+                    $"    PageSize: \"{table.GuiTableControl.Com.VerticalScrollbar.PageSize}\"",
                     $" --- Table object methods ---"
                     , $"Filled Rows: {table._dt.Rows.Count}"
                     //,$"  FulfilledRowsCount(): {table.FulfilledRowsCount()}"
@@ -218,7 +216,7 @@ namespace RpaLib.SAP
             TryEmptyCellActionRelax(
                 () =>
                 {
-                    counters["columns"] = GuiTableControl.Columns.Count;
+                    counters["columns"] = GuiTableControl.Com.Columns.Count;
                 },
                 () =>
                 {
@@ -228,7 +226,7 @@ namespace RpaLib.SAP
             TryEmptyCellActionRelax(
                 () =>
                 {
-                    counters["rows"] = GuiTableControl.RowCount;
+                    counters["rows"] = GuiTableControl.Com.RowCount;
                 },
                 () =>
                 {
@@ -244,17 +242,17 @@ namespace RpaLib.SAP
             // in the screen
             // This function makes it possible to use the real index from any collection
             // to get the cell
-            return GuiTableControl.GetCell(row % GuiTableControl.VisibleRowCount, column);
+            return GuiTableControl.Com.GetCell(row % GuiTableControl.Com.VisibleRowCount, column);
         }
 
         public void MakeRowVisible(int row)
         {
-            int currentPage = GuiTableControl.VerticalScrollbar.Position / GuiTableControl.VisibleRowCount;
+            int currentPage = GuiTableControl.Com.VerticalScrollbar.Position / GuiTableControl.Com.VisibleRowCount;
 
             TryEmptyCellActionRelax(
                 () =>
                 {
-                    GuiTableControl.VerticalScrollbar.Position = row;
+                    GuiTableControl.Com.VerticalScrollbar.Position = row;
                 });
             //RefreshTableObj();
         }
@@ -268,7 +266,7 @@ namespace RpaLib.SAP
             //return GuiTableControl.Rows.ElementAt(rowIndex % GuiTableControl.VisibleRowCount);
 
             // Get the top row of table
-            return GuiTableControl.Rows.ElementAt(0);
+            return GuiTableControl.Com.Rows.ElementAt(0) as GuiTableRow;
         }
 
         public GuiTableRow GetRow(string cellValueRegex)
@@ -295,9 +293,9 @@ namespace RpaLib.SAP
 
         public bool IsRowSelectable(string cellValueRegex) => GetRow(cellValueRegex).Selectable;
 
-        public void SelectAllCols() => GuiTableControl.SelectAllColumns();
+        public void SelectAllCols() => GuiTableControl.Com.SelectAllColumns();
 
-        public void DeselectAllCols() => GuiTableControl.DeselectAllColumns();
+        public void DeselectAllCols() => GuiTableControl.Com.DeselectAllColumns();
 
         /* Remove in future
         public int FulfilledRowsCount()
@@ -414,7 +412,7 @@ namespace RpaLib.SAP
         {
             _dt = new DataTable();
 
-            foreach (GuiTableColumn col in GuiTableControl.Columns)
+            foreach (GuiTableColumn col in GuiTableControl.Com.Columns)
             {
                 _dt.Columns.Add(col.Title, typeof(string));
             }

@@ -14,6 +14,7 @@ using RpaLib.SAP.Model;
 using RpaLib.SAP.Exceptions;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Data;
 
 namespace RpaLib.SAP
 {
@@ -278,10 +279,10 @@ namespace RpaLib.SAP
             }
             
             if (lockSessionUi)
-                session.GuiSession.LockSessionUI();
+                session.GuiSession.Com.LockSessionUI();
             
             if (iconify)
-                session.FindById<GuiFrameWindow>("wnd[0]").Iconify();
+                session.CurrentFrameWindow.Com.Iconify();
             
             if (!string.IsNullOrEmpty(transactionId))
                 session.AccessTransaction(transactionId);
@@ -303,7 +304,7 @@ namespace RpaLib.SAP
         /// </summary>
         /// <param name="transaction">Transaction name.</param>
         /// <returns>A Session (wrapper to GuiSession) object.</returns>
-        public Session FindSession(string transaction) => Connection.Sessions.Where(x => x.GuiSession.Info.Transaction.Equals(transaction)).FirstOrDefault();
+        public Session FindSession(string transaction) => Connection.Sessions.Where(x => x.GuiSession.Com.Info.Transaction.Equals(transaction)).FirstOrDefault();
 
         /// <summary>
         /// A session can be closed by calling this method of the connection. Closing the last session of a connection will close the connection, too.
@@ -339,7 +340,7 @@ namespace RpaLib.SAP
         public static Session AccessTransaction(Session session, string transaction)
         {
             Trace.WriteLine($"Trying to access transaction \"{transaction}\"");
-            session.GuiSession.StartTransaction(transaction);
+            session.GuiSession.Com.StartTransaction(transaction);
             Trace.WriteLine($"Transaction Access: Successful. Transaction assigned to session: [{session.Index}]");
 
             return session;
@@ -352,19 +353,19 @@ namespace RpaLib.SAP
         public string MainWindowInfo(string transaction)
         {
             Session session = FindSession(transaction);
-            GuiMainWindow mw = session.FindById("wnd[0]") as GuiMainWindow;
+            var mw = session.FindById<GuiMainWindow>("wnd[0]");
             return string.Join(Environment.NewLine,
                 $"GuiMainWindow info:",
-                $"  ButtonbarVisible: {mw.ButtonbarVisible}",
-                $"  StatusbarVisible: {mw.StatusbarVisible}",
-                $"  TitlebarVisible:  {mw.TitlebarVisible}",
-                $"  ToolbarVisible:   {mw.ToolbarVisible}"
+                $"  ButtonbarVisible: {mw.Com.ButtonbarVisible}",
+                $"  StatusbarVisible: {mw.Com.StatusbarVisible}",
+                $"  TitlebarVisible:  {mw.Com.TitlebarVisible}",
+                $"  ToolbarVisible:   {mw.Com.ToolbarVisible}"
                 );
         }
 
         public string AllSessionIdsInfo(string transaction)
         {
-            return AllSessionIdsInfo(FindSession(transaction).GuiSession);
+            return AllSessionIdsInfo(FindSession(transaction).GuiSession.Com);
         }
 
         public static string AllSessionIdsInfo(GuiSession session)
@@ -389,12 +390,95 @@ namespace RpaLib.SAP
 
         #region UI_Elements
 
-        public static T FindById<T>(GuiComponent parent, string pathId, bool showTypes = false)
+        public static SapComWrapper<GuiFrameWindow> GetWindow(SapComWrapper<GuiComponent> parent, int windowIndex) => parent.FindById<GuiFrameWindow>($"wnd[{windowIndex}]");
+
+        public static void OpenPossibleValues(Session session, SapComWrapper<GuiCTextField> guiCTextField)
+        {
+            guiCTextField.SetFocus();
+            session.SendVKey(4); // F4 open all possible entries
+        }
+
+        public static LabelTable OpenPossibleValues(Session session, SapComWrapper<GuiCTextField> guiCTextField, string guiUsrAreaId, bool readOnly = true, int header = 0, int[] dropLines = null)
+        {
+            OpenPossibleValues(session, guiCTextField);
+
+            return session.FindLabelTable(guiUsrAreaId, readOnly, header, dropLines); //captura tabela
+        }
+
+        public static LabelTable OnPossibleValues(Session session, string guiCTextFieldId, string guiUsrAreaId,
+            Action<LabelTable> action = null, bool readOnly = true, int header = 0, int[] dropLines = null)
+        {
+            return OnPossibleValues(session, session.FindById<GuiCTextField>(guiCTextFieldId), guiUsrAreaId, action, readOnly, header, dropLines);
+        }
+
+        public static LabelTable OnPossibleValues(Session session, SapComWrapper<GuiCTextField> guiCTextField, string guiUsrAreaId, 
+            Action<LabelTable> action = null, bool readOnly = true, int header = 0, int[] dropLines = null)
+        {
+            var tableRead = OpenPossibleValues(session, guiCTextField, guiUsrAreaId, readOnly, header, dropLines);
+
+            if (action != null)
+                action(tableRead);
+            else
+                session.PressEsc(); // F12 close the possible entries pop-up
+
+            return tableRead;
+        }
+
+        public static LabelTable SelectPossibleValueByAnchor(Session session, SapComWrapper<GuiCTextField> guiCTextField, string guiUsrAreaId, 
+            string anchorColumn, string anchorValue, string columnToChoose, 
+            Func<string, bool> conditionToSkipRow = null, int header = 0, int[] dropLines = null)
+        {
+
+            Action<LabelTable> selectValue = (table) =>
+            {
+                string foundValue = null;
+                for (int i = 0; i < table.DataTable.Rows.Count; i++)
+                {
+                    var row = table.DataTable.Rows[i];
+                    if (Rpa.IsMatch((string)row[anchorColumn], anchorValue))
+                    {
+                        foundValue = (string)row[columnToChoose];
+                        if (conditionToSkipRow != null && conditionToSkipRow(foundValue))
+                            continue;
+                        else
+                        {
+                            var rowFoundInDataTable = i;
+                            var colFoundInDataTable = table.DataTable.Columns[columnToChoose].Ordinal;
+                            table.SelectCell(rowFoundInDataTable + 1, colFoundInDataTable);
+                            break;
+                        }
+                    }
+                }
+
+                session.PressEnter();
+            };
+
+            return OnPossibleValues(session, guiCTextField, guiUsrAreaId, selectValue, readOnly: true, header, dropLines);
+
+        }
+
+        public static LabelTable SelectPossibleValueByAnchor(Session session, string guiCTextFieldId, string guiUsrAreaId, 
+            string anchorColumn, string anchorValue, string columnToChoose, 
+            Func<string,bool> conditionToSkipRow = null, int header = 0, int[] dropLines = null)
+        {
+            return SelectPossibleValueByAnchor(session, session.FindById<GuiCTextField>(guiCTextFieldId), guiUsrAreaId,
+                anchorColumn, anchorValue, columnToChoose, conditionToSkipRow, header, dropLines);
+        }
+
+        public static SapComWrapper<T> FindById<T>(GuiComponent parent, string pathId, bool showTypes = false)
+        {
+            var nativeObjFound = FindComById<T>(parent, pathId, showTypes);
+
+            return new SapComWrapper<T>(nativeObjFound);
+        }
+
+
+        public static T FindComById<T>(GuiComponent parent, string pathId, bool showTypes = false)
         {
             T foundObj;
 
             if (parent.ContainerType)
-                foundObj = parent is GuiContainer ? (T)(parent as GuiContainer).FindById(pathId) : (T)(parent as GuiVContainer);
+                foundObj = parent is GuiContainer ? (T)(parent as GuiContainer).FindById(pathId) : (T)(parent as GuiVContainer).FindById(pathId);
             else
                 throw new ArgumentException($"The argument parent must be a Container type (GuiContainer or GuiVContainer).");
 
@@ -419,9 +503,9 @@ namespace RpaLib.SAP
         /// <param name="parent">The parent object in which to look for the element.</param>
         /// <param name="labelTextRegex">Regex pattern to search within session. The first found will be returned.</param>
         /// <returns>An array containing the SAP Gui elements found by text.</returns>
-        public static T[] FindByText<T>(GuiComponent parent, string labelTextRegex)
+        public static SapComWrapper<T>[] FindByText<T>(GuiComponent parent, string labelTextRegex)
         {
-            T[] objFound = AllDescendants(parent)
+            SapComWrapper<T>[] objFound = AllDescendants(parent)
                 .Cast<SapGuiObject>()
                 .Where(elt =>
                 {
@@ -449,6 +533,7 @@ namespace RpaLib.SAP
                     }
                 })
                 .Where(x => x != null)
+                .Select(x => new SapComWrapper<T>(x))
                 .ToArray();
 
             /* 
@@ -460,9 +545,9 @@ namespace RpaLib.SAP
             return objFound;
         }
 
-        public static T[] FindByType<T>(dynamic rootContainer, bool showFound = false) => FindByType<T>(rootContainer, typeof(T).ToString(), showFound);
+        public static SapComWrapper<T>[] FindByType<T>(GuiComponent rootContainer, bool showFound = false) => FindByType<T>(rootContainer, typeof(T).ToString(), showFound);
 
-        public static T[] FindByType<T>(dynamic rootContainer, string typeName, bool showFound = false)
+        public static SapComWrapper<T>[] FindByType<T>(GuiComponent rootContainer, string typeName, bool showFound = false)
         {
             SapGuiObject[] descendants = AllDescendants(rootContainer);
 
@@ -473,13 +558,13 @@ namespace RpaLib.SAP
             if (showFound)
             {
                 var descendantTypeRealtype = string.Join(",\n\t", descendantsFound.Select(x => $"{x.Type} ({x.Obj})"));
-                var root = (GuiComponent)rootContainer;
+                var root = rootContainer;
                 var rootText = rootContainer is GuiVComponent ? (rootContainer as GuiVComponent)?.Text : string.Empty;
                 Trace.WriteLine($"Looking for type [{typeName}] within object \"{root.Id}\"...");
                 Trace.WriteLine($"[{root.Type}] {root.Id} \"{rootText}\":\n\t{descendantTypeRealtype}");
             }
 
-            return descendantsFound.Select(x => (T)x.Obj).ToArray();
+            return descendantsFound.Select(x => new SapComWrapper<T>((T)x.Obj)).ToArray();
         }
 
         public static bool ExistsByText<T>(GuiComponent parent, string textRegex)
@@ -534,7 +619,7 @@ namespace RpaLib.SAP
             }
         }
 
-        public static C[] FindTextInside<P, C>(GuiComponent root, string parentPathId, string textRegex)
+        public static SapComWrapper<C>[] FindTextInside<P, C>(GuiComponent root, string parentPathId, string textRegex)
         {
             return FindByText<C>((GuiComponent)FindById<P>(root, parentPathId), textRegex);
         }

@@ -9,24 +9,25 @@ using RpaLib.Tracing;
 using RpaLib.ProcessAutomation;
 using RpaLib.SAP.Model;
 using System.Runtime.InteropServices;
+using System.IO;
 
 namespace RpaLib.SAP
 {
-    public class Session
+    public class Session : SapComWrapper<GuiSession>
     {
         private int _index;
         private const int _sessionWaitMilisec = 2000;
         public Connection Connection { get; private set; }
         public int Index { get => _index; }
-        public GuiSession GuiSession { get; set; }
-        public GuiStatusbar CurrentStatusBar
+        public SapComWrapper<GuiSession> GuiSession { get; set; }
+        public SapComWrapper<GuiStatusbar> CurrentStatusBar
         {
             get
             {
                 return FindById<GuiStatusbar>("wnd[0]/sbar");
             }
         }
-        public GuiFrameWindow CurrentFrameWindow
+        public SapComWrapper<GuiFrameWindow> CurrentFrameWindow
         {
             get
             {
@@ -36,7 +37,7 @@ namespace RpaLib.SAP
 
         public string Transaction
         {
-            get => GuiSession.Info.Transaction;
+            get => GuiSession.Com.Info.Transaction;
         }
 
         public ModalWindow[] PopUps
@@ -49,7 +50,7 @@ namespace RpaLib.SAP
 
                 foreach (var popUp in foundPopUps)
                 {
-                    modalWindows.Add(new ModalWindow(popUp.Id, this));
+                    modalWindows.Add(new ModalWindow(this, popUp.Com.Id));
                 }
 
                 return modalWindows.ToArray();
@@ -57,27 +58,39 @@ namespace RpaLib.SAP
         }
 
         public Session(GuiSession guiSession, Connection connection)
+            : base(guiSession)
         {
-            GuiSession = guiSession;
+            GuiSession = new SapComWrapper<GuiSession>(guiSession);
             _index = guiSession.Info.SessionNumber;
             Connection = connection;
         }
 
-        public void SendVKey(int vKeyNumber) => CurrentFrameWindow.SendVKey(vKeyNumber);
+        public override void SendVKey(int vKeyNumber) => CurrentFrameWindow.SendVKey(vKeyNumber);
 
         public void AccessTransaction(string transactionId) => Sap.AccessTransaction(this, transactionId);
 
-        public GuiComponent FindById(string pathId, bool suppressTrace = false)
+        public GuiComponent FindComById(string pathId, bool suppressTrace = false)
         {
             if (! suppressTrace)
                 Trace.WriteLine(string.Join(Environment.NewLine,
                     $"Trying to find by id ({pathId})",
                     $"The current working session is:",
                     this));
-            return GuiSession.FindById(pathId);
+            return GuiSession.Com.FindById(pathId);
         }
 
-        public T FindById<T>(string id, bool suppressTrace = false) => (T)FindById(id, suppressTrace);
+        public T FindComById<T>(string pathId, bool suppressTrace = false) => (T)FindComById(pathId, suppressTrace);
+
+        public SapComWrapper<T> FindById<T>(string pathId, bool suppressTrace = false, bool showTypes = false)
+        {
+            if (!suppressTrace)
+                Trace.WriteLine(string.Join(Environment.NewLine,
+                    $"Trying to find by id ({pathId})",
+                    $"The current working session is:",
+                    this));
+
+            return base.FindById<T>(pathId, showTypes);
+        }
 
         /// <summary>
         /// Search for an element by matching its text with a regex pattern parameter.
@@ -85,11 +98,11 @@ namespace RpaLib.SAP
         /// <typeparam name="T">The type of the Sap element you're looking for.</typeparam>
         /// <param name="labelTextPattern">Regex pattern to search within session. The first found will be returned.</param>
         /// <returns></returns>
-        public T[] FindByText<T>(string labelTextPattern) => Sap.FindByText<T>((GuiComponent)GuiSession, labelTextPattern);
+        public SapComWrapper<T>[] FindByText<T>(string labelTextPattern) => Sap.FindByText<T>((GuiComponent)GuiSession.Com, labelTextPattern);
 
-        public T[] FindByType<T>(bool showFound = false) => FindByType<T>(typeof(T).ToString(), showFound);
+        public SapComWrapper<T>[] FindByType<T>(bool showFound = false) => FindByType<T>(typeof(T).ToString(), showFound);
 
-        public T[] FindByType<T>(string typeName, bool showFound = false) => Sap.FindByType<T>(GuiSession, typeName, showFound);
+        public SapComWrapper<T>[] FindByType<T>(string typeName, bool showFound = false) => Sap.FindByType<T>((GuiComponent)GuiSession.Com, typeName, showFound);
 
         public Grid FindGrid(string pathId)
         {
@@ -101,14 +114,19 @@ namespace RpaLib.SAP
             return new Table(this, pathId);
         }
 
-        public LabelTable FindLabelTable(string guiUsrControlPathId)
+        public LabelTable FindLabelTable(string guiUsrControlPathId, bool readOnly = true, int header = 0, int[] dropLines = null)
         {
-            return new LabelTable(this, guiUsrControlPathId);
+            return new LabelTable(this, guiUsrControlPathId, readOnly, header, dropLines);
+        }
+
+        public Field FindField(string cTextFieldId)
+        {
+            return new Field(this, cTextFieldId);
         }
 
         public void SelectComboBoxEntry(string guiComboBoxPathId, string entryToSelectRegex)
         {
-            var guiComboBox = FindById<GuiComboBox>(guiComboBoxPathId);
+            GuiComboBox guiComboBox = FindById<GuiComboBox>(guiComboBoxPathId).Com;
             guiComboBox.Key = Rpa.COMCollectionToICollection<GuiComboBoxEntry>(guiComboBox.Entries).Where(x => Rpa.IsMatch(x.Value, entryToSelectRegex)).Select(x => x.Key).FirstOrDefault();
         }
 
@@ -123,7 +141,7 @@ namespace RpaLib.SAP
         public void CreateNewSession(Session session)
         {
             Trace.WriteLine($"Creating a new session from Session[{session.Index}]...");
-            session.GuiSession.CreateSession();
+            session.GuiSession.Com.CreateSession();
             Thread.Sleep(_sessionWaitMilisec); // wait otherwise new session cannot be captured
             //Log.MessageBox("New session created.");
             //Sap.MapExistingSessions();
@@ -167,17 +185,17 @@ namespace RpaLib.SAP
             return
                 string.Join(Environment.NewLine,
                 $"  Session [{Index}]:",
-                SessionInfo(GuiSession)
+                SessionInfo(GuiSession.Com)
                 );
         }
 
-        public bool ExistsById<T>(string pathId) => Sap.ExistsById<T>(GuiSession as GuiComponent, pathId);
+        public bool ExistsById<T>(string pathId) => Sap.ExistsById<T>((GuiComponent)GuiSession.Com, pathId);
 
-        public bool ExistsById(string pathId) => Sap.ExistsById<dynamic>(GuiSession as GuiComponent, pathId);
+        public bool ExistsById(string pathId) => Sap.ExistsById<dynamic>((GuiComponent)GuiSession.Com, pathId);
 
-        public bool ExistsByText<T>(string textRegex) => Sap.ExistsByText<T>(GuiSession as GuiComponent, textRegex);
+        public bool ExistsByText<T>(string textRegex) => Sap.ExistsByText<T>((GuiComponent)GuiSession.Com, textRegex);
 
-        public bool ExistsByText(string textRegex) => Sap.ExistsByText<dynamic>(GuiSession as GuiComponent, textRegex);
+        public bool ExistsByText(string textRegex) => Sap.ExistsByText<dynamic>((GuiComponent)GuiSession.Com, textRegex);
 
         public bool ExistsTextInside(string parentPathId, string textRegex) => ExistsTextInside<dynamic,dynamic>(parentPathId, textRegex);
 
@@ -190,19 +208,19 @@ namespace RpaLib.SAP
         /// <param name="parentPathId">Path ID from the parent object. All its children are considered recursively (children of children, etc.)</param>
         /// <param name="textRegex">Pattern which any descendant's Text property must match</param>
         /// <returns>Boolean indicating if there is at least one descendant with the text specified.</returns>
-        public bool ExistsTextInside<P, C>(string parentPathId, string textRegex) => Sap.ExistsTextInside<P, C>((GuiComponent)GuiSession, parentPathId, textRegex);
+        public bool ExistsTextInside<P, C>(string parentPathId, string textRegex) => Sap.ExistsTextInside<P, C>((GuiComponent)GuiSession.Com, parentPathId, textRegex);
 
-        public C[] FindTextInside<P, C>(string parentPathId, string textRegex) => Sap.FindTextInside<P, C>((GuiComponent)GuiSession, parentPathId, textRegex);
+        public SapComWrapper<C>[] FindTextInside<P, C>(string parentPathId, string textRegex) => Sap.FindTextInside<P, C>((GuiComponent)GuiSession.Com, parentPathId, textRegex);
 
-        public Grid NewGridView(string idGuiGridView) => NewGridView(FindById<GuiGridView>(idGuiGridView));
+        public Grid NewGridView(string idGuiGridView) => NewGridView(FindById<GuiGridView>(idGuiGridView).Com);
         public Grid NewGridView(GuiGridView guiGridView)
         {
             return new Grid(this, guiGridView);
         }
 
-        public SapGuiObject[] AllDescendants() => Sap.AllDescendants(GuiSession);
+        public SapGuiObject[] AllDescendants() => Sap.AllDescendants(GuiSession.Com);
 
-        public string AllSessionIdsInfo() => Sap.AllSessionIdsInfo(GuiSession);
+        public string AllSessionIdsInfo() => Sap.AllSessionIdsInfo(GuiSession.Com);
 
         public void ShowAllSessionIdsInfo() => Trace.WriteLine(AllSessionIdsInfo());
 
@@ -210,8 +228,8 @@ namespace RpaLib.SAP
         {
             return string.Join(Environment.NewLine,
                 $"Current Status Bar properties:",
-                $"  MessageType: {CurrentStatusBar.MessageType}",
-                $"  Text: {CurrentStatusBar.Text}");
+                $"  MessageType: {CurrentStatusBar.Com.MessageType}",
+                $"  Text: {CurrentStatusBar.Com.Text}");
         }
 
         public void ShowCurrentStatusBarInfo()
@@ -221,7 +239,7 @@ namespace RpaLib.SAP
         public bool IsStatusType(StatusType status)
         {
             string statusLetter = StatusTypeEnum.GetStatusTypeLetter(status);
-            if (Rpa.IsMatch(CurrentStatusBar.MessageType, statusLetter))
+            if (Rpa.IsMatch(CurrentStatusBar.Com.MessageType, statusLetter))
                 return true;
             else
                 return false;
@@ -229,7 +247,7 @@ namespace RpaLib.SAP
 
         public bool IsStatusMessage(string messageRegex)
         {
-            if (Rpa.IsMatch(CurrentStatusBar.Text, messageRegex))
+            if (Rpa.IsMatch(CurrentStatusBar.Com.Text, messageRegex))
                 return true;
             else
                 return false;
@@ -240,7 +258,7 @@ namespace RpaLib.SAP
         /// </summary>
         /// <param name="wndIndex">Index of the window. For example, to get the window of ID "/app/conn/wnd[0]" it should be 0.</param>
         /// <returns></returns>
-        public GuiFrameWindow GetWindow(int wndIndex) => FindById<GuiFrameWindow>($"wnd[{wndIndex}]");
+        public SapComWrapper<GuiFrameWindow> GetWindow(int wndIndex) => FindById<GuiFrameWindow>($"wnd[{wndIndex}]");
 
         /// <summary>
         /// Automate pressing enter for a number of times

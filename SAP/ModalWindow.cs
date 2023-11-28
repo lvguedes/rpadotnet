@@ -11,27 +11,20 @@ namespace RpaLib.SAP
     /// <summary>
     /// Class that represent a Pop-Up window (GuiModalWindow) within SAP
     /// </summary>
-    public class ModalWindow
+    public class ModalWindow : SapComponent<GuiModalWindow>
     {
-        public string PathId { get; }
-
-        public GuiModalWindow GuiModalWindow
+        public SapComWrapper<GuiModalWindow> GuiModalWindow
         {
             get => Session.FindById<GuiModalWindow>(PathId);
         }
 
-        public Session Session { get; private set; }
+        public ModalWindow(Session session, string pathId) : base(session, pathId)
+        { }
 
-        public ModalWindow(string pathId, Session session)
-        {
-            PathId = pathId;
-            Session = session;
-        }
+        public SapComWrapper<T> FindById<T>(string pathId) => GuiModalWindow.FindById<T>(pathId);
 
-        public T FindById<T>(string pathId) => (T)GuiModalWindow.FindById(pathId);
+        public SapComWrapper<T>[] FindByType<T>(string typeName, bool showFound = false) => Sap.FindByType<T>((GuiComponent)GuiModalWindow.Com, typeName, showFound);
 
-        public T[] FindByType<T>(string typeName, bool showFound = false) => Sap.FindByType<T>(GuiModalWindow, typeName, showFound);
-
-        public T[] FindByType<T>(bool showFound = false) => Sap.FindByType<T>(GuiModalWindow, showFound);
+        public SapComWrapper<T>[] FindByType<T>(bool showFound = false) => Sap.FindByType<T>((GuiComponent)GuiModalWindow.Com, showFound);
     }
 }

@@ -12,6 +12,6 @@ namespace RpaLib.SAP.Model
         public int Row { get; set; }
         public int Col { get; set; }
         public string Text { get; set; }
-        public GuiLabel GuiLabel { get; set; }
+        public SapComWrapper<GuiLabel> GuiLabel { get; set; }
     }
 }

@@ -19,35 +19,36 @@ namespace RpaLib.SAP
     // It's impossible to cast this object to GuiTableControl or GuiGridView.
     // It's only accepted as a GuiUserArea object, but this one can't be read as a table natively.
     // That's why this class exists.
-    public class LabelTable
+    public class LabelTable : SapComponent<GuiUserArea>
     {
-        public string PathId { get; }
-        public Session Session { get; }
-        public GuiUserArea ParentGuiUserArea
+        public int Header { get; private set; }
+        public int[] DropLines { get; private set; }
+        public SapComWrapper<GuiUserArea> ParentGuiUserArea
         {
             get => Session.FindById<GuiUserArea>(PathId, suppressTrace: true);
         }
-        public GuiLabel[] GuiLabels { get; private set; }
+        public SapComWrapper<GuiLabel>[] GuiLabels { get; private set; }
         public Label[][] TableArray { get; private set; }
         public DataTable DataTable { get; private set; }
         public Scroll VerticalScrollbar
         {
-            get => new Scroll(ParentGuiUserArea.VerticalScrollbar);
+            get => new Scroll(ParentGuiUserArea.Com.VerticalScrollbar);
         }
         public Scroll HorizontalScrollbar
         {
-            get => new Scroll(ParentGuiUserArea.HorizontalScrollbar);
+            get => new Scroll(ParentGuiUserArea.Com.HorizontalScrollbar);
         }
 
-        public LabelTable(Session session, string guiUserAreaPathId)
+        public LabelTable(Session session, string guiUserAreaPathId, bool readOnly = true, int header = 0, int[] dropLines = null)
+            : base(session, guiUserAreaPathId)
         {
-            PathId = guiUserAreaPathId;
-            Session = session;
+            Header = header;
+            DropLines = dropLines ?? new int[] { };
 
-            GuiLabels = Sap.FindByType<GuiLabel>(ParentGuiUserArea);
+            GuiLabels = Sap.FindByType<GuiLabel>((GuiComponent)ParentGuiUserArea.Com);
 
             ParseTable();
-            GetDataTable();
+            GetDataTable(readOnly);
         }
 
 
@@ -65,8 +66,8 @@ namespace RpaLib.SAP
             {
                 var currentLabel = new Label
                 {
-                    Row = int.Parse(Rpa.Match(guiLabel.Id, rowRegex)),
-                    Col = int.Parse(Rpa.Match(guiLabel.Id, colRegex)),
+                    Row = int.Parse(Rpa.Match(guiLabel.Com.Id, rowRegex)),
+                    Col = int.Parse(Rpa.Match(guiLabel.Com.Id, colRegex)),
                     Text = guiLabel.Text,
                     GuiLabel = guiLabel,
                 };
@@ -80,10 +81,12 @@ namespace RpaLib.SAP
             var orderedCols = columns.Cast<int>().OrderBy(x => x).ToArray();
 
             tableList = tableList ?? new List<Label[]>();
+            int rowIndex = 0;
             foreach (var nRow in orderedRows)
             {
                 Label[] rowList = labels.Where(x => x.Row == nRow).OrderBy(x => x.Col).ToArray();
-                tableList.Add(rowList);
+                if (!DropLines.Contains(rowIndex++))
+                    tableList.Add(rowList);
             }
 
             // Scroll down if needed
@@ -100,16 +103,16 @@ namespace RpaLib.SAP
             return TableArray;
         }
 
-        private DataTable GetDataTable(int header = 0)
+        private DataTable GetDataTable(bool readOnly = true)
         {
             DataTable = new DataTable();
 
             // add the header row (DataColumns) to dataTable (create)
-            foreach (var label in TableArray[header])
+            foreach (var label in TableArray[Header])
             {
                 var column = new DataColumn
                 {
-                    DataType = typeof(string),
+                    DataType = readOnly? typeof(string) : typeof(GuiLabel),
                     ColumnName = label.Text,
                 };
 
@@ -119,15 +122,17 @@ namespace RpaLib.SAP
             // add the rows to datatable (populate)
             for (var i = 0; i < TableArray.Length; i++)
             {
-                // skip the header row
-                if (i == header)
+                //skip the header row or lines to drop
+                if (i == Header)
                     continue;
 
-                var row = DataTable.NewRow();
-
+                var row = DataTable.NewRow();;
                 for (var j = 0; j < TableArray[i].Length; j++)
                 {
-                    row[j] = TableArray[i][j].Text;
+                    if (readOnly)
+                        row[j] = TableArray[i][j].Text;
+                    else
+                        row[j] = TableArray[i][j];
                 }
 
                 DataTable.Rows.Add(row);
@@ -164,7 +169,7 @@ namespace RpaLib.SAP
 
         public void PrintDataTable()
         {
-            Trace.WriteLine($"Printing the DataTable that represents SAP GuiLabel Table \"{ParentGuiUserArea.Id}\":", color: ConsoleColor.Yellow);
+            Trace.WriteLine($"Printing the DataTable that represents SAP GuiLabel Table \"{ParentGuiUserArea.Com.Id}\":", color: ConsoleColor.Yellow);
             Trace.WriteLine(Rpa.PrintDataTable(DataTable), withTimeSpec: false, color: ConsoleColor.Magenta);
         }
     }

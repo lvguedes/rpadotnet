@@ -8,19 +8,15 @@ using SapLegacy = RpaLib.SAP.Legacy.Sap;
 
 namespace RpaLib.SAP
 {
-    public class Button : SapComponent
+    public class Button : SapComponent<GuiButton>
     {
-        public Session Session { get; private set; }
-
-        public Button(Session session) : base(session)
-        {
-            Session = session;
-        }
+        public Button(Session session, string pathId) : base(session, pathId)
+        { }
 
         public void Click()
         {
             Tracing.Log.Write($"Trying to click button {Name} ({Description}).");
-            Click(FullPathId);
+            Click(PathId);
             Tracing.Log.Write($"Button \"{Name}\" ({Description}) clicked.");
         }
         public void Click(string fullPathId) => Session.FindById<GuiButton>(fullPathId).Press();
