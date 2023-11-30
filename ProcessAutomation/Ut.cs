@@ -16,6 +16,10 @@ using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization;
 using System.Net.Http;
 using Newtonsoft.Json;
+using FormsMsgBox = System.Windows.Forms.MessageBox;
+using DialogResult = System.Windows.Forms.DialogResult;
+using MessageBoxButtons = System.Windows.Forms.MessageBoxButtons;
+using RpaTrace = RpaLib.Tracing.Trace;
 
 /*
 Reference Assemblies:
@@ -173,7 +177,7 @@ namespace RpaLib.ProcessAutomation
             {
                 foreach (Process proc in Process.GetProcesses())
                 {
-                    if (outputProcesses == true) Trace.WriteLine($"Process {proc.ProcessName}");
+                    if (outputProcesses == true) RpaTrace.WriteLine($"Process {proc.ProcessName}");
                     if (proc.ProcessName == processName)
                     {
                         return;
@@ -218,7 +222,7 @@ namespace RpaLib.ProcessAutomation
         {
             foreach (Process proc in Process.GetProcessesByName(processName))
             {
-                if (outputProcesses) Trace.WriteLine($"Killing process {proc.ProcessName}");
+                if (outputProcesses) RpaTrace.WriteLine($"Killing process {proc.ProcessName}");
                 proc.Kill();
             }
         }
@@ -239,9 +243,9 @@ namespace RpaLib.ProcessAutomation
 
         public static void MessageBox(string message, bool showDebugMessages = false)
         {
-            if (showDebugMessages) Trace.WriteLine("Pausing execution to display a message box");
+            if (showDebugMessages) RpaTrace.WriteLine("Pausing execution to display a message box");
             System.Windows.Forms.MessageBox.Show(message);
-            if (showDebugMessages) Trace.WriteLine("Continuing execution");
+            if (showDebugMessages) RpaTrace.WriteLine("Continuing execution");
         }
 
         #endregion
@@ -424,6 +428,28 @@ namespace RpaLib.ProcessAutomation
         public static int[] Range(int start, int count)
         {
             return Enumerable.Range(start, count).ToArray();
+        }
+
+        #endregion
+
+        #region GUI
+
+        public static void PopUp(string message)
+        {
+            // pause execution and display a pop-up, continue execution after user click ok
+            FormsMsgBox.Show(message);
+
+            RpaTrace.WriteLine(message);
+        }
+
+        public static DialogResult PopUpQuestion(string question, string ifYes, string ifNo, string ifCancel = "Message box cancelled")
+        {
+            DialogResult dr = FormsMsgBox.Show(question, "Log Yes/No Question Pop-Up", MessageBoxButtons.YesNo);
+            if (dr == DialogResult.Yes) RpaTrace.WriteLine(ifYes);
+            else if (dr == DialogResult.No) RpaTrace.WriteLine(ifNo);
+            else RpaTrace.WriteLine(ifCancel);
+
+            return dr;
         }
 
         #endregion
