@@ -68,8 +68,8 @@ namespace RpaLib.SAP
             {
                 var currentLabel = new Label
                 {
-                    Row = int.Parse(Rpa.Match(guiLabel.Com.Id, rowRegex)),
-                    Col = int.Parse(Rpa.Match(guiLabel.Com.Id, colRegex)),
+                    Row = int.Parse(Ut.Match(guiLabel.Com.Id, rowRegex)),
+                    Col = int.Parse(Ut.Match(guiLabel.Com.Id, colRegex)),
                     Text = guiLabel.Text,
                     GuiLabel = guiLabel,
                 };
@@ -101,7 +101,7 @@ namespace RpaLib.SAP
                 // Process quick select through regex string and counter params
                 if (selectRegex != null && regexMatches > 0)
                 {
-                    var columnsFound = rowList.Where(x => Rpa.IsMatch(x.Text, selectRegex)).ToArray();
+                    var columnsFound = rowList.Where(x => Ut.IsMatch(x.Text, selectRegex)).ToArray();
                     if (columnsFound.Length > 0)
                     {
                         columnsFound[0].GuiLabel.SetFocus();
@@ -186,7 +186,7 @@ namespace RpaLib.SAP
 
         public void SelectCell(string textRegex, int defaultToSelect = 0)
         {
-            var guiLabelsFound = TableArray.Select(x => x.Where(y => Rpa.IsMatch(y.Text, textRegex))).Cast<Label>().ToArray();
+            var guiLabelsFound = TableArray.Select(x => x.Where(y => Ut.IsMatch(y.Text, textRegex))).Cast<Label>().ToArray();
             Label cell;
 
             if (guiLabelsFound.Length == 0)
@@ -208,7 +208,7 @@ namespace RpaLib.SAP
         public void PrintDataTable()
         {
             Trace.WriteLine($"Printing the DataTable that represents SAP GuiLabel Table \"{ParentGuiUserArea.Com.Id}\":", color: ConsoleColor.Yellow);
-            Trace.WriteLine(Rpa.PrintDataTable(DataTable), withTimeSpec: false, color: ConsoleColor.Magenta);
+            Trace.WriteLine(Ut.PrintDataTable(DataTable), withTimeSpec: false, color: ConsoleColor.Magenta);
         }
     }
 }

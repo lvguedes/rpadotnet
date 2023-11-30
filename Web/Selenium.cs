@@ -25,7 +25,7 @@ namespace RpaLib.Web
             ChromeOptions options = new ChromeOptions();
             // To disable "This file can harm your computer..." message
             options.AddUserProfilePreference("safebrowsing.enabled", "false");
-            options.AddUserProfilePreference("download.default_directory", Rpa.GetFullPath(defDwdDir));
+            options.AddUserProfilePreference("download.default_directory", Ut.GetFullPath(defDwdDir));
             if (chromeBinPath != null)
                 options.BinaryLocation = chromeBinPath;
             //options.AddUserProfilePreference("download.prompt_for_download", "false");
@@ -50,7 +50,7 @@ namespace RpaLib.Web
             }
             catch (InvalidOperationException ex)
             {
-                if (Rpa.IsMatch(ex.Message, @"session not created: This version of ChromeDriver only supports Chrome version \d+"))
+                if (Ut.IsMatch(ex.Message, @"session not created: This version of ChromeDriver only supports Chrome version \d+"))
                 {
                     Log.Write("Killing all \"chromedriver\" processes...");
                     foreach (Process proc in Process.GetProcessesByName("chromedriver"))
@@ -140,7 +140,7 @@ namespace RpaLib.Web
             // File names and paths
             string exeFileName = "chromedriver.exe";
             string zipFileName = "chromedriver_win32.zip";
-            string savePathDir = Rpa.GetFullPath(@"%USERPROFILE%\Downloads\SeleniumChromeDriver");
+            string savePathDir = Ut.GetFullPath(@"%USERPROFILE%\Downloads\SeleniumChromeDriver");
             string savePathZip = Path.Combine(savePathDir, zipFileName);
             string exeFullPathDownloads = Path.Combine(savePathDir, exeFileName);
             string exeFullPathInstall = Path.Combine(installPathDir, exeFileName);
@@ -150,7 +150,7 @@ namespace RpaLib.Web
             // mount the url with the major version
             string url = $"https://chromedriver.storage.googleapis.com/LATEST_RELEASE_{chromeMajorVersion}";
             // api call to discover the ChromeDriver version compatible with system's Chrome
-            string chromeDriverVersion = await Rpa.MakeApiCallAsync(url);
+            string chromeDriverVersion = await Ut.MakeApiCallAsync(url);
 
             // mount the url with the ChromeDriver full version spec
             string chromeDriverUrl = $"https://chromedriver.storage.googleapis.com/{chromeDriverVersion}/{zipFileName}";
@@ -162,19 +162,19 @@ namespace RpaLib.Web
             }
 
             // download the zip
-            string dwdResult = await Rpa.MakeApiCallAsync(chromeDriverUrl, saveAs: savePathZip);
+            string dwdResult = await Ut.MakeApiCallAsync(chromeDriverUrl, saveAs: savePathZip);
 
             // delete the files because Unzip can't overwrite
-            foreach (string file in Rpa.MatchAllFiles(@"chromedriver\.exe|LICENSE\.chromedriver", savePathDir))
+            foreach (string file in Ut.MatchAllFiles(@"chromedriver\.exe|LICENSE\.chromedriver", savePathDir))
                 File.Delete(file);
             // now we guarantee that Unzip() will always occur with success
-            Rpa.Unzip(savePathZip, savePathDir);
+            Ut.Unzip(savePathZip, savePathDir);
 
-            string oldVersion = Rpa.RunPromptCommand(Bin, "--version");
+            string oldVersion = Ut.RunPromptCommand(Bin, "--version");
             //string oldVersion = GetDriverVersion();
             // move to the folder listed in PATH to actually install (suggestion: %APPDATA%\Selenium\Drivers)
-            Rpa.MoveFileForced(exeFullPathDownloads, exeFullPathInstall);
-            string newVersion = Rpa.RunPromptCommand(Bin, "--version");
+            Ut.MoveFileForced(exeFullPathDownloads, exeFullPathInstall);
+            string newVersion = Ut.RunPromptCommand(Bin, "--version");
             //string newVersion = chromeDriverVersion;
 
             Log.Write(string.Join(Environment.NewLine,
@@ -191,17 +191,17 @@ namespace RpaLib.Web
             if (chromeBinPath == null)
             {
                 // if bin path is NOT given, then check the chrome system installed version through windows register
-                cmdResult = Rpa.RunPromptCommand("reg", @"query ""HKEY_CURRENT_USER\Software\Google\Chrome\BLBeacon"" /v version");
-                chromeVersion = Rpa.Match(cmdResult, @"(?<=version[\s\w]+)\d+\.\d+\.\d+(\.\d+)?");
+                cmdResult = Ut.RunPromptCommand("reg", @"query ""HKEY_CURRENT_USER\Software\Google\Chrome\BLBeacon"" /v version");
+                chromeVersion = Ut.Match(cmdResult, @"(?<=version[\s\w]+)\d+\.\d+\.\d+(\.\d+)?");
             }
             else
             {
                 // if Chrome binary path is given, then check the Chrome version using this file
-                cmdResult = Rpa.RunPromptCommand("wmic", $"datafile where name=\"{Rpa.GetFullPath(chromeBinPath).Replace(@"\", @"\\")}\" get Version /value");
-                chromeVersion = Rpa.Match(cmdResult, @"(?<=Version=)[\w.]+");
+                cmdResult = Ut.RunPromptCommand("wmic", $"datafile where name=\"{Ut.GetFullPath(chromeBinPath).Replace(@"\", @"\\")}\" get Version /value");
+                chromeVersion = Ut.Match(cmdResult, @"(?<=Version=)[\w.]+");
             }
 
-            string chromeMajorVersion = Rpa.Match(chromeVersion, @"^\d+(?=\.)");
+            string chromeMajorVersion = Ut.Match(chromeVersion, @"^\d+(?=\.)");
 
             return chromeMajorVersion;
         }

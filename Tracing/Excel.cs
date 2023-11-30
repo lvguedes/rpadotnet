@@ -30,7 +30,7 @@ namespace RpaLib.Tracing
             Application = new Application();
             Application.DisplayAlerts = false; // disable pop-ups when overwriting
 
-            FullFilePath = Rpa.GetFullPath(filePath);
+            FullFilePath = Ut.GetFullPath(filePath);
             SheetName = sheetName;
 
             Workbook = Application.Workbooks.Open(FullFilePath);
@@ -40,7 +40,7 @@ namespace RpaLib.Tracing
             }
             catch (COMException ex)
             {
-                if (Rpa.IsMatch(ex.Message, @"Invalid index\. \(Exception from HRESULT: 0x8002000B \(DISP_E_BADINDEX\)\)"))
+                if (Ut.IsMatch(ex.Message, @"Invalid index\. \(Exception from HRESULT: 0x8002000B \(DISP_E_BADINDEX\)\)"))
                 {
                     throw new WorksheetNotFoundException(sheetName, filePath);
                 }
@@ -84,7 +84,7 @@ namespace RpaLib.Tracing
             if (path == null)
                 Workbook.Save();
             else
-                Workbook.SaveAs(Rpa.GetFullPath(path));
+                Workbook.SaveAs(Ut.GetFullPath(path));
         }
 
         public Dictionary<string, string> GetActiveSheet()
@@ -233,7 +233,7 @@ namespace RpaLib.Tracing
             bool appendCol = false)
         {
             dynamic returnValue = null;
-            string fileFullPath = Rpa.GetFullPath(file);
+            string fileFullPath = Ut.GetFullPath(file);
             Excel excel = new Excel(fileFullPath, worksheet);
 
             excel.ToggleVisible(makeVisible: visible);
@@ -291,7 +291,7 @@ namespace RpaLib.Tracing
 
         public static DataTable ReadAll(string filePath, string sheetName, bool visible = false)
         {
-            string fileFullPath = Rpa.GetFullPath(filePath);
+            string fileFullPath = Ut.GetFullPath(filePath);
             Excel excel = new Excel(fileFullPath, sheetName);
 
             excel.ToggleVisible(visible);
@@ -311,7 +311,7 @@ namespace RpaLib.Tracing
 
         public static void WriteNextFreeRow(string filePath, DataTable table, string sheetName = DefaultSheetName, bool visible = false)
         {
-            string fileFullPath = Rpa.GetFullPath(filePath);
+            string fileFullPath = Ut.GetFullPath(filePath);
             Excel excel = new Excel(fileFullPath, sheetName);
 
             excel.ToggleVisible(visible);

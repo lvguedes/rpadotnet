@@ -19,13 +19,19 @@ namespace RpaLib.SAP
     public class App
     {
         private const int _getSapObjTimeoutSeconds = 20;
-        public GuiApplication GuiApplication { get; private set; }
-        public string ConnectionErrorText { get; private set; }
-        public Connection[] Connections { get; private set; }
+        public static GuiApplication GuiApplication
+        {
+            get => GetSapInteropApp();
+        }
+        public string ConnectionErrorText { get => GuiApplication.ConnectionErrorText; }
+        public Connection[] Connections
+        {
+            get => GetConnections();
+        }
 
         public App ()
         {
-            Update();
+            //Update();
         }
 
         /// <summary>
@@ -33,18 +39,19 @@ namespace RpaLib.SAP
         /// </summary>
         /// <param name="timeout">Seconds to stay retrying to get the SAP object when the process is still starting.</param>
         /// <returns></returns>
-        public static GuiApplication GetSapInteropApp(int timeout = _getSapObjTimeoutSeconds)
+        public static GuiApplication GetSapInteropApp(double timeout = _getSapObjTimeoutSeconds)
         {
             CSapROTWrapper sapROTWrapper = new CSapROTWrapper();
             object sapGuilRot = null;
-            int timePassed = 0;
+            double timePassed = 0;
+            double checksPerSecond = 512; // power of 2 is more efficient here
 
             // try to get SapGuilRot within timeout
             while (sapGuilRot == null && timePassed < timeout)
             {
                 sapGuilRot = sapROTWrapper.GetROTEntry("SAPGUI");
-                Thread.Sleep(1000);
-                timePassed++;
+                Thread.Sleep( (int)Math.Round(1000 / checksPerSecond) );
+                timePassed += 1 / checksPerSecond;
             }
 
             // use GuilRot to get the scripting engine
@@ -64,11 +71,22 @@ namespace RpaLib.SAP
         /// <returns>This class' updated object</returns>
         public App Update()
         {
-            GuiApplication = GetSapInteropApp();
-            ConnectionErrorText = GuiApplication.ConnectionErrorText;
-            Connections = GetConnections();
+            //GuiApplication = GetSapInteropApp();
+            //ConnectionErrorText = GuiApplication.ConnectionErrorText;
+            //Connections = GetConnections();
 
             return this;
+        }
+
+        public static GuiConnection[] GetGuiConnections()
+        {
+            var guiConnections = new List<GuiConnection>();
+            foreach (GuiConnection guiConn in GetSapInteropApp().Connections)
+            {
+                guiConnections.Add(guiConn);
+            }
+
+            return guiConnections.ToArray();
         }
 
         /// <summary>
@@ -79,12 +97,26 @@ namespace RpaLib.SAP
         public static Connection[] GetConnections()
         {
             var connections = new List<Connection>();
-            foreach (GuiConnection conn in GetSapInteropApp().Connections)
+            foreach (GuiConnection guiConn in GetGuiConnections())
             {
-                connections.Add(new Connection(conn));
+                connections.Add(new Connection(guiConn));
             }
 
             return connections.ToArray();
+        }
+
+        public static GuiConnection FindGuiConnectionByDesc(string descriptionRegex)
+        {
+            var selectedConn = from conn in GetGuiConnections()
+                               where Ut.IsMatch(conn.Description, descriptionRegex)
+                               select conn;
+
+            return selectedConn.FirstOrDefault();
+        }
+
+        public static Connection FindConnectionByDesc(string descriptionRegex)
+        {
+            return new Connection(FindGuiConnectionByDesc(descriptionRegex));
         }
 
         /// <summary>
@@ -94,11 +126,11 @@ namespace RpaLib.SAP
         /// <returns>The Connection object found or null.</returns>
         public static Connection FindConnectionById(string connectionIdPattern)
         {
-            var selectedConn = from conn in GetConnections()
-                               where Rpa.IsMatch(conn.Id, connectionIdPattern)
+            var selectedConn = from conn in GetGuiConnections()
+                               where Ut.IsMatch(conn.Id, connectionIdPattern)
                                select conn;
 
-            return selectedConn.FirstOrDefault();
+            return new Connection(selectedConn.FirstOrDefault());
         }
 
         public static Session[] FindSessions(string transactionNameRegex)
@@ -111,7 +143,7 @@ namespace RpaLib.SAP
             var currentConnection = openedConnections[0];
 
             var sessions = from s in currentConnection.Sessions
-                           where Rpa.IsMatch(s.Transaction, transactionNameRegex)
+                           where Ut.IsMatch(s.Transaction, transactionNameRegex)
                            select s;
 
             return sessions.ToArray();
@@ -140,15 +172,6 @@ namespace RpaLib.SAP
         public static void ShowConnectionsInfo()
         {
             Trace.WriteLine(ConnectionsInfo());
-        }
-
-        public static void CloseAll()
-        {
-            foreach (var connection in GetConnections())
-            {
-                foreach (var session in connection.Sessions)
-                    session.Close();
-            }
         }
     }
 }

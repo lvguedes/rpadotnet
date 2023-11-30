@@ -13,11 +13,11 @@ using System.IO;
 
 namespace RpaLib.SAP
 {
-    public class Session : SapComWrapper<GuiSession>
+    public class Session : Connection
     {
         private int _index;
         private const int _sessionWaitMilisec = 2000;
-        public Connection Connection { get; private set; }
+        //public Connection Connection { get; private set; }
         public int Index { get => _index; }
         public SapComWrapper<GuiSession> GuiSession { get; set; }
         public SapComWrapper<GuiStatusbar> CurrentStatusBar
@@ -57,15 +57,15 @@ namespace RpaLib.SAP
             }
         }
 
-        public Session(GuiSession guiSession, Connection connection)
-            : base(guiSession)
+        public Session(GuiSession guiSession, GuiConnection guiConnection)
+            : base(guiConnection)
         {
             GuiSession = new SapComWrapper<GuiSession>(guiSession);
             _index = guiSession.Info.SessionNumber;
-            Connection = connection;
+            //Connection = connection;
         }
 
-        public override void SendVKey(int vKeyNumber) => CurrentFrameWindow.SendVKey(vKeyNumber);
+        public void SendVKey(int vKeyNumber) => CurrentFrameWindow.SendVKey(vKeyNumber);
 
         public void AccessTransaction(string transactionId) => Sap.AccessTransaction(this, transactionId);
 
@@ -89,7 +89,7 @@ namespace RpaLib.SAP
                     $"The current working session is:",
                     this));
 
-            return base.FindById<T>(pathId, showTypes);
+            return GuiSession.FindById<T>(pathId, showTypes);
         }
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace RpaLib.SAP
         public void SelectComboBoxEntry(string guiComboBoxPathId, string entryToSelectRegex)
         {
             GuiComboBox guiComboBox = FindById<GuiComboBox>(guiComboBoxPathId).Com;
-            guiComboBox.Key = Rpa.COMCollectionToICollection<GuiComboBoxEntry>(guiComboBox.Entries).Where(x => Rpa.IsMatch(x.Value, entryToSelectRegex)).Select(x => x.Key).FirstOrDefault();
+            guiComboBox.Key = Ut.COMCollectionToICollection<GuiComboBoxEntry>(guiComboBox.Entries).Where(x => Ut.IsMatch(x.Value, entryToSelectRegex)).Select(x => x.Key).FirstOrDefault();
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace RpaLib.SAP
             //Sap.MapExistingSessions();
             Trace.WriteLine(string.Join(Environment.NewLine,
                 $"The connection after creating a new session and updating connection through interop engine:",
-                Connection));
+                base.ToString()));
         }
 
         public static string SessionInfo(GuiSession session)
@@ -240,7 +240,7 @@ namespace RpaLib.SAP
         public bool IsStatusType(StatusType status)
         {
             string statusLetter = StatusTypeEnum.GetStatusTypeLetter(status);
-            if (Rpa.IsMatch(CurrentStatusBar.Com.MessageType, statusLetter))
+            if (Ut.IsMatch(CurrentStatusBar.Com.MessageType, statusLetter))
                 return true;
             else
                 return false;
@@ -248,7 +248,7 @@ namespace RpaLib.SAP
 
         public bool IsStatusMessage(string messageRegex)
         {
-            if (Rpa.IsMatch(CurrentStatusBar.Com.Text, messageRegex))
+            if (Ut.IsMatch(CurrentStatusBar.Com.Text, messageRegex))
                 return true;
             else
                 return false;
@@ -290,9 +290,9 @@ namespace RpaLib.SAP
         /// Unconditionally close the SAP session GuiFrameWindow. Auto-processes any confirmation pop-up that might appear.
         /// </summary>
         /// <param name="confirmButtonTxt">Text in the button to confirm to close the Session window.</param>
-        public void Close(string confirmButtonTxt = "Yes")
+        public void Close(string confirmButtonTxt = "Yes|Sim")
         {
-            bool confirmationPopUpWillAppear = Connection.Sessions.Length == 1;
+            bool confirmationPopUpWillAppear = base.Sessions.Length == 1;
 
             CurrentFrameWindow.Close();
 

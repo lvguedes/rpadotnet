@@ -11,53 +11,44 @@ namespace RpaLib.SAP
 {
     public class Connection
     {
-        public GuiConnection GuiConnection { get; private set; }
-
-
-        public string Id
+        public GuiConnection GuiConnection
         {
-            get => GuiConnection.Id;
+            get => App.FindGuiConnectionByDesc(Description);
         }
 
-        public string ConnectionString
-        {
-            get => GuiConnection.ConnectionString;
-        }
 
-        public string Description
-        {
-            get => GuiConnection.Description;
-        }
+        public string Id { get; private set; }
+
+        public string ConnectionString { get; private set; }
+
+        public string Description { get; private set; }
 
         public Session[] Sessions
         {
             get => GetSessions();
         }
 
-        public bool DisabledByServer
-        {
-            get => GuiConnection.DisabledByServer;
-        }
-
         public Connection(GuiConnection guiConnection)
         {
-            GuiConnection = guiConnection;
+            Id = guiConnection.Id;
+            ConnectionString = guiConnection.ConnectionString;
+            Description = guiConnection.Description;
         }
 
-        public Connection Update()
-        {
-            var connectionFound = App.FindConnectionById(Id);
-            GuiConnection = connectionFound.GuiConnection;
+        //public Connection Update()
+        //{
+        //    var connectionFound = App.FindConnectionById(Id);
+        //    //GuiConnection = connectionFound.GuiConnection;
 
-            return connectionFound;
-        }
+        //    return connectionFound;
+        //}
 
         public Session[] GetSessions()
         {
             List<Session> sessions = new List<Session>();
             foreach (GuiSession guiSession in  GuiConnection.Sessions)
             {
-                sessions.Add(new Session(guiSession, this));
+                sessions.Add(new Session(guiSession, GuiConnection));
             }
 
             return sessions.ToArray();
@@ -73,11 +64,11 @@ namespace RpaLib.SAP
         {
             return string.Join(Environment.NewLine,
                 $"  Connection:",
-                $"    Id: \"{Id}\"",
-                $"    Description: \"{Description}\"",
-                $"    ConnectionString: \"{ConnectionString}\"",
+                $"    Id: \"{GuiConnection.Id}\"",
+                $"    Description: \"{GuiConnection.Description}\"",
+                $"    ConnectionString: \"{GuiConnection.ConnectionString}\"",
                 $"    Sessions: \"{SessionsListTransaction()}\"",
-                $"    DisabledByServer: \"{DisabledByServer}\"",
+                $"    DisabledByServer: \"{GuiConnection.DisabledByServer}\"",
                 $"",
                 $"  The Sessions/Children elements:",
                 SessionsInfo()
@@ -106,6 +97,11 @@ namespace RpaLib.SAP
             }
 
             return info.ToString();
+        }
+
+        public void Close()
+        {
+            GuiConnection.CloseConnection();
         }
     }
 }

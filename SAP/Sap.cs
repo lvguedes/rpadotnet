@@ -55,6 +55,8 @@ namespace RpaLib.SAP
         /// </summary>
         public string ConnectionName { get => Connection.GuiConnection.Description; }
 
+        public ReceivedArgs Args { get; }
+
         /// <summary>
         /// Sap connection managed by this class. All other methods will refer to this connection.
         /// </summary>
@@ -100,10 +102,10 @@ namespace RpaLib.SAP
         /// Initiate the object of this class with the given connection.
         /// </summary>
         /// <param name="connection"></param>
-        public Sap(Connection connection)
-        {
-            Connection = connection;
-        }
+        //public Sap(Connection connection)
+        //{
+        //    Connection = connection;
+        //}
 
         /// <summary>
         /// Open a new connection with connection description and transaction name. Don't make login, SAP user must be signed in.
@@ -137,6 +139,17 @@ namespace RpaLib.SAP
         /// <param name="getSapObjTimeoutSeconds">Seconds to stay retrying to get the SAP object when the process is still starting.</param>
         public Sap(string connectionName, string user, string password, string client, string language, string transaction, int connTimeoutSeconds = _connTimeoutSeconds, int getSapObjTimeoutSeconds = _getSapObjTimeoutSeconds)
         {
+            Args = new Sap.ReceivedArgs
+            {
+                ConnectionName = connectionName,
+                User = user,
+                Password = password,
+                Client = client,
+                Language = language,
+                Transaction = transaction,
+                ConnectionTimeoutSeconds = connTimeoutSeconds,
+                GetSapObjectTimeoutSeconds = getSapObjTimeoutSeconds
+            };
             Connect(connectionName, connTimeoutSeconds, getSapObjTimeoutSeconds, user, password, client, language);
             FirstSessionAfterConnection = AccessTransaction(transaction);
         }
@@ -178,7 +191,7 @@ namespace RpaLib.SAP
         {
             var app = App.GetSapInteropApp(timeoutSeconds);
             Connection = new Connection(app.OpenConnection(connectionName));
-            App.Update();
+            //App.Update();
         }
         /// <summary>
         /// Connects to SAP UI object and possibly starts a transaction and do login if parameters were supplied.
@@ -212,10 +225,10 @@ namespace RpaLib.SAP
                     if (TriedConnect == 1)
                     {
                         Trace.WriteLine($"Killing SAP processes by name if it exists: {SapExe.BaseName}");
-                        Rpa.KillProcess(SapExe.BaseName);
+                        Ut.KillProcess(SapExe.BaseName);
 
                         Trace.WriteLine($"Starting SAP exe: {SapExe.FullPath}");
-                        Rpa.StartWaitProcess(SapExe.FullPath, outputProcesses: true);
+                        Ut.StartWaitProcess(SapExe.FullPath, outputProcesses: true);
                     }
 
                     Trace.WriteLine($"Tried connecting to SAP for: {TriedConnect} times. Trying again.");
@@ -242,11 +255,20 @@ namespace RpaLib.SAP
         /// <summary>
         /// Close the connection managed by this class. Close the connection along with all its sessions.
         /// </summary>
-        public void CloseConnection() => Connection.GuiConnection.CloseConnection();
+        public void CloseConnection() => Connection.Close();
 
         #endregion
 
         #region Session
+
+        public static void CloseAllSessions()
+        {
+            foreach (var connection in App.GetConnections())
+            {
+                foreach (var session in connection.Sessions)
+                    session.Close();
+            }
+        }
 
         /// <summary>
         /// Create a new session using the last session of Sessions as default creator.
@@ -266,7 +288,7 @@ namespace RpaLib.SAP
             bool iconify = false, bool lockSessionUi = false, int connectionTimeoutSeconds = _connTimeoutSeconds)
         {
             Session session;
-            
+
             if (useSessionId >= 0)
             {
                 // to work with specific session id
@@ -277,13 +299,13 @@ namespace RpaLib.SAP
                 // to create a new session and work upon it
                 session = CreateNewSession();
             }
-            
+
             if (lockSessionUi)
                 session.GuiSession.Com.LockSessionUI();
-            
+
             if (iconify)
                 session.CurrentFrameWindow.Com.Iconify();
-            
+
             if (!string.IsNullOrEmpty(transactionId))
                 session.AccessTransaction(transactionId);
 
@@ -293,9 +315,20 @@ namespace RpaLib.SAP
         // low-level function
         private Session CreateNewSession()
         {
-            int lastSession = Connection.Sessions.Length - 1;
-            Connection.Sessions[lastSession].CreateNewSession();
-            App.Update();
+            int numOfSessions = Connection.Sessions.Length;
+
+            if (numOfSessions == 0)
+            {
+                Connect(Args.ConnectionName, Args.ConnectionTimeoutSeconds, Args.GetSapObjectTimeoutSeconds,
+                    Args.User, Args.Password, Args.Client, Args.Language);
+            }
+            else
+            {
+                int lastSession = numOfSessions - 1;
+                Connection.Sessions[lastSession].CreateNewSession();
+            }
+
+            //App.Update();
             return FindSession(_defaultFirstTransaction);
         }
 
@@ -411,7 +444,7 @@ namespace RpaLib.SAP
             return OnPossibleValues(session, session.FindById<GuiCTextField>(guiCTextFieldId), guiUsrAreaId, action, readOnly, header, dropLines);
         }
 
-        public static LabelTable OnPossibleValues(Session session, SapComWrapper<GuiCTextField> guiCTextField, string guiUsrAreaId, 
+        public static LabelTable OnPossibleValues(Session session, SapComWrapper<GuiCTextField> guiCTextField, string guiUsrAreaId,
             Action<LabelTable> action = null, bool readOnly = true, int header = 0, int[] dropLines = null)
         {
             var tableRead = OpenPossibleValues(session, guiCTextField, guiUsrAreaId, readOnly, header, dropLines);
@@ -424,8 +457,8 @@ namespace RpaLib.SAP
             return tableRead;
         }
 
-        public static LabelTable SelectPossibleValueByAnchor(Session session, SapComWrapper<GuiCTextField> guiCTextField, string guiUsrAreaId, 
-            string anchorColumn, string anchorValue, string columnToChoose, 
+        public static LabelTable SelectPossibleValueByAnchor(Session session, SapComWrapper<GuiCTextField> guiCTextField, string guiUsrAreaId,
+            string anchorColumn, string anchorValue, string columnToChoose,
             Func<string, bool> conditionToSkipRow = null, int header = 0, int[] dropLines = null)
         {
 
@@ -435,7 +468,7 @@ namespace RpaLib.SAP
                 for (int i = 0; i < table.DataTable.Rows.Count; i++)
                 {
                     var row = table.DataTable.Rows[i];
-                    if (Rpa.IsMatch((string)row[anchorColumn], anchorValue))
+                    if (Ut.IsMatch((string)row[anchorColumn], anchorValue))
                     {
                         foundValue = (string)row[columnToChoose];
                         if (conditionToSkipRow != null && conditionToSkipRow(foundValue))
@@ -457,9 +490,9 @@ namespace RpaLib.SAP
 
         }
 
-        public static LabelTable SelectPossibleValueByAnchor(Session session, string guiCTextFieldId, string guiUsrAreaId, 
-            string anchorColumn, string anchorValue, string columnToChoose, 
-            Func<string,bool> conditionToSkipRow = null, int header = 0, int[] dropLines = null)
+        public static LabelTable SelectPossibleValueByAnchor(Session session, string guiCTextFieldId, string guiUsrAreaId,
+            string anchorColumn, string anchorValue, string columnToChoose,
+            Func<string, bool> conditionToSkipRow = null, int header = 0, int[] dropLines = null)
         {
             return SelectPossibleValueByAnchor(session, session.FindById<GuiCTextField>(guiCTextFieldId), guiUsrAreaId,
                 anchorColumn, anchorValue, columnToChoose, conditionToSkipRow, header, dropLines);
@@ -513,7 +546,7 @@ namespace RpaLib.SAP
                     try
                     {
                         visualComponent = (GuiVComponent)elt.Obj;
-                        return Rpa.IsMatch(visualComponent.Text, labelTextRegex);
+                        return Ut.IsMatch(visualComponent.Text, labelTextRegex);
                     }
                     catch (InvalidCastException)
                     {
@@ -552,7 +585,7 @@ namespace RpaLib.SAP
             SapGuiObject[] descendants = AllDescendants(rootContainer);
 
             var descendantsFound = from descendant in descendants
-                                   where Rpa.IsMatch(typeName, descendant.Type)
+                                   where Ut.IsMatch(typeName, descendant.Type)
                                    select descendant;
 
             if (showFound)
@@ -584,7 +617,7 @@ namespace RpaLib.SAP
             }
             catch (COMException ex)
             {
-                if (Rpa.IsMatch(ex.Message, @"The control could not be found by id\."))
+                if (Ut.IsMatch(ex.Message, @"The control could not be found by id\."))
                 {
                     return false;
                 }
@@ -661,7 +694,7 @@ namespace RpaLib.SAP
                         {
                             PathId = (string)node.Id,
                             Type = (string)node.Type,
-                            Text = node is GuiVComponent? node.Text : string.Empty,
+                            Text = node is GuiVComponent ? node.Text : string.Empty,
                             Obj = node,
                         });
                 };
@@ -683,11 +716,40 @@ namespace RpaLib.SAP
         #endregion
 
 
+        public void Close()
+        {
+            CloseConnection();
+            KillProcess();
+        }
+
+        public static void CloseAll()
+        {
+            CloseAllSessions();
+            KillProcess();
+        }
+
+        public static void KillProcess()
+        {
+            Ut.KillProcess(SapExe.BaseName);
+        }
+
         public void PressEnter(string transaction, long timesToPress = 1, int wndIndex = 0)
         {
             Session session = FindSession(transaction);
             for (int i = 0; i < timesToPress; i++)
                 session.FindById<GuiFrameWindow>($"wnd[{wndIndex}]").SendVKey(0); //press enter
+        }
+
+        public class ReceivedArgs
+        {
+            public string ConnectionName { get; set; }
+            public string User { get; set; }
+            public string Password { get; set; }
+            public string Client { get; set; }
+            public string Language { get; set; }
+            public string Transaction { get; set; }
+            public int ConnectionTimeoutSeconds { get; set; }
+            public int GetSapObjectTimeoutSeconds { get; set; } 
         }
     }
 }

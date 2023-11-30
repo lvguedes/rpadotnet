@@ -69,7 +69,7 @@ namespace RpaLib.Database
                     } 
                     catch (FormatException ex)
                     {
-                        if (Rpa.IsMatch(ex.Message, @"String was not recognized as a valid DateTime\."))
+                        if (Ut.IsMatch(ex.Message, @"String was not recognized as a valid DateTime\."))
                         {
                             valFromDb = DEFAULT_DATETIME;
                         }
@@ -94,31 +94,31 @@ namespace RpaLib.Database
 
             SqlCommandType sqlCommandType = SqlCommandType.NotDetected;
 
-            if (Rpa.IsMatch(sqlCommand, @"^\s*SELECT", RegexOptions.IgnoreCase))
+            if (Ut.IsMatch(sqlCommand, @"^\s*SELECT", RegexOptions.IgnoreCase))
             {
                 sqlCommandType = SqlCommandType.Select;
             }
-            else if (Rpa.IsMatch(sqlCommand, @"^\s*CREATE\s*TABLE"))
+            else if (Ut.IsMatch(sqlCommand, @"^\s*CREATE\s*TABLE"))
             {
                 sqlCommandType = SqlCommandType.CreateTable;
             }
-            else if (Rpa.IsMatch(sqlCommand, @"^\s*CREATE\s*DATABASE"))
+            else if (Ut.IsMatch(sqlCommand, @"^\s*CREATE\s*DATABASE"))
             {
                 sqlCommandType = SqlCommandType.CreateDatabase;
             }
-            else if (Rpa.IsMatch(sqlCommand, @"^\s*INSERT\s*INTO"))
+            else if (Ut.IsMatch(sqlCommand, @"^\s*INSERT\s*INTO"))
             {
                 sqlCommandType = SqlCommandType.Insert;
             }
-            else if (Rpa.IsMatch(sqlCommand, @"^\s*UPDATE"))
+            else if (Ut.IsMatch(sqlCommand, @"^\s*UPDATE"))
             {
                 sqlCommandType = SqlCommandType.Update;
             }
-            else if (Rpa.IsMatch(sqlCommand, @"^\s*DELETE"))
+            else if (Ut.IsMatch(sqlCommand, @"^\s*DELETE"))
             {
                 sqlCommandType = SqlCommandType.Delete;
             }
-            else if (Rpa.IsMatch(sqlCommand, @"^\s*DROP"))
+            else if (Ut.IsMatch(sqlCommand, @"^\s*DROP"))
             {
                 sqlCommandType = SqlCommandType.Drop;
             }

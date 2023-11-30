@@ -54,7 +54,7 @@ namespace RpaLib.Tracing
 
             if (SearchListener(fileTracerName).Length == 0)
             {
-                var fullFilePath = Rpa.GetFullPath(filePath);
+                var fullFilePath = Ut.GetFullPath(filePath);
 
                 //Rpa.CreateFileIfNotExists(fullFilePath);
 

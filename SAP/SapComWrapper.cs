@@ -28,6 +28,8 @@ namespace RpaLib.SAP
         //    set => (Com as ISapCTextField).CaretPosition = value;
         //}
 
+        public SapComWrapper() { }
+
         public SapComWrapper(T nativeComObejct)
         {
             Com = nativeComObejct;

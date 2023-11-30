@@ -24,7 +24,7 @@ namespace RpaLib.Tracing
             set
             {
                 ParentDir = Path.GetDirectoryName(value);
-                _logName = Path.GetFileNameWithoutExtension(Rpa.GetFullPath(value));
+                _logName = Path.GetFileNameWithoutExtension(Ut.GetFullPath(value));
                 //_logPath = Path.Combine(ParentDir, $"{Date}_{LogName}.txt"); // just the date in the name, make it append
                 _logPath = Path.Combine(ParentDir, $"{Date}_{Time}_{LogName}.txt"); // date and time: make it create one file for each exec
                 CreateLogPathIfNotExists(_logPath);

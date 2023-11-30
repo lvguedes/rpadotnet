@@ -19,7 +19,7 @@ namespace RpaLib.DataExtraction
         public Xml() { }
         public Xml(string path)
         {
-            Path = Rpa.GetFullPath(path);
+            Path = Ut.GetFullPath(path);
         }
 
         public string XPath(string xpath, bool relaxed = false)

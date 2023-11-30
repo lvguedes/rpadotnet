@@ -271,7 +271,7 @@ namespace RpaLib.SAP
                 .Select((row, index) => (row, index))
                 .Where(
                     x => x.row.ItemArray
-                        .Where(y => Rpa.IsMatch((string)y, cellValueRegex)).FirstOrDefault() != null)
+                        .Where(y => Ut.IsMatch((string)y, cellValueRegex)).FirstOrDefault() != null)
                 .FirstOrDefault().index;
 
             return GetRow(foundRowIndex);
@@ -427,7 +427,7 @@ namespace RpaLib.SAP
                     var currentCell = GetCell(row, col);
                     datarow[col] = currentCell.Text;
 
-                    if (selectRegex != null && Rpa.IsMatch(currentCell.Text, selectRegex))
+                    if (selectRegex != null && Ut.IsMatch(currentCell.Text, selectRegex))
                     {
                         _dt.Rows.Add(datarow);
                         //currentCell.SetFocus();
@@ -464,7 +464,7 @@ namespace RpaLib.SAP
         public void PrintDataTable()
         {
             Trace.WriteLine($"Printing the DataTable that represents SAP table \"{Name}\":", color: ConsoleColor.Yellow);
-            Trace.WriteLine(Rpa.PrintDataTable(_dt), withTimeSpec: false, color: ConsoleColor.Magenta);
+            Trace.WriteLine(Ut.PrintDataTable(_dt), withTimeSpec: false, color: ConsoleColor.Magenta);
         }
     }
 }

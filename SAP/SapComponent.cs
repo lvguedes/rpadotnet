@@ -37,7 +37,7 @@ namespace RpaLib.SAP
             : base(component)
         {
             Session = session;
-            _pathId = _pathId ?? Rpa.Replace(((GuiComponent)component).Id, @"/app/con\[\d+\]/ses\[\d+\]/", string.Empty);
+            _pathId = _pathId ?? Ut.Replace(((GuiComponent)component).Id, @"/app/con\[\d+\]/ses\[\d+\]/", string.Empty);
         }
 
         //public dynamic FindById(string fullPathId) => Session.FindById(fullPathId);

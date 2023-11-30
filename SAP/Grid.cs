@@ -81,9 +81,9 @@ namespace RpaLib.SAP
         public static string Info(Grid grid)
         {
             string[] columnNamesDatatable = grid.DataTable.Columns.Cast<DataColumn>().Select(x => x.ColumnName).ToArray();
-            string[] selectedColumns = Rpa.COMCollectionToICollection<string>(grid.GuiGridView.Com.SelectedColumns).ToArray();
-            string[] selectedCells = Rpa.COMCollectionToICollection<string>(grid.GuiGridView.Com.SelectedCells).ToArray();
-            string[] columnOrder = Rpa.COMCollectionToICollection<string>(grid.GuiGridView.Com.ColumnOrder).ToArray();
+            string[] selectedColumns = Ut.COMCollectionToICollection<string>(grid.GuiGridView.Com.SelectedColumns).ToArray();
+            string[] selectedCells = Ut.COMCollectionToICollection<string>(grid.GuiGridView.Com.SelectedCells).ToArray();
+            string[] columnOrder = Ut.COMCollectionToICollection<string>(grid.GuiGridView.Com.ColumnOrder).ToArray();
 
             return
               string.Join(Environment.NewLine,
@@ -108,7 +108,7 @@ namespace RpaLib.SAP
                   );
         }
 
-        public string PrintDataTable() => Rpa.PrintDataTable(DataTable);
+        public string PrintDataTable() => Ut.PrintDataTable(DataTable);
 
         /*
         TODO: 

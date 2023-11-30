@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>Lucas Guedes</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <!-- <icon>icon.png</icon> -->
+    <projectUrl>http://project_url_here_or_delete_this_line/</projectUrl>
+    <description>Easing RPA with C#</description>
+    <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
+    <copyright>$copyright$</copyright>
+    <tags>Tag1 Tag2</tags>
+  </metadata>
+  <files>
+    <file src="SDKs\AutoIt\Assemblies\AutoItX3.dll" target="lib\net472" />
+    <file src="SDKs\AutoIt\Assemblies\AutoItX3.Assembly.dll" target="lib\net472" />
+    <file src="SDKs\AutoIt\Assemblies\AutoItX3.Assembly.xml" target="lib\net472" />
+  </files>
+</package>
