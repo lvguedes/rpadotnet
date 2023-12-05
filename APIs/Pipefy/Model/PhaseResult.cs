@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace RpaLib.APIs.Pipefy.Model
 {
-    public class CardQuery
+    public class PhaseResult
     {
-        public Card Card { get; set; }
+        public Phase Phase { get; set; }
     }
 }

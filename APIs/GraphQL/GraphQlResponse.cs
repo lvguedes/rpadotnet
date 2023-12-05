@@ -17,6 +17,7 @@ namespace RpaLib.APIs.GraphQL
         public dynamic Extensions { get; private set; }
         public dynamic ResponseHeaders { get; private set; }
         public dynamic StatusCode { get; private set; }
+        public string Json { get => ToJson(); }
 
         public GraphQlResponse(GraphQLResponse<T> graphQLResponseObj)
         {

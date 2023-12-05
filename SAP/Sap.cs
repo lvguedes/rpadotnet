@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using RpaLib.Tracing;
+using RpaLib.Exceptions;
 using RpaLib.SAP.Model;
 using RpaLib.SAP.Exceptions;
 using System.Reflection;
@@ -261,12 +262,13 @@ namespace RpaLib.SAP
 
         #region Session
 
-        public static void CloseAllSessions()
+        public static void CloseAllSessions(string exceptRegex = null)
         {
             foreach (var connection in App.GetConnections())
             {
                 foreach (var session in connection.Sessions)
-                    session.Close();
+                    if (exceptRegex != null && !Ut.IsMatch(session.Transaction, exceptRegex))
+                        session.Close();
             }
         }
 
@@ -513,7 +515,7 @@ namespace RpaLib.SAP
             if (parent.ContainerType)
                 foundObj = parent is GuiContainer ? (T)(parent as GuiContainer).FindById(pathId) : (T)(parent as GuiVContainer).FindById(pathId);
             else
-                throw new ArgumentException($"The argument parent must be a Container type (GuiContainer or GuiVContainer).");
+                throw new RpaLibArgumentException($"The argument parent must be a Container type (GuiContainer or GuiVContainer).");
 
             if (showTypes)
             {

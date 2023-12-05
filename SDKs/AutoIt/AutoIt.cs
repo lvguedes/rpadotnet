@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AutoIt;
 using RpaLib.Tracing;
 using RpaLib.SDKs.AutoIt.Exceptions;
+using RpaLib.Exceptions;
 
 namespace RpaLib.SDKs.AutoIt
 {
@@ -16,7 +17,7 @@ namespace RpaLib.SDKs.AutoIt
 
         private static void ThrowWinWaitTimeout(string title, string text, int timeout)
         {
-            throw new TimeoutException($"Window with " +
+            throw new RpaLibTimeoutException($"Window with " +
             $"(title:\"{title}\"; text:\"{text}\"; timeout:{timeout}) " +
                     $"didn't appear within timeout of {timeout} seconds.");
         }

@@ -4,12 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RpaLib.APIs.Pipefy
+namespace RpaLib.APIs.Pipefy.Model
 {
-    public enum PipefyInfo
+    public class PipeResult
     {
-        PhasesAndCardsCount,
-        PhaseFields,
-        CardFields,
+        public Pipe Pipe { get; set; }
     }
 }

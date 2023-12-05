@@ -12,6 +12,7 @@ using System.Data;
 using RpaLib.ProcessAutomation;
 using RpaLib.Tracing.Exceptions;
 using System.Runtime.InteropServices;
+using RpaLib.Exceptions;
 
 namespace RpaLib.Tracing
 {
@@ -101,7 +102,7 @@ namespace RpaLib.Tracing
             if (nameOrIndex is string || nameOrIndex is int)
                 _ = Workbook.Sheets.Item[nameOrIndex];
             else
-                throw new ArgumentException("SetActiveSheet() receives nameOrIndex of types int or string only.");
+                throw new RpaLibArgumentException("SetActiveSheet() receives nameOrIndex of types int or string only.");
         }
 
         public void ToggleVisible()
@@ -195,7 +196,7 @@ namespace RpaLib.Tracing
                         Worksheet.Rows.Item[row + j].Columns[col] = values[j];
                         break;
                     default:
-                        throw new ArgumentException($"Invalid insertion method: {rowOrCol}");
+                        throw new RpaLibArgumentException($"Invalid insertion method: {rowOrCol}");
                 }
             }
             UpdateUsedRangeCount();
@@ -373,7 +374,7 @@ namespace RpaLib.Tracing
             bool isEmpty = true;
             foreach (var col in line)
             {
-                if (!string.IsNullOrEmpty(col))
+                if (!string.IsNullOrEmpty(col) && !Ut.IsMatch(col, @"^\s+$"))
                 {
                     isEmpty = false;
                     break;

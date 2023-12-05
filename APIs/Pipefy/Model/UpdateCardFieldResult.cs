@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace RpaLib.APIs.Pipefy.Model
 {
-    public class MeQuery
+    public class UpdateCardFieldResult
     {
-        public User Me { get; set; }
+        public UpdateCardFieldData Updatecardfield { get; set; }
     }
 }

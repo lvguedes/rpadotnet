@@ -10,6 +10,7 @@ using RpaLib.ProcessAutomation;
 using RpaLib.SAP.Model;
 using System.Runtime.InteropServices;
 using System.IO;
+using RpaLib.SAP.Exceptions;
 
 namespace RpaLib.SAP
 {
@@ -19,14 +20,8 @@ namespace RpaLib.SAP
         private const int _sessionWaitMilisec = 2000;
         //public Connection Connection { get; private set; }
         public int Index { get => _index; }
-        public SapComWrapper<GuiSession> GuiSession { get; set; }
-        public SapComWrapper<GuiStatusbar> CurrentStatusBar
-        {
-            get
-            {
-                return FindById<GuiStatusbar>("wnd[0]/sbar");
-            }
-        }
+        public SapComWrapper<GuiSession> GuiSession { get; private set; }
+        public StatusBar CurrentStatusBar { get; private set; }
         public SapComWrapper<GuiFrameWindow> CurrentFrameWindow
         {
             get
@@ -62,6 +57,7 @@ namespace RpaLib.SAP
         {
             GuiSession = new SapComWrapper<GuiSession>(guiSession);
             _index = guiSession.Info.SessionNumber;
+            CurrentStatusBar = new StatusBar(this);
             //Connection = connection;
         }
 
@@ -88,6 +84,16 @@ namespace RpaLib.SAP
                     $"Trying to find by id ({pathId})",
                     $"The current working session is:",
                     this));
+
+            try
+            {
+                var foundComponent = GuiSession.FindById<T>(pathId, showTypes);
+            }
+            catch (Exception ex)
+            {
+                throw new SapInSessionException(CurrentStatusBar, ex);
+            }
+            
 
             return GuiSession.FindById<T>(pathId, showTypes);
         }
@@ -229,8 +235,8 @@ namespace RpaLib.SAP
         {
             return string.Join(Environment.NewLine,
                 $"Current Status Bar properties:",
-                $"  MessageType: {CurrentStatusBar.Com.MessageType}",
-                $"  Text: {CurrentStatusBar.Com.Text}");
+                $"  MessageType: {CurrentStatusBar.StatusLetter} ({CurrentStatusBar.StatusType})",
+                $"  Text: {CurrentStatusBar.Text}");
         }
 
         public void ShowCurrentStatusBarInfo()
@@ -239,8 +245,7 @@ namespace RpaLib.SAP
         }
         public bool IsStatusType(StatusType status)
         {
-            string statusLetter = StatusTypeEnum.GetStatusTypeLetter(status);
-            if (Ut.IsMatch(CurrentStatusBar.Com.MessageType, statusLetter))
+            if (status == CurrentStatusBar.StatusType)
                 return true;
             else
                 return false;
@@ -248,7 +253,7 @@ namespace RpaLib.SAP
 
         public bool IsStatusMessage(string messageRegex)
         {
-            if (Ut.IsMatch(CurrentStatusBar.Com.Text, messageRegex))
+            if (Ut.IsMatch(CurrentStatusBar.Text, messageRegex))
                 return true;
             else
                 return false;

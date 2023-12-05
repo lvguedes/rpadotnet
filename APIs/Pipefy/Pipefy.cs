@@ -8,6 +8,7 @@ using RpaLib.APIs.GraphQL;
 using RpaLib.APIs.Pipefy.Model;
 using RpaLib.APIs.Pipefy.Exception;
 using RpaLib.Tracing;
+using RpaLib.Exceptions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -49,7 +50,7 @@ namespace RpaLib.APIs.Pipefy
 
         #region Queries
 
-        public GraphQlResponse<MeQuery> QueryUserInfo()
+        public GraphQlResponse<MeResult> QueryUserInfo()
         {
             string query = @"
             {
@@ -59,11 +60,11 @@ namespace RpaLib.APIs.Pipefy
                 }
             }";
 
-            return GraphQl.Query<MeQuery>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<MeResult>(query, Uri, Token, JsonSerializerSettings);
         }
 
-        public GraphQlResponse<PipeQuery> QueryPhases() => QueryPhases(PipeId);
-        public GraphQlResponse<PipeQuery> QueryPhases(string pipeId)
+        public GraphQlResponse<PipeResult> QueryPhases() => QueryPhases(PipeId);
+        public GraphQlResponse<PipeResult> QueryPhases(string pipeId)
         {
             string query = @"
             {
@@ -76,10 +77,10 @@ namespace RpaLib.APIs.Pipefy
                 }
             }".Replace("$pipeId", pipeId);
 
-            return GraphQl.Query<PipeQuery>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettings);
         }
 
-        public GraphQlResponse<PhaseQuery> QueryPhaseCards(string phaseId, int max = 30, string afterCursor = null)
+        public GraphQlResponse<PhaseResult> QueryPhaseCards(string phaseId, int max = 30, string afterCursor = null)
         {
             string query = @"
             {
@@ -133,7 +134,7 @@ namespace RpaLib.APIs.Pipefy
                 query = query.Replace("$afterCursor", afterCursor);
             }
 
-            return GraphQl.Query<PhaseQuery>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<PhaseResult>(query, Uri, Token, JsonSerializerSettings);
         }
 
         public enum OrderCardsBy
@@ -143,10 +144,10 @@ namespace RpaLib.APIs.Pipefy
             Older
         }
 
-        public GraphQlResponse<PhaseQuery> QueryAllPhaseCards(string phaseId, int limit = 0, OrderCardsBy orderBy = OrderCardsBy.Nothing)
+        public GraphQlResponse<PhaseResult> QueryAllPhaseCards(string phaseId, int limit = 0, OrderCardsBy orderBy = OrderCardsBy.Nothing)
         {
             List<CardEdge> cardEdges = new List<CardEdge>();
-            GraphQlResponse<PhaseQuery> response;
+            GraphQlResponse<PhaseResult> response;
 
             string pageCursor = null;
             bool hasNextPage = false;
@@ -199,7 +200,7 @@ namespace RpaLib.APIs.Pipefy
             return response;
         }
 
-        public GraphQlResponse<PhaseQuery> QueryPhaseFields(string phaseId)
+        public GraphQlResponse<PhaseResult> QueryPhaseFields(string phaseId)
         {
             string query = @"
             {
@@ -215,10 +216,10 @@ namespace RpaLib.APIs.Pipefy
             }
             ".Replace("$phaseId", phaseId);
 
-            return GraphQl.Query<PhaseQuery>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<PhaseResult>(query, Uri, Token, JsonSerializerSettings);
         }
 
-        public GraphQlResponse<CardQuery> QueryCard(string cardId)
+        public GraphQlResponse<CardResult> QueryCard(string cardId)
         {
             string query = @"
             {
@@ -257,7 +258,7 @@ namespace RpaLib.APIs.Pipefy
             }
             ".Replace("$cardId", cardId);
 
-            return GraphQl.Query<CardQuery>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<CardResult>(query, Uri, Token, JsonSerializerSettings);
         }
 
         #endregion
@@ -269,7 +270,7 @@ namespace RpaLib.APIs.Pipefy
         /// <param name="cardId">The ID of a card. Can be string or int literal in GraphQL.</param>
         /// <param name="destPhaseId">The ID of the destination phase. Can be string or int literal in GraphQL.</param>
         /// <returns>A GraphQlResponse with Data of type CardQuery containing the new card phase.</returns>
-        public GraphQlResponse<CardQuery> MoveCardToPhase(string cardId, string destPhaseId)
+        public GraphQlResponse<CardResult> MoveCardToPhase(string cardId, string destPhaseId)
         {
             var query = @"
                 mutation {
@@ -285,7 +286,32 @@ namespace RpaLib.APIs.Pipefy
                   }
                 }".Replace("<<IdCard>>", cardId).Replace("<<IdPhase>>", destPhaseId);
 
-            return GraphQl.Query<CardQuery>(query, Uri, Token);
+            return GraphQl.Query<CardResult>(query, Uri, Token);
+        }
+
+        public GraphQlResponse<UpdateCardFieldResult> UpdateCardField(string cardId, string fieldId, string newValue)
+        {
+            var escapedNewValue = newValue.Replace(@"\", @"\\").Replace(@"""", @"\""");
+            var query = @"
+                mutation {
+                    updateCardField(input: { 
+                        card_id: ""<<IdCard>>"",
+                        field_id: ""<<IdField>>"",
+                        new_value: ""<<NewValue>>""
+                    }) {
+                        success
+                        card {
+                            id
+                            fields {
+                                name
+                                value
+                                updated_at
+                            }
+                        }
+                    }
+                }".Replace("<<IdCard>>", cardId).Replace("<<IdField>>", fieldId).Replace("<<NewValue>>", escapedNewValue);
+
+            return GraphQl.Query<UpdateCardFieldResult>(query, Uri, Token);
         }
 
         #endregion
@@ -296,7 +322,7 @@ namespace RpaLib.APIs.Pipefy
         /// <param name="infoType">A PipefyInfo enum type indicating the kind of information to retrieve.</param>
         /// <param name="phaseId">The Pipefy phase ID that is needed to perform some queries.</param>
         /// <exception cref="ArgumentNullException">Thrown when a parameter is needed by some query but wasn't provided.</exception>
-        public void ShowInfo(PipefyInfo infoType, string phaseId = null)
+        public void ShowInfo(PipefyInfo infoType, string phaseId = null, string cardId = null)
         {
             switch (infoType)
             {
@@ -311,17 +337,31 @@ namespace RpaLib.APIs.Pipefy
 
                 case PipefyInfo.PhaseFields:
                     if (phaseId == null)
-                        throw new ArgumentNullException("Phase ID argument is mandatory to fetch the fields from that phase.");
-                    PhaseQuery phaseQuery = QueryPhaseFields(phaseId).Data;
+                        throw new RpaLibArgumentNullException("Phase ID argument is mandatory to fetch the fields from that phase.");
+                    PhaseResult phaseQuery = QueryPhaseFields(phaseId).Data;
                     Trace.WriteLine($"Phase (ID {phaseQuery.Phase.Id}) {phaseQuery.Phase.Name}, has the following fields:");
                     foreach (PhaseField field in phaseQuery.Phase.Fields)
                     {
                         string msg = string.Join("\n",
-                            string.Empty,
                             "    ID: " + field.Id,
                             "    Label: " + field.Label,
                             "    Options: " + string.Join(", ", field.Options));
-                        Trace.WriteLine(msg);
+                        Trace.WriteLine(msg, withTimeSpec: false);
+                    }
+                    break;
+
+                case PipefyInfo.CardFields:
+                    if (cardId == null)
+                        throw new RpaLibArgumentNullException("Card ID argument is mandatory to fetch the fields from that card.");
+                    CardResult cardQuery = QueryCard(cardId).Data;
+                    Trace.WriteLine($"Card (ID {cardQuery.Card.Id}) has the following fields");
+                    foreach (CardField field in cardQuery.Card.Fields)
+                    {
+                        string msg = string.Join(Environment.NewLine,
+                            "    ID: " + field.Field.Id,
+                            "    Name: " + field.Name,
+                            "    Options: " + string.Join(", ", field.Field.Options));
+                        Trace.WriteLine(msg, withTimeSpec: false);
                     }
                     break;
             }

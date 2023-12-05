@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RpaLib.Exceptions;
 
 namespace RpaLib.DataExtraction
 {
-    public class XPathResultsException : Exception
+    public class XPathResultsException : RpaLibException
     {
         public static string Msg { get; set; } = $"The XPath \"{Xml.XPathExpr}\" search found ";
 

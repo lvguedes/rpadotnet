@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RpaLib.Exceptions;
 
 namespace RpaLib.APIs.Pipefy.Exception
 {
-    public class CardFieldNotFoundException : System.Exception
+    public class CardFieldNotFoundException : RpaLibException
     {
         public CardFieldNotFoundException(string cardId, string fieldName, int totalFieldsFound) : base(GetMsg(cardId, fieldName, totalFieldsFound)) { }
 

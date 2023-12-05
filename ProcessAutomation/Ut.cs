@@ -16,6 +16,7 @@ using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization;
 using System.Net.Http;
 using Newtonsoft.Json;
+using RpaLib.Exceptions;
 using FormsMsgBox = System.Windows.Forms.MessageBox;
 using DialogResult = System.Windows.Forms.DialogResult;
 using MessageBoxButtons = System.Windows.Forms.MessageBoxButtons;
@@ -106,7 +107,7 @@ namespace RpaLib.ProcessAutomation
                 Thread.Sleep(refreshDelay);
             }
 
-            throw new FileNotFoundException();
+            throw new RpaLibFileNotFoundException(parentDirFullPath + Path.DirectorySeparatorChar + fileRegex);
         }
 
         public static bool IsFileInDir(string fileNameRegex, string dirPath)
@@ -184,7 +185,7 @@ namespace RpaLib.ProcessAutomation
                     }
                     else if (timer.ElapsedMilliseconds == timeoutSeconds * 1000)
                     {
-                        throw new TimeoutException();
+                        throw new RpaLibTimeoutException($"Timeout expired waiting for process \"{processName}\" for \"{timeoutSeconds}\" seconds.");
                     }
                     else
                     {
@@ -393,7 +394,7 @@ namespace RpaLib.ProcessAutomation
             }
 
             if (! File.Exists(downloadPath))
-                throw new FileNotFoundException(downloadPath);
+                throw new RpaLibFileNotFoundException(downloadPath);
         }
 
         public static string MakeApiCall(string url, string saveAs = null)

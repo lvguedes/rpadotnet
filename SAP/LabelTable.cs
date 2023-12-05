@@ -53,7 +53,6 @@ namespace RpaLib.SAP
             GetDataTable(readOnly);
         }
 
-
         // TODO: Add pagination using vertical and horizontal scrolls
         private Label[][] ParseTable(List<Label[]> tableList = null, string selectRegex = null, int regexMatches = 1, int[] selectRows = null)
         {
@@ -101,14 +100,19 @@ namespace RpaLib.SAP
                 // Process quick select through regex string and counter params
                 if (selectRegex != null && regexMatches > 0)
                 {
-                    var columnsFound = rowList.Where(x => Ut.IsMatch(x.Text, selectRegex)).ToArray();
+                    var selectRegexPattern = Ut.Replace(selectRegex, @"\s+", @"\s+");
+                    var columnsFound = rowList.Where(x => Ut.IsMatch(x.Text, selectRegexPattern)).ToArray();
                     if (columnsFound.Length > 0)
                     {
                         columnsFound[0].GuiLabel.SetFocus();
                         regexMatches--;
 
                         if (regexMatches == 0)
+                        {
+                            Session.PressEnter();
+                            TableArray = tableList.ToArray();
                             return TableArray;
+                        }
                     }
                 }
 
@@ -137,6 +141,9 @@ namespace RpaLib.SAP
             {
                 TableArray = tableList.ToArray();
             }
+
+            if (selectRegex != null)
+                throw new PatternNotFoundForSelectionException(selectRegex);
 
             return TableArray;
         }

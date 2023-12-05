@@ -8,25 +8,11 @@ namespace RpaLib.SAP
 {
     public enum StatusType
     {
+        None,
         Error,
         Warning,
         Success,
         Abort,
         Information
-    }
-    public class StatusTypeEnum
-    {
-        public static string GetStatusTypeLetter(StatusType statusType)
-        {
-            switch (statusType)
-            {
-                case StatusType.Error: return "E";
-                case StatusType.Warning: return "W";
-                case StatusType.Success: return "S";
-                case StatusType.Abort: return "A";
-                case StatusType.Information: return "I";
-                default: return null;
-            }
-        }
     }
 }
