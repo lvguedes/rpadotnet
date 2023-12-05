@@ -500,6 +500,9 @@ namespace RpaLib.SAP
                 anchorColumn, anchorValue, columnToChoose, conditionToSkipRow, header, dropLines);
         }
 
+        // TODO: Deploy version using SelectInTable, instead of reading the full table as above
+        //public static void SelectPossibleValueByAnchorQuick(Session session, string guiCTextFieldId, string guiUsrAreaId)
+
         public static SapComWrapper<T> FindById<T>(GuiComponent parent, string pathId, bool showTypes = false)
         {
             var nativeObjFound = FindComById<T>(parent, pathId, showTypes);

@@ -115,15 +115,34 @@ namespace RpaLib.SAP
             return new Grid(this, pathId);
         }
 
-        public Table FindTable(string pathId, string selectRegex = null, int regexMatches = 1, int[] selectRows = null, int delayAfterScroll = 0)
+        public Table FindTable(string pathId, int delayAfterScroll = 0)
         {
-            return new Table(this, pathId, selectRegex, regexMatches, selectRows);
+            return new Table(this, pathId, delayAfterScroll: delayAfterScroll);
         }
 
-        public LabelTable FindLabelTable(string guiUsrControlPathId, bool readOnly = true, int header = 0, int[] dropLines = null,
-            string selectRegex = null, int regexMatches = 1, int[] selectRows = null)
+        public void SelectInTable(string pathId, string selectRegex, int regexMatches = 1, int delayAfterScroll = 0)
         {
-            return new LabelTable(this, guiUsrControlPathId, readOnly, header, dropLines, selectRegex, regexMatches, selectRows);
+            new Table(this, pathId, selectRegex, regexMatches, delayAfterScroll: delayAfterScroll);
+        }
+
+        public void SelectInTable(string pathId, int[] selectRows = null, int delayAfterScroll = 0)
+        {
+            new Table(this, pathId, selectRows: selectRows, delayAfterScroll: delayAfterScroll);
+        }
+
+        public LabelTable FindLabelTable(string guiUsrControlPathId, bool readOnly = true, int header = 0, int[] dropLines = null)
+        {
+            return new LabelTable(this, guiUsrControlPathId, readOnly);
+        }
+
+        public void SelectInLblTable(string guiUsrControlPathId, string selectRegex, int regexMatches = 1, int header = 0, int[] dropLines = null, bool readOnly = true)
+        {
+            new LabelTable(this, guiUsrControlPathId, readOnly, header, dropLines, selectRegex, regexMatches);
+        }
+
+        public void SelectInLblTable(string guiUsrControlPathId, int[] selectRows, int header = 0, int[] dropLines = null, bool readOnly = true)
+        {
+            new LabelTable(this, guiUsrControlPathId, readOnly, header, dropLines, selectRows: selectRows);
         }
 
         public Field FindField(string cTextFieldId)
