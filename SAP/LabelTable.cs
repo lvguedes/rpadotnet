@@ -54,7 +54,7 @@ namespace RpaLib.SAP
         }
 
         // TODO: Add pagination using vertical and horizontal scrolls
-        private Label[][] ParseTable(List<Label[]> tableList = null, string selectRegex = null, int regexMatches = 1, int[] selectRows = null)
+        private Label[][] ParseTable(List<Label[]> tableList = null, string selectRegex = null, int regexMatches = 1, int[] selectRows = null, int _rowIndex = 0)
         {
             const string colRegex = @"(?<=lbl\[)\d+(?=,\s*\d+\]$)";
             const string rowRegex = @"(?<=lbl\[\d+,\s*)\d+(?=\]$)";
@@ -82,16 +82,15 @@ namespace RpaLib.SAP
             var orderedCols = columns.Cast<int>().OrderBy(x => x).ToArray();
 
             tableList = tableList ?? new List<Label[]>();
-            int rowIndex = 0;
             foreach (var nRow in orderedRows)
             {
                 // list of labels that represent a row in table array
                 Label[] rowList = labels.Where(x => x.Row == nRow).OrderBy(x => x.Col).ToArray();
 
                 // add to table array only if current line is not to be dropped
-                if (DropLines.Contains(rowIndex))
+                if (DropLines.Contains(_rowIndex))
                 {
-                    rowIndex++;
+                    _rowIndex++;
                     continue;
                 }
 
@@ -119,23 +118,23 @@ namespace RpaLib.SAP
                 // Process quick select through row indexes param
                 if (selectRows != null && selectRows.Length > 0)
                 {
-                    if (selectRows.Contains(rowIndex))
+                    if (selectRows.Contains(_rowIndex))
                     {
                         rowList[0].GuiLabel.SetFocus();
                         var selectRowsList = selectRows.ToList();
-                        selectRowsList.RemoveAt(rowIndex);
+                        selectRowsList.RemoveAt(_rowIndex);
                         selectRows = selectRowsList.ToArray();
                     }
                 }
 
-                rowIndex++;
+                _rowIndex++;
             }
 
             // Scroll down if needed
             if (VerticalScrollbar.IsNeeded())
             {
                 VerticalScrollbar.NextPage();
-                ParseTable(tableList, selectRegex, regexMatches, selectRows);
+                return ParseTable(tableList, selectRegex, regexMatches, selectRows, _rowIndex);
             }
             else
             {
