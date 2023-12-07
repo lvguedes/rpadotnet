@@ -176,9 +176,14 @@
     <Compile Include="APIs\Pipefy\Model\CardEdge.cs" />
     <Compile Include="APIs\Pipefy\Model\CardField.cs" />
     <Compile Include="APIs\Pipefy\Model\CardResult.cs" />
+    <Compile Include="APIs\Pipefy\Model\CreatePresignedUrlData.cs" />
+    <Compile Include="APIs\Pipefy\Model\CreatePresignedUrlResult.cs" />
     <Compile Include="APIs\Pipefy\Model\FieldLabel.cs" />
+    <Compile Include="APIs\Pipefy\Model\Label.cs" />
     <Compile Include="APIs\Pipefy\Model\MeResult.cs" />
     <Compile Include="APIs\Pipefy\Model\MinimalField.cs" />
+    <Compile Include="APIs\Pipefy\Model\Organization.cs" />
+    <Compile Include="APIs\Pipefy\Model\OrganizationsResult.cs" />
     <Compile Include="APIs\Pipefy\Model\PageInfo.cs" />
     <Compile Include="APIs\Pipefy\Model\Phase.cs" />
     <Compile Include="APIs\Pipefy\Model\Card.cs" />
@@ -282,6 +287,11 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Utils\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ProcessAutomation\bin\curl.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

@@ -8,7 +8,7 @@ using System.IO.Compression;
 using System.Net;
 using System.Threading;
 using System.Text.RegularExpressions;
-using System.Diagnostics;
+//using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using System.Data;
@@ -20,7 +20,11 @@ using RpaLib.Exceptions;
 using FormsMsgBox = System.Windows.Forms.MessageBox;
 using DialogResult = System.Windows.Forms.DialogResult;
 using MessageBoxButtons = System.Windows.Forms.MessageBoxButtons;
-using RpaTrace = RpaLib.Tracing.Trace;
+using System.Net.Http.Headers;
+using Process = System.Diagnostics.Process;
+using ProcessStartInfo = System.Diagnostics.ProcessStartInfo;
+using Stopwatch = System.Diagnostics.Stopwatch;
+using RpaLib.Tracing;
 
 /*
 Reference Assemblies:
@@ -178,7 +182,7 @@ namespace RpaLib.ProcessAutomation
             {
                 foreach (Process proc in Process.GetProcesses())
                 {
-                    if (outputProcesses == true) RpaTrace.WriteLine($"Process {proc.ProcessName}");
+                    if (outputProcesses == true) Trace.WriteLine($"Process {proc.ProcessName}");
                     if (proc.ProcessName == processName)
                     {
                         return;
@@ -223,7 +227,7 @@ namespace RpaLib.ProcessAutomation
         {
             foreach (Process proc in Process.GetProcessesByName(processName))
             {
-                if (outputProcesses) RpaTrace.WriteLine($"Killing process {proc.ProcessName}");
+                if (outputProcesses) Trace.WriteLine($"Killing process {proc.ProcessName}");
                 proc.Kill();
             }
         }
@@ -244,9 +248,9 @@ namespace RpaLib.ProcessAutomation
 
         public static void MessageBox(string message, bool showDebugMessages = false)
         {
-            if (showDebugMessages) RpaTrace.WriteLine("Pausing execution to display a message box");
+            if (showDebugMessages) Trace.WriteLine("Pausing execution to display a message box");
             System.Windows.Forms.MessageBox.Show(message);
-            if (showDebugMessages) RpaTrace.WriteLine("Continuing execution");
+            if (showDebugMessages) Trace.WriteLine("Continuing execution");
         }
 
         #endregion
@@ -353,7 +357,7 @@ namespace RpaLib.ProcessAutomation
             proc.Start();
         }
 
-        public static string RunPromptCommand(string cmd, string arguments = null)
+        public static string RunPromptCommand(string cmd, string arguments = null, bool redirectErr = false)
         {
 
             ProcessStartInfo startOptions = new ProcessStartInfo();
@@ -366,6 +370,7 @@ namespace RpaLib.ProcessAutomation
 
             startOptions.UseShellExecute = false; // must be false to be able to redirect output below
             startOptions.RedirectStandardOutput = true;
+            startOptions.RedirectStandardError = redirectErr;
 
             startOptions.Verb = "runas";
 
@@ -407,19 +412,121 @@ namespace RpaLib.ProcessAutomation
 
         public static async Task<string> MakeApiCallAsync(string url, string saveAs = null)
         {
-            var client = new HttpClient();
-            var response = await client.GetAsync(url);
-            var content = await response.Content.ReadAsStringAsync();
+            string content;
 
-            if (saveAs != null)
+            using (var client = new HttpClient())
             {
-                string fullFilePath = Ut.GetFullPath(saveAs);
-                FileStream fs = File.OpenWrite(fullFilePath);
-                await response.Content.CopyToAsync(fs);
-                fs.Close();
+                var response = await client.GetAsync(url);
+                content = await response.Content.ReadAsStringAsync();
+
+                if (saveAs != null)
+                {
+                    string fullFilePath = Ut.GetFullPath(saveAs);
+                    FileStream fs = File.OpenWrite(fullFilePath);
+                    await response.Content.CopyToAsync(fs);
+                    fs.Close();
+                }
+            }
+            
+            return content;
+        }
+
+        public static string Curl (string url, string request = "GET", string[] header = null, string data = null, string uploadFilePath = null)
+        {
+            var args = new StringBuilder($"-i --request {request.ToUpper()} --url '{url}'");
+
+            if (header != null)
+            {
+                foreach (var head in header)
+                {
+                    args.Append($" --header '{head}'");
+                }
             }
 
-            return content;
+            if (data != null)
+            {
+                args.Append($" --data '{data}'");
+            }
+
+            if (uploadFilePath != null)
+            {
+                args = new StringBuilder($" -i --upload-file '{uploadFilePath}' '{url}'");
+            }
+
+            return Curl(args.ToString());
+        }
+        
+        public static string Curl (string arguments)
+        {
+            const string curl = @"ProcessAutomation\bin\curl.exe";
+            var output = RunPromptCommand(curl, arguments, redirectErr: true);
+
+            Trace.WriteLine(output, color: ConsoleColor.Yellow);
+
+            return output;
+        }
+
+        public static HttpResponseMessage CurlUploadFile (string filePath, string url)
+        {
+            return CurlSharp("PUT", url, uploadFilePath: filePath);
+        }
+
+        public static HttpResponseMessage CurlSharp(string request, string url, string[] header = null, string data = null, string uploadFilePath = null)
+        {
+            Task<HttpResponseMessage> curlTask = CurlAsync(url, header, data, uploadFilePath, request);
+            Task.WaitAll(curlTask);
+
+            if ((int)curlTask.Result.StatusCode == 200)
+            {
+                
+            }
+
+            var content = curlTask.Result.Content.ReadAsStringAsync();
+            Task.WaitAll(content);
+            Trace.WriteLine(string.Join("\n",
+                $"Status Code: {(int)content.Status}",
+                $"Body:",
+                $"{content.Result}"), color: ConsoleColor.Yellow);
+
+            return curlTask.Result;
+        }
+
+        public static async Task<HttpResponseMessage> CurlAsync(string url, string[] header = null, string data = "BINARY_DATA", string uploadFile = null, string request = "PUT")
+        {
+            HttpResponseMessage response;
+
+            using (var httpClient = new HttpClient())
+            {
+                using (var req = new HttpRequestMessage(new HttpMethod(request.ToUpper()), "https://pipefy-production.s3-sa-east-1.amazonaws.com/orgs/ce63-a26b-412f-9d27-3a5776e16e/uploads/45da74d3-0e92-4e1c-a04e-2acc97169a3/SampleFile.pdf?...Signature=fa76e8bf28f88d8ceec1df8219912e103ad15f5ab4668f0fc9cea69109991aa"))
+                {
+                    if (data != null)
+                    {
+                        req.Content = new StringContent(data);
+                    }
+                    else if (uploadFile != null)
+                    {
+                        req.Content = new ByteArrayContent(File.ReadAllBytes(uploadFile));
+                    }
+
+                    if (header != null)
+                    {
+                        foreach (var head in header)
+                        {
+                            if (IsMatch(head, @"^Content-Type:\s*"))
+                            {
+                                req.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(Ut.Replace(head, @"^Content-Type:\s*", string.Empty));
+                            }
+                        }
+                    }
+
+                    response = await httpClient.SendAsync(req);
+                    //response.EnsureSuccessStatusCode();
+                }
+            }
+
+            Trace.WriteLine(response.StatusCode);
+
+            return response;
         }
 
         #endregion
@@ -440,15 +547,16 @@ namespace RpaLib.ProcessAutomation
             // pause execution and display a pop-up, continue execution after user click ok
             FormsMsgBox.Show(message);
 
-            RpaTrace.WriteLine(message);
+            Trace.WriteLine(message);
         }
 
-        public static DialogResult PopUpQuestion(string question, string ifYes, string ifNo, string ifCancel = "Message box cancelled")
+        public static DialogResult PopUpQuestion(string question,
+            string ifYes = "Pressed \"Yes\".", string ifNo = "Pressed \"No\".", string ifCancel = "Message box cancelled")
         {
             DialogResult dr = FormsMsgBox.Show(question, "Log Yes/No Question Pop-Up", MessageBoxButtons.YesNo);
-            if (dr == DialogResult.Yes) RpaTrace.WriteLine(ifYes);
-            else if (dr == DialogResult.No) RpaTrace.WriteLine(ifNo);
-            else RpaTrace.WriteLine(ifCancel);
+            if (dr == DialogResult.Yes) Trace.WriteLine(ifYes);
+            else if (dr == DialogResult.No) Trace.WriteLine(ifNo);
+            else Trace.WriteLine(ifCancel);
 
             return dr;
         }

@@ -11,6 +11,8 @@ using RpaLib.Tracing;
 using RpaLib.Exceptions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System.IO;
+using RpaLib.ProcessAutomation;
 
 namespace RpaLib.APIs.Pipefy
 {
@@ -20,23 +22,26 @@ namespace RpaLib.APIs.Pipefy
         public string Token { get; private set; }
         public string PipeId { get; private set; }
         public string Uri { get; private set; }
-        public JsonSerializerSettings JsonSerializerSettings { get; private set; }
+        public JsonSerializerSettings JsonSerializerSettingsSnake { get; private set; }
+        public JsonSerializerSettings JsonSerializerSettingsCamel { get; private set; }
 
         public Pipefy (string apiToken, string pipeId, string uri = null)
         {
             Uri = uri ?? PipefyDefaultEndPoint;
-            
+
             PipeId = pipeId;
             Token = apiToken;
 
-            JsonSerializerSettings = CreateSnakeCaseJsonSerializerSettings();
+            JsonSerializerSettingsSnake = CreateJsonSerializerSetting<SnakeCaseNamingStrategy>();
+            JsonSerializerSettingsCamel = CreateJsonSerializerSetting<CamelCaseNamingStrategy>();
+
         }
 
-        public static JsonSerializerSettings CreateSnakeCaseJsonSerializerSettings()
+        public static JsonSerializerSettings CreateJsonSerializerSetting<T>() where T : NamingStrategy
         {
             var contractResolver = new DefaultContractResolver
             {
-                NamingStrategy = new SnakeCaseNamingStrategy()
+                NamingStrategy = (T)Activator.CreateInstance(typeof(T)),
             };
 
             var jsonSerializerSettings = new JsonSerializerSettings
@@ -60,7 +65,136 @@ namespace RpaLib.APIs.Pipefy
                 }
             }";
 
-            return GraphQl.Query<MeResult>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<MeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
+        public GraphQlResponse<PipeResult> QueryPipe(string pipeId)
+        {
+            var query = @"
+            {
+                pipe(id: ""<<PipeId>>"") {
+                    organizationId
+                    name
+                    noun
+                    labels {
+                        id
+                        name
+                        color
+                    }
+                    phases {
+                        id
+                        name
+                        cards {
+                            edges {
+                                cursor
+                                node {
+                                    id
+                                    age
+                                    createdAt
+                                    createdBy {
+                                        name
+                                        email
+                                        id
+                                        phone
+                                        username
+                                    }
+                                    done
+                                    fields {
+                                        name
+                                        field {
+                                            id
+                                            label
+                                            options
+                                            type
+                                            description
+                                            help
+                                            uuid
+                                        }
+                                    }
+                                }
+                            }
+                            pageInfo {
+                                endCursor
+                                hasNextPage
+                                hasPreviousPage
+                                startCursor
+                            }
+                        }
+                        fields {
+                            id
+                            label
+                            options
+                            type
+                            required
+                            editable
+                            description
+                        }
+                    }
+                }
+            }
+            ".Replace("<<PipeId>>", pipeId);
+
+            //var query = @"
+            //{
+            //    pipe(id: ""<<PipeId>>"") {
+            //        organizationId
+            //        name
+            //        noun
+            //        labels {
+            //            id
+            //            name
+            //            color
+            //        }
+            //    }
+            //}
+            //".Replace("<<PipeId>>", pipeId);
+
+            return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettingsCamel);
+        }
+
+        public GraphQlResponse<OrganizationsResult> QueryOrganizations()
+        {
+            string query = @"
+            {
+                organizations {
+                    createdAt
+                    createdBy {
+                        id
+                        name
+                        email
+                    }
+                    customLogoUrl
+                    freemium
+                    id
+                    membersCount
+                    name
+                    onlyAdminCanCreatePipes
+                    onlyAdminCanInviteUsers
+                    pipes {
+                        id
+                        name
+                        labels {
+                            id
+                            name
+                            color
+                        }
+                        noun
+                        organizationId
+                    }
+                    pipesCount
+                    planName
+                    role
+                    users {
+                        id
+                        email
+                        name
+                        username
+                    }
+                    uuid
+                }
+            }";
+
+            return GraphQl.Query<OrganizationsResult>(query, Uri, Token, CreateJsonSerializerSetting<CamelCaseNamingStrategy>());
         }
 
         public GraphQlResponse<PipeResult> QueryPhases() => QueryPhases(PipeId);
@@ -77,7 +211,7 @@ namespace RpaLib.APIs.Pipefy
                 }
             }".Replace("$pipeId", pipeId);
 
-            return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
         }
 
         public GraphQlResponse<PhaseResult> QueryPhaseCards(string phaseId, int max = 30, string afterCursor = null)
@@ -134,7 +268,7 @@ namespace RpaLib.APIs.Pipefy
                 query = query.Replace("$afterCursor", afterCursor);
             }
 
-            return GraphQl.Query<PhaseResult>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<PhaseResult>(query, Uri, Token, JsonSerializerSettingsSnake);
         }
 
         public enum OrderCardsBy
@@ -216,7 +350,7 @@ namespace RpaLib.APIs.Pipefy
             }
             ".Replace("$phaseId", phaseId);
 
-            return GraphQl.Query<PhaseResult>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<PhaseResult>(query, Uri, Token, JsonSerializerSettingsSnake);
         }
 
         public GraphQlResponse<CardResult> QueryCard(string cardId)
@@ -258,7 +392,7 @@ namespace RpaLib.APIs.Pipefy
             }
             ".Replace("$cardId", cardId);
 
-            return GraphQl.Query<CardResult>(query, Uri, Token, JsonSerializerSettings);
+            return GraphQl.Query<CardResult>(query, Uri, Token, JsonSerializerSettingsSnake);
         }
 
         #endregion
@@ -289,15 +423,33 @@ namespace RpaLib.APIs.Pipefy
             return GraphQl.Query<CardResult>(query, Uri, Token);
         }
 
+        public GraphQlResponse<UpdateCardFieldResult> UpdateCardField(string cardId, string fieldId, string[] newValues)
+        {
+            List<string> escapedNewValues = new List<string>();
+            string newValueStringList; 
+
+            foreach (var newValue in newValues)
+            {
+                var escaped = newValue.Replace(@"\", @"\\").Replace(@"""", @"\""");
+                var quotedAfterEscaped = $"\"{escaped}\"";
+                escapedNewValues.Add(quotedAfterEscaped);
+            }
+
+            var newValuesJoined = string.Join("\", ", escapedNewValues);
+            newValueStringList = $"[{newValuesJoined}]";
+
+            return UpdateCardField(cardId, fieldId, newValueStringList);
+        }
+
         public GraphQlResponse<UpdateCardFieldResult> UpdateCardField(string cardId, string fieldId, string newValue)
         {
-            var escapedNewValue = newValue.Replace(@"\", @"\\").Replace(@"""", @"\""");
+            var treatedValue = !Ut.IsMatch(newValue, @"\[[^\]]+\]") ? $"\"{newValue}\"" : newValue;
             var query = @"
                 mutation {
                     updateCardField(input: { 
                         card_id: ""<<IdCard>>"",
                         field_id: ""<<IdField>>"",
-                        new_value: ""<<NewValue>>""
+                        new_value: <<NewValue>>
                     }) {
                         success
                         card {
@@ -309,9 +461,25 @@ namespace RpaLib.APIs.Pipefy
                             }
                         }
                     }
-                }".Replace("<<IdCard>>", cardId).Replace("<<IdField>>", fieldId).Replace("<<NewValue>>", escapedNewValue);
+                }".Replace("<<IdCard>>", cardId).Replace("<<IdField>>", fieldId).Replace("<<NewValue>>", treatedValue);
 
             return GraphQl.Query<UpdateCardFieldResult>(query, Uri, Token);
+        }
+
+        public GraphQlResponse<CreatePresignedUrlResult> CreatePresignedUrl(string fileBaseName)
+        {
+            var organizationId = QueryPipe(PipeId).Data.Pipe.OrganizationId;
+
+            var query = @"
+                mutation {
+                    createPresignedUrl(input: { organizationId: <<OrgId>>, fileName: ""<<FileName>>"" }){
+                        clientMutationId
+                        url
+                    }
+                }
+            ".Replace("<<OrgId>>", organizationId).Replace("<<FileName>>", fileBaseName);
+
+            return GraphQl.Query<CreatePresignedUrlResult>(query, Uri, Token, JsonSerializerSettingsCamel);
         }
 
         #endregion
@@ -393,6 +561,21 @@ namespace RpaLib.APIs.Pipefy
             }
 
             return foundFieldValue;
+        }
+
+        public string AttachFileToCard(string filePath, string cardId, string fieldId)
+        {
+            var fileBaseName = Path.GetFileName(filePath);
+            var url = CreatePresignedUrl(fileBaseName).Data.CreatePresignedUrl.Url;
+
+            var resp1 = Ut.Curl(request: "PUT", url: url, header: new string[] { "Content-Type: application/excel" }, data: "BINARY_DATA");
+            var resp2 = Ut.Curl(uploadFilePath: filePath, url: url);
+
+            var pathFromUrl = Ut.Replace(url, @"^https://[^/]+/", string.Empty);
+            pathFromUrl = Ut.Match(pathFromUrl, @"^.+" + fileBaseName.Replace(".", @"\."));
+            var result = UpdateCardField(cardId, fieldId, new string[] { pathFromUrl });
+
+            return null;
         }
     }
 }
