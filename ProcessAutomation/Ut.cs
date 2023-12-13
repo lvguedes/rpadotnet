@@ -41,7 +41,7 @@ namespace RpaLib.ProcessAutomation
         public static readonly Dictionary<string, string> CYGPATH =
             new Dictionary<string, string>() { { "PATH", GetFullPath(@"ProcessAutomation\lib\cygbase") } };
 
-        const string CURLPATH = @"ProcessAutomation\bin";
+        const string CURLPATH = @"ProcessAutomation\portables\curl\bin";
 
         [DllImport("Kernel32.dll", SetLastError = true)]
         public static extern int SetStdHandle(int device, IntPtr handle);
@@ -286,6 +286,14 @@ namespace RpaLib.ProcessAutomation
             return yamlDeserialized;
         }
 
+        public static string YamlSerialize(object obj)
+        {
+            var serializer = new SerializerBuilder().Build();
+            var yaml = serializer.Serialize(obj);
+
+            return yaml;
+        }
+
         #endregion
 
         #region DataPrinting
@@ -363,7 +371,7 @@ namespace RpaLib.ProcessAutomation
         }
 
         public static CmdOutput RunPromptCommand(string cmd, string arguments = null, bool redirectErr = true, bool asAdmin = false, 
-            Dictionary<string,string> environment = null)
+            Dictionary<string,string> environment = null, bool showInfo = false)
         {
 
             ProcessStartInfo startOptions = new ProcessStartInfo();
@@ -382,6 +390,14 @@ namespace RpaLib.ProcessAutomation
 
             if (asAdmin)
                 startOptions.Verb = "runas";
+
+            var indent = "    ";
+            if (showInfo) Trace.WriteLine(string.Join(Environment.NewLine,
+                $"Running Prompt Command...",
+                indent + $"Command: {cmd} {arguments}",
+                indent + $"As Admin: {asAdmin}",
+                indent + $"Environment:",
+                indent + indent + YamlSerialize(environment)));
 
             Process ps = Process.Start(startOptions);
 
@@ -441,29 +457,30 @@ namespace RpaLib.ProcessAutomation
             return content;
         }
 
-        public static CmdOutput Curl (string url, string request = "GET", string[] header = null, string data = null, string uploadFilePath = null)
+        public static CmdOutput Curl (string url, string request = "GET", string[] header = null, string data = null,
+            string uploadFilePath = null, bool insecure = false)
         {
             // impossible with certificate, he always look inside /etc/ for the cert, but not runs in a full cyg environment
             //string certPath = Path.Combine(CURLPATH, "ca-bundle.crt");
-            string commonArgs = $"-v -i -k";
-            var args = new StringBuilder($"{commonArgs} --request {request.ToUpper()} --url '{url}'");
+            string commonArgs = insecure ? "-v -i -k" : "-v -i";
+            var args = new StringBuilder($"{commonArgs} --request {request.ToUpper()} --url \"{url}\"");
 
             if (header != null)
             {
                 foreach (var head in header)
                 {
-                    args.Append($" --header '{head}'");
+                    args.Append($" --header \"{head}\"");
                 }
             }
 
             if (data != null)
             {
-                args.Append($" --data '{data}'");
+                args.Append($" --data \"{data}\"");
             }
 
             if (uploadFilePath != null)
             {
-                args = new StringBuilder($"{commonArgs} --upload-file '{uploadFilePath}' '{url}'");
+                args = new StringBuilder($"{commonArgs} --upload-file \"{uploadFilePath}\" \"{url}\"");
             }
 
             return Curl(args.ToString());
@@ -472,7 +489,7 @@ namespace RpaLib.ProcessAutomation
         public static CmdOutput Curl (string arguments)
         {
             string curl = Path.Combine(CURLPATH, "curl.exe");
-            var output = RunPromptCommand(curl, arguments, environment: CYGPATH);
+            var output = RunPromptCommand(curl, arguments, showInfo: true);
 
             Trace.WriteLine(output, color: ConsoleColor.Yellow);
 
