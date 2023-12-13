@@ -35,6 +35,63 @@
             Class that represents the return type of any Query
             </summary>
         </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.Replace(System.String,System.String,System.String,System.Text.RegularExpressions.RegexOptions)">
+            <summary>
+            Replace a regex pattern match with a replacement string.
+            </summary>
+            <param name="input">The input string.</param>
+            <param name="pattern">The Regular Expression pattern.</param>
+            <param name="replacement">The string to replace the pattern found.</param>
+            <param name="regexOptions">RegexOptions enum to set regex options.</param>
+            <returns>The input string with replacement applied.</returns>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.Match(System.String,System.String,System.Text.RegularExpressions.RegexOptions)">
+            <summary>
+            Search for the first occurrence of pattern within input string.
+            </summary>
+            <param name="input">Text where to search for.</param>
+            <param name="pattern">Regex pattern representing what to look for.</param>
+            <param name="regexOptions">DotNet RegexOptions controling the Regular Expression options.</param>
+            <returns>The text found.</returns>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.IsMatch(System.String,System.String,System.Text.RegularExpressions.RegexOptions)">
+            <summary>
+            Check if the regex pattern matches somewhere in input string.
+            </summary>
+            <param name="input">Input text where to search for.</param>
+            <param name="pattern">Regex pattern to look for within input text.</param>
+            <param name="regexOptions">RegexOptions from dotnet controling regex options.</param>
+            <returns>True if pattern was found within input text, false otherwise.</returns>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.WaitUntilFileAppear(System.String,System.Int32,System.Int32)">
+            <summary>
+            Waits until a file (full path string) appears within its base directory.
+            It will wait until file appear or timeout exceed. The refresh rate sleep 
+            is also configurable (defaults to 0.5 seconds).
+            </summary>
+            <param name="fileFullPath">The full path to the file it's needed to wait until appear</param>
+            <param name="timeoutSeconds">The timeout in seconds you need to wait</param>
+            <param name="refreshDelay">The time in milliseconds between each refresh in files parent dir </param>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.WaitUntilFileAppear(System.String,System.String,System.Int32,System.Int32,System.Text.RegularExpressions.RegexOptions)">
+            <summary>
+            Waits until a file that matches the Regex appear in the full path to its parent dir given
+            </summary>
+            <param name="parentDirFullPath">File's parent directory full path</param>
+            <param name="fileRegex">Regex to match the file name</param>
+            <param name="timeoutSeconds">Timeout representing the maximuma time to wait for file until FileNotFoundException be thrown</param>
+            <param name="refreshDelay">The time in milliseconds between each refresh in file's parent directory</param>
+            <param name="regexOpts">Regular Expression matching options to be considered when matching, such as Ignoring Case</param>
+            <exception cref="T:System.IO.FileNotFoundException"></exception>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.COMCollectionToICollection``1(System.Object)">
+            <summary>
+            Converts a COMCollection, where it's impossible to use LINQ, to a ICollection which is LINQable.
+            </summary>
+            <typeparam name="T">Collection members type</typeparam>
+            <param name="comObj">COMCollection object</param>
+            <returns>ICollection from input COMCollection</returns>
+        </member>
         <member name="T:RpaLib.SAP.App">
             <summary>
             Class to verify info, get objects directly from native COM object
@@ -359,63 +416,6 @@
             Unconditionally close the SAP session GuiFrameWindow. Auto-processes any confirmation pop-up that might appear.
             </summary>
             <param name="confirmButtonTxt">Text in the button to confirm to close the Session window.</param>
-        </member>
-        <member name="M:RpaLib.ProcessAutomation.Ut.Replace(System.String,System.String,System.String,System.Text.RegularExpressions.RegexOptions)">
-            <summary>
-            Replace a regex pattern match with a replacement string.
-            </summary>
-            <param name="input">The input string.</param>
-            <param name="pattern">The Regular Expression pattern.</param>
-            <param name="replacement">The string to replace the pattern found.</param>
-            <param name="regexOptions">RegexOptions enum to set regex options.</param>
-            <returns>The input string with replacement applied.</returns>
-        </member>
-        <member name="M:RpaLib.ProcessAutomation.Ut.Match(System.String,System.String,System.Text.RegularExpressions.RegexOptions)">
-            <summary>
-            Search for the first occurrence of pattern within input string.
-            </summary>
-            <param name="input">Text where to search for.</param>
-            <param name="pattern">Regex pattern representing what to look for.</param>
-            <param name="regexOptions">DotNet RegexOptions controling the Regular Expression options.</param>
-            <returns>The text found.</returns>
-        </member>
-        <member name="M:RpaLib.ProcessAutomation.Ut.IsMatch(System.String,System.String,System.Text.RegularExpressions.RegexOptions)">
-            <summary>
-            Check if the regex pattern matches somewhere in input string.
-            </summary>
-            <param name="input">Input text where to search for.</param>
-            <param name="pattern">Regex pattern to look for within input text.</param>
-            <param name="regexOptions">RegexOptions from dotnet controling regex options.</param>
-            <returns>True if pattern was found within input text, false otherwise.</returns>
-        </member>
-        <member name="M:RpaLib.ProcessAutomation.Ut.WaitUntilFileAppear(System.String,System.Int32,System.Int32)">
-            <summary>
-            Waits until a file (full path string) appears within its base directory.
-            It will wait until file appear or timeout exceed. The refresh rate sleep 
-            is also configurable (defaults to 0.5 seconds).
-            </summary>
-            <param name="fileFullPath">The full path to the file it's needed to wait until appear</param>
-            <param name="timeoutSeconds">The timeout in seconds you need to wait</param>
-            <param name="refreshDelay">The time in milliseconds between each refresh in files parent dir </param>
-        </member>
-        <member name="M:RpaLib.ProcessAutomation.Ut.WaitUntilFileAppear(System.String,System.String,System.Int32,System.Int32,System.Text.RegularExpressions.RegexOptions)">
-            <summary>
-            Waits until a file that matches the Regex appear in the full path to its parent dir given
-            </summary>
-            <param name="parentDirFullPath">File's parent directory full path</param>
-            <param name="fileRegex">Regex to match the file name</param>
-            <param name="timeoutSeconds">Timeout representing the maximuma time to wait for file until FileNotFoundException be thrown</param>
-            <param name="refreshDelay">The time in milliseconds between each refresh in file's parent directory</param>
-            <param name="regexOpts">Regular Expression matching options to be considered when matching, such as Ignoring Case</param>
-            <exception cref="T:System.IO.FileNotFoundException"></exception>
-        </member>
-        <member name="M:RpaLib.ProcessAutomation.Ut.COMCollectionToICollection``1(System.Object)">
-            <summary>
-            Converts a COMCollection, where it's impossible to use LINQ, to a ICollection which is LINQable.
-            </summary>
-            <typeparam name="T">Collection members type</typeparam>
-            <param name="comObj">COMCollection object</param>
-            <returns>ICollection from input COMCollection</returns>
         </member>
         <member name="M:DocuSign.CodeExamples.Authentication.JWTAuth.AuthenticateWithJWT(System.String,System.String,System.String,System.String,System.Byte[])">
             <summary>

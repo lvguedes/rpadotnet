@@ -170,11 +170,11 @@ namespace RpaLib.Web
             // now we guarantee that Unzip() will always occur with success
             Ut.Unzip(savePathZip, savePathDir);
 
-            string oldVersion = Ut.RunPromptCommand(Bin, "--version");
+            var oldVersion = Ut.RunPromptCommand(Bin, "--version");
             //string oldVersion = GetDriverVersion();
             // move to the folder listed in PATH to actually install (suggestion: %APPDATA%\Selenium\Drivers)
             Ut.MoveFileForced(exeFullPathDownloads, exeFullPathInstall);
-            string newVersion = Ut.RunPromptCommand(Bin, "--version");
+            var newVersion = Ut.RunPromptCommand(Bin, "--version");
             //string newVersion = chromeDriverVersion;
 
             Log.Write(string.Join(Environment.NewLine,
@@ -186,22 +186,22 @@ namespace RpaLib.Web
         public static string GetChromeMajorVersion(string chromeBinPath = null)
         {
             // Get the major version number from the currently installed chrome in system
-            string cmdResult;
+            CmdOutput cmdResult;
             string chromeVersion;
             if (chromeBinPath == null)
             {
                 // if bin path is NOT given, then check the chrome system installed version through windows register
                 cmdResult = Ut.RunPromptCommand("reg", @"query ""HKEY_CURRENT_USER\Software\Google\Chrome\BLBeacon"" /v version");
-                chromeVersion = Ut.Match(cmdResult, @"(?<=version[\s\w]+)\d+\.\d+\.\d+(\.\d+)?");
+                chromeVersion = Ut.Match(cmdResult.ToString(), @"(?<=version[\s\w]+)\d+\.\d+\.\d+(\.\d+)?");
             }
             else
             {
                 // if Chrome binary path is given, then check the Chrome version using this file
                 cmdResult = Ut.RunPromptCommand("wmic", $"datafile where name=\"{Ut.GetFullPath(chromeBinPath).Replace(@"\", @"\\")}\" get Version /value");
-                chromeVersion = Ut.Match(cmdResult, @"(?<=Version=)[\w.]+");
+                chromeVersion = Ut.Match(cmdResult.ToString(), @"(?<=Version=)[\w.]+");
             }
 
-            string chromeMajorVersion = Ut.Match(chromeVersion, @"^\d+(?=\.)");
+            string chromeMajorVersion = Ut.Match(chromeVersion.ToString(), @"^\d+(?=\.)");
 
             return chromeMajorVersion;
         }

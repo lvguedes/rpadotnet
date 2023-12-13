@@ -38,6 +38,11 @@ namespace RpaLib.ProcessAutomation
     public delegate void VoidFuncVoid();
     public static class Ut
     {
+        public static readonly Dictionary<string, string> CYGPATH =
+            new Dictionary<string, string>() { { "PATH", GetFullPath(@"ProcessAutomation\lib\cygbase") } };
+
+        const string CURLPATH = @"ProcessAutomation\bin";
+
         [DllImport("Kernel32.dll", SetLastError = true)]
         public static extern int SetStdHandle(int device, IntPtr handle);
 
@@ -357,7 +362,8 @@ namespace RpaLib.ProcessAutomation
             proc.Start();
         }
 
-        public static string RunPromptCommand(string cmd, string arguments = null, bool redirectErr = false)
+        public static CmdOutput RunPromptCommand(string cmd, string arguments = null, bool redirectErr = true, bool asAdmin = false, 
+            Dictionary<string,string> environment = null)
         {
 
             ProcessStartInfo startOptions = new ProcessStartInfo();
@@ -368,20 +374,24 @@ namespace RpaLib.ProcessAutomation
 
             startOptions.CreateNoWindow = true;
 
-            startOptions.UseShellExecute = false; // must be false to be able to redirect output below
+            startOptions.UseShellExecute = false; // must be false to be able to redirect output below and change env
             startOptions.RedirectStandardOutput = true;
             startOptions.RedirectStandardError = redirectErr;
 
-            startOptions.Verb = "runas";
+            environment?.ToList().ForEach(x => startOptions.Environment[x.Key] = x.Value);
+
+            if (asAdmin)
+                startOptions.Verb = "runas";
 
             Process ps = Process.Start(startOptions);
 
-            string cmdOutput = ps.StandardOutput.ReadToEnd();
+            string cmdStdOut = ps.StandardOutput.ReadToEnd();
+            string cmdStdErr = ps.StandardError.ReadToEnd();
             ps.WaitForExit();
 
             //Console.WriteLine($"The command output was:\n{cmdOutput}");
 
-            return cmdOutput;
+            return new CmdOutput(cmdStdOut, cmdStdErr);
         }
 
         #endregion
@@ -431,9 +441,12 @@ namespace RpaLib.ProcessAutomation
             return content;
         }
 
-        public static string Curl (string url, string request = "GET", string[] header = null, string data = null, string uploadFilePath = null)
+        public static CmdOutput Curl (string url, string request = "GET", string[] header = null, string data = null, string uploadFilePath = null)
         {
-            var args = new StringBuilder($"-i --request {request.ToUpper()} --url '{url}'");
+            // impossible with certificate, he always look inside /etc/ for the cert, but not runs in a full cyg environment
+            //string certPath = Path.Combine(CURLPATH, "ca-bundle.crt");
+            string commonArgs = $"-v -i -k";
+            var args = new StringBuilder($"{commonArgs} --request {request.ToUpper()} --url '{url}'");
 
             if (header != null)
             {
@@ -450,16 +463,16 @@ namespace RpaLib.ProcessAutomation
 
             if (uploadFilePath != null)
             {
-                args = new StringBuilder($" -i --upload-file '{uploadFilePath}' '{url}'");
+                args = new StringBuilder($"{commonArgs} --upload-file '{uploadFilePath}' '{url}'");
             }
 
             return Curl(args.ToString());
         }
         
-        public static string Curl (string arguments)
+        public static CmdOutput Curl (string arguments)
         {
-            const string curl = @"ProcessAutomation\bin\curl.exe";
-            var output = RunPromptCommand(curl, arguments, redirectErr: true);
+            string curl = Path.Combine(CURLPATH, "curl.exe");
+            var output = RunPromptCommand(curl, arguments, environment: CYGPATH);
 
             Trace.WriteLine(output, color: ConsoleColor.Yellow);
 
