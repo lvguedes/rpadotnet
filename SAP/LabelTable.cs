@@ -49,12 +49,11 @@ namespace RpaLib.SAP
             Header = header;
             DropLines = dropLines ?? new int[] { };
 
-            ParseTable(selectRegex: selectRegex, regexMatches: regexMatches, selectRows: selectRows);
-            GetDataTable(readOnly);
+            ParseTable(selectRegex: selectRegex, regexMatches: regexMatches, selectRows: selectRows, readOnly: readOnly);
         }
 
         // TODO: Add pagination using vertical and horizontal scrolls
-        private Label[][] ParseTable(List<Label[]> tableList = null, string selectRegex = null, int regexMatches = 1, int[] selectRows = null, int _rowIndex = 0)
+        private ParsedTables ParseTable(List<Label[]> tableList = null, string selectRegex = null, int regexMatches = 1, int[] selectRows = null, int _rowIndex = 0, bool readOnly = true)
         {
             const string colRegex = @"(?<=lbl\[)\d+(?=,\s*\d+\]$)";
             const string rowRegex = @"(?<=lbl\[\d+,\s*)\d+(?=\]$)";
@@ -110,7 +109,7 @@ namespace RpaLib.SAP
                         {
                             Session.PressEnter();
                             TableArray = tableList.ToArray();
-                            return TableArray;
+                            return new ParsedTables(TableArray, DataTable);
                         }
                     }
                 }
@@ -144,7 +143,8 @@ namespace RpaLib.SAP
             if (selectRegex != null)
                 throw new PatternNotFoundForSelectionException(selectRegex);
 
-            return TableArray;
+            DataTable = GetDataTable(readOnly);
+            return new ParsedTables(TableArray, DataTable);
         }
 
         private DataTable GetDataTable(bool readOnly = true)

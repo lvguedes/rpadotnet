@@ -459,49 +459,14 @@ namespace RpaLib.SAP
             return tableRead;
         }
 
-        public static LabelTable SelectPossibleValueByAnchor(Session session, SapComWrapper<GuiCTextField> guiCTextField, string guiUsrAreaId,
-            string anchorColumn, string anchorValue, string columnToChoose,
-            Func<string, bool> conditionToSkipRow = null, int header = 0, int[] dropLines = null)
+        public static void SelectPossibleValue(Session session, SapComWrapper<GuiCTextField> guiCTextField, string guiUsrAreaId,
+            string valueToSelect, int header = 0, int[] dropLines = null)
         {
-
-            Action<LabelTable> selectValue = (table) =>
-            {
-                string foundValue = null;
-                for (int i = 0; i < table.DataTable.Rows.Count; i++)
-                {
-                    var row = table.DataTable.Rows[i];
-                    if (Ut.IsMatch((string)row[anchorColumn], anchorValue))
-                    {
-                        foundValue = (string)row[columnToChoose];
-                        if (conditionToSkipRow != null && conditionToSkipRow(foundValue))
-                            continue;
-                        else
-                        {
-                            var rowFoundInDataTable = i;
-                            var colFoundInDataTable = table.DataTable.Columns[columnToChoose].Ordinal;
-                            table.SelectCell(rowFoundInDataTable + 1, colFoundInDataTable);
-                            break;
-                        }
-                    }
-                }
-
-                session.PressEnter();
-            };
-
-            return OnPossibleValues(session, guiCTextField, guiUsrAreaId, selectValue, readOnly: true, header, dropLines);
-
+            OpenPossibleValues(session, guiCTextField);
+            session.SelectInLblTable(guiUsrAreaId, valueToSelect, header: header, dropLines: dropLines);
+            // When pressed enter after selecting this window auto closes, no need to Esc
+            //session.PressEsc();
         }
-
-        public static LabelTable SelectPossibleValueByAnchor(Session session, string guiCTextFieldId, string guiUsrAreaId,
-            string anchorColumn, string anchorValue, string columnToChoose,
-            Func<string, bool> conditionToSkipRow = null, int header = 0, int[] dropLines = null)
-        {
-            return SelectPossibleValueByAnchor(session, session.FindById<GuiCTextField>(guiCTextFieldId), guiUsrAreaId,
-                anchorColumn, anchorValue, columnToChoose, conditionToSkipRow, header, dropLines);
-        }
-
-        // TODO: Deploy version using SelectInTable, instead of reading the full table as above
-        //public static void SelectPossibleValueByAnchorQuick(Session session, string guiCTextFieldId, string guiUsrAreaId)
 
         public static SapComWrapper<T> FindById<T>(GuiComponent parent, string pathId, bool showTypes = false)
         {

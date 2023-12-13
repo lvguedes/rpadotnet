@@ -130,9 +130,9 @@ namespace RpaLib.SAP
             new Table(this, pathId, selectRows: selectRows, delayAfterScroll: delayAfterScroll);
         }
 
-        public LabelTable FindLabelTable(string guiUsrControlPathId, bool readOnly = true, int header = 0, int[] dropLines = null)
+        public LabelTable FindLabelTable(string guiUsrAreaPathId, bool readOnly = true, int header = 0, int[] dropLines = null)
         {
-            return new LabelTable(this, guiUsrControlPathId, readOnly);
+            return new LabelTable(this, guiUsrAreaPathId, readOnly, header, dropLines);
         }
 
         public void SelectInLblTable(string guiUsrControlPathId, string selectRegex, int regexMatches = 1, int header = 0, int[] dropLines = null, bool readOnly = true)

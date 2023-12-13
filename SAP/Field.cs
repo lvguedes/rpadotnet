@@ -70,10 +70,9 @@ namespace RpaLib.SAP
             Trace.WriteLine($"Focus set to field: \"{Com.Id}\". Carret position: 0.");
         }
 
-        public LabelTable SelectPossibleValueByAnchor(string guiUsrAreaId, string anchorColumn, string anchorValue, string columnToChoose,
-            Func<string,bool> conditionToSkipFoundRow = null, int header = 0, int[] dropLines = null)
+        public void SelectPossibleValue(string pathIdTable, string value, int[] dropLines = null, int header = 0)
         {
-            return Sap.SelectPossibleValueByAnchor(Session, this, guiUsrAreaId, anchorColumn, anchorValue, columnToChoose, conditionToSkipFoundRow, header, dropLines);
+            Sap.SelectPossibleValue(Session, this, pathIdTable, value, header, dropLines);
         }
 
         public void OpenPossibleValues() => Sap.OpenPossibleValues(Session, this);

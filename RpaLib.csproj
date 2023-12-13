@@ -225,6 +225,7 @@
     <Compile Include="SAP\ModalWindow.cs" />
     <Compile Include="SAP\Model\Label.cs" />
     <Compile Include="SAP\Model\SapGuiObject.cs" />
+    <Compile Include="SAP\ParsedTables.cs" />
     <Compile Include="SAP\SapComponent.cs" />
     <Compile Include="SAP\Sap.cs" />
     <Compile Include="SAP\SapComWrapper.cs" />
