@@ -22,4 +22,8 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\RpaLib.csproj" />
+  </ItemGroup>
+
 </Project>
