@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = RpaLibXunit
+build_property.ProjectDir = C:\lucas\cygwin\home\LSILVA46\git\csharp\rpalib\RpaLibXunit\RpaLibXunit\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 

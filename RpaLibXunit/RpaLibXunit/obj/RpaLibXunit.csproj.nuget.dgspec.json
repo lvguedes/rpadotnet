@@ -1,0 +1,92 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\lucas\\cygwin\\home\\LSILVA46\\git\\csharp\\rpalib\\RpaLibXunit\\RpaLibXunit\\RpaLibXunit.csproj": {}
+  },
+  "projects": {
+    "C:\\lucas\\cygwin\\home\\LSILVA46\\git\\csharp\\rpalib\\RpaLib.csproj": {
+      "restore": {
+        "projectUniqueName": "C:\\lucas\\cygwin\\home\\LSILVA46\\git\\csharp\\rpalib\\RpaLib.csproj",
+        "projectName": "RpaLib",
+        "projectPath": "C:\\lucas\\cygwin\\home\\LSILVA46\\git\\csharp\\rpalib\\RpaLib.csproj",
+        "frameworks": {
+          "net472": {
+            "projectReferences": {}
+          }
+        }
+      },
+      "frameworks": {
+        "net472": {}
+      }
+    },
+    "C:\\lucas\\cygwin\\home\\LSILVA46\\git\\csharp\\rpalib\\RpaLibXunit\\RpaLibXunit\\RpaLibXunit.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\lucas\\cygwin\\home\\LSILVA46\\git\\csharp\\rpalib\\RpaLibXunit\\RpaLibXunit\\RpaLibXunit.csproj",
+        "projectName": "RpaLibXunit",
+        "projectPath": "C:\\lucas\\cygwin\\home\\LSILVA46\\git\\csharp\\rpalib\\RpaLibXunit\\RpaLibXunit\\RpaLibXunit.csproj",
+        "packagesPath": "C:\\Users\\lsilva46\\.nuget\\packages\\",
+        "outputPath": "C:\\lucas\\cygwin\\home\\LSILVA46\\git\\csharp\\rpalib\\RpaLibXunit\\RpaLibXunit\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\lsilva46\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net472"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\lucas\\cygwin\\home\\LSILVA46\\nugetpacks": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net472": {
+            "targetAlias": "net472",
+            "projectReferences": {
+              "C:\\lucas\\cygwin\\home\\LSILVA46\\git\\csharp\\rpalib\\RpaLib.csproj": {
+                "projectPath": "C:\\lucas\\cygwin\\home\\LSILVA46\\git\\csharp\\rpalib\\RpaLib.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "default"
+        }
+      },
+      "frameworks": {
+        "net472": {
+          "targetAlias": "net472",
+          "dependencies": {
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[17.5.0, )"
+            },
+            "coverlet.collector": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[3.2.0, )"
+            },
+            "xunit": {
+              "target": "Package",
+              "version": "[2.4.2, )"
+            },
+            "xunit.runner.visualstudio": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.4.5, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.100\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

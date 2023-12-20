@@ -25,6 +25,7 @@ using Process = System.Diagnostics.Process;
 using ProcessStartInfo = System.Diagnostics.ProcessStartInfo;
 using Stopwatch = System.Diagnostics.Stopwatch;
 using RpaLib.Tracing;
+using System.IO.Pipes;
 
 /*
 Reference Assemblies:
@@ -178,6 +179,38 @@ namespace RpaLib.ProcessAutomation
         #endregion
 
         #region Processes
+        const int PIPE_BUFFER_SIZE = 1000;
+        public static async Task<string> PipeListen(string pipeName)
+        {
+            string read = null;
+
+            await Task.Run(() =>
+            {
+                using (NamedPipeServerStream pipeServer = new NamedPipeServerStream(pipeName, PipeDirection.In))
+                {
+                    Trace.WriteLine($"Pipe named server \"{pipeName}\" started. Waiting for a client to connect...");
+                    pipeServer.WaitForConnection();
+                    Trace.WriteLine($"Named Pipe \"{pipeName}\": Client connected.");
+
+                    var buffer = new byte[PIPE_BUFFER_SIZE];
+                    pipeServer.Read(buffer, 0, PIPE_BUFFER_SIZE);
+                    read = Replace(Encoding.UTF8.GetString(buffer), @"\s{2,}|\0+", string.Empty);
+                }
+
+            });
+
+            return read;
+        }
+
+        public static void PipeWrite(string pipeName, string text, string pipeServer = ".")
+        {
+            using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(pipeServer, pipeName, PipeDirection.Out))
+            {
+                Trace.WriteLine($"Pipeline: Trying to connect to the Named Pipe {pipeName}...");
+                pipeClient.Connect();
+                pipeClient.Write(Encoding.UTF8.GetBytes(text), 0, text.Length);
+            }
+        }
 
         public static void WaitProcessStart(string processName, int timeoutSeconds = 300, int refreshDelayMillisec = 0, bool outputProcesses = false)
         {
@@ -368,6 +401,22 @@ namespace RpaLib.ProcessAutomation
             proc.StartInfo.UseShellExecute = true;
             proc.StartInfo.Verb = "runas";
             proc.Start();
+        }
+
+        public static async Task<CmdOutput> RunPromptCommandAsync(string cmd, string arguments = null, bool redirectErr = true, bool asAdmin = false,
+            Dictionary<string, string> environment = null, bool showInfo = false)
+        {
+            CmdOutput result = null;
+
+            await Task.Run(() =>
+            {
+                result = RunPromptCommand(cmd, arguments, redirectErr, asAdmin, environment, showInfo);
+                //return result;
+            });
+            
+            //task.Start();
+
+            return result;
         }
 
         public static CmdOutput RunPromptCommand(string cmd, string arguments = null, bool redirectErr = true, bool asAdmin = false, 
