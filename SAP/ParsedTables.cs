@@ -12,11 +12,13 @@ namespace RpaLib.SAP
     {
         public Label[][] GuiLabels { get; private set; }
         public DataTable DataTable { get; private set; }
+        public bool Selected { get; private set; }
 
-        public ParsedTables(Label[][] guiLabels = null, DataTable dataTable = null)
+        public ParsedTables(Label[][] guiLabels = null, DataTable dataTable = null, bool selected = false)
         {
             GuiLabels = guiLabels;
             DataTable = dataTable;
+            Selected = selected;
         }
     }
 }

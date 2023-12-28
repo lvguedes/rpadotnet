@@ -70,9 +70,9 @@ namespace RpaLib.SAP
             Trace.WriteLine($"Focus set to field: \"{Com.Id}\". Carret position: 0.");
         }
 
-        public void SelectPossibleValue(string pathIdTable, string value, int[] dropLines = null, int header = 0)
+        public void SelectPossibleValue(string pathIdTable, string value, int[] dropLines = null, int header = 0, bool symmetricMatch = false)
         {
-            Sap.SelectPossibleValue(Session, this, pathIdTable, value, header, dropLines);
+            Sap.SelectPossibleValue(Session, this, pathIdTable, value, header, dropLines, symmetricMatch);
         }
 
         public void OpenPossibleValues() => Sap.OpenPossibleValues(Session, this);

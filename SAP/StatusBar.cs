@@ -29,7 +29,7 @@ namespace RpaLib.SAP
             get => GetStatusFromLetter(StatusLetter);
         }
 
-        public string Text { get => Ut.Replace(GuiStatusbar.Text, @"\s{2,}", string.Empty); }
+        public string Text { get => Ut.Replace(GuiStatusbar.Text, @"\s+", " "); }
 
         public StatusBar(Session session)
         {

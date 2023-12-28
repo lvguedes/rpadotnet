@@ -460,10 +460,11 @@ namespace RpaLib.SAP
         }
 
         public static void SelectPossibleValue(Session session, SapComWrapper<GuiCTextField> guiCTextField, string guiUsrAreaId,
-            string valueToSelect, int header = 0, int[] dropLines = null)
+            string valueToSelect, int header = 0, int[] dropLines = null, bool symmetricMatch = false)
         {
             OpenPossibleValues(session, guiCTextField);
-            session.SelectInLblTable(guiUsrAreaId, valueToSelect, header: header, dropLines: dropLines);
+            session.SelectInLblTable(guiUsrAreaId, valueToSelect, 
+                header: header, dropLines: dropLines, symmetricMatch: symmetricMatch);
             // When pressed enter after selecting this window auto closes, no need to Esc
             //session.PressEsc();
         }

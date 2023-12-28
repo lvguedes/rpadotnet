@@ -135,9 +135,16 @@ namespace RpaLib.SAP
             return new LabelTable(this, guiUsrAreaPathId, readOnly, header, dropLines);
         }
 
-        public void SelectInLblTable(string guiUsrControlPathId, string selectRegex, int regexMatches = 1, int header = 0, int[] dropLines = null, bool readOnly = true)
+        public void SelectInLblTable(string guiUsrControlPathId, string selectRegex, int regexMatches = 1, 
+            bool symmetricMatch = false, int header = 0, int[] dropLines = null, bool readOnly = true)
         {
-            new LabelTable(this, guiUsrControlPathId, readOnly, header, dropLines, selectRegex, regexMatches);
+            var lblTable = new LabelTable(this, guiUsrControlPathId, readOnly, header, dropLines, selectRegex, regexMatches, symmetricMatch: symmetricMatch);
+            if (lblTable.Selected == false)
+            {
+                throw new ValueNotFoundInTableException(
+                    $"Could not find any cell which match \"{selectRegex}\" in the label table [{guiUsrControlPathId}]" +
+                    $" {(symmetricMatch ? "with" : "without")} symmetric match (that is, pattern match input OR input match pattern).");
+            }
         }
 
         public void SelectInLblTable(string guiUsrControlPathId, int[] selectRows, int header = 0, int[] dropLines = null, bool readOnly = true)
@@ -215,6 +222,71 @@ namespace RpaLib.SAP
                 );
         }
 
+        public bool PopupExistsQuick(string titleRegex) => PopupExistsQuick(titleRegex, null);
+
+        public bool PopupExistsQuick(string titleRegex, string innerTextRegex)
+        {
+            try
+            {
+                var popup = PopupFindQuick(titleRegex, innerTextRegex);
+                return true;
+            }
+            catch (SapInSessionException) { return false; }
+        }
+
+        public ModalWindow PopupFindQuick(string titleRegex) => PopupFindQuick(titleRegex, null);
+
+        public ModalWindow PopupFindQuick(string titleRegex, string innerTextRegex)
+        {
+            var popUp = new ModalWindow(this, PopupFindQuick<GuiModalWindow>(titleRegex).Com.Id);
+            if (innerTextRegex == null)
+                return popUp;
+            else
+            {
+                var txtsFound = popUp.FindByText(innerTextRegex);
+                if (txtsFound.Length > 0)
+                    return popUp;
+                else
+                    throw new PopupNotFoundException($"Pop-up with text that matches regex \"{innerTextRegex}\" not found.");
+            }
+        }
+
+        public SapComWrapper<PopupType> PopupFindQuick<PopupType>(string titleRegex)
+        {
+            const int maxPopupsMightBeOpen = 10;
+            SapInSessionException exception = null;
+
+            foreach (int index in Ut.Range(1, maxPopupsMightBeOpen))
+            {
+                try
+                {
+                    return FindById<PopupType>($"wnd[{index}]", suppressTrace: true);
+                }
+                catch (SapInSessionException ex)
+                {
+                    exception = ex;
+                    continue;
+                }
+            }
+
+            throw exception;
+        }
+
+        public bool ExistsPopup(string titleRegex)
+        {
+            return ExistsByText<GuiModalWindow>(titleRegex);
+        }
+
+        public bool ExistsPopup(string titleRegex, string innerTextRegex)
+        {
+            return ExistsPopup<GuiModalWindow, GuiTextField>(titleRegex, innerTextRegex);
+        }
+
+        public bool ExistsPopup<TitleType, InnerTextType>(string titleRegex, string innerTextRegex)
+        {
+            return ExistsByText<TitleType>(titleRegex) && ExistsByText<InnerTextType>(innerTextRegex);
+        }
+
         public bool ExistsById<T>(string pathId) => Sap.ExistsById<T>((GuiComponent)GuiSession.Com, pathId);
 
         public bool ExistsById(string pathId) => Sap.ExistsById<dynamic>((GuiComponent)GuiSession.Com, pathId);
@@ -234,9 +306,9 @@ namespace RpaLib.SAP
         /// <param name="parentPathId">Path ID from the parent object. All its children are considered recursively (children of children, etc.)</param>
         /// <param name="textRegex">Pattern which any descendant's Text property must match</param>
         /// <returns>Boolean indicating if there is at least one descendant with the text specified.</returns>
-        public bool ExistsTextInside<P, C>(string parentPathId, string textRegex) => Sap.ExistsTextInside<P, C>((GuiComponent)GuiSession.Com, parentPathId, textRegex);
+        public bool ExistsTextInside<Parent, Child>(string parentPathId, string textRegex) => Sap.ExistsTextInside<Parent, Child>((GuiComponent)GuiSession.Com, parentPathId, textRegex);
 
-        public SapComWrapper<C>[] FindTextInside<P, C>(string parentPathId, string textRegex) => Sap.FindTextInside<P, C>((GuiComponent)GuiSession.Com, parentPathId, textRegex);
+        public SapComWrapper<Child>[] FindTextInside<Parent, Child>(string parentPathId, string textRegex) => Sap.FindTextInside<Parent, Child>((GuiComponent)GuiSession.Com, parentPathId, textRegex);
 
         public Grid NewGridView(string idGuiGridView) => NewGridView(FindById<GuiGridView>(idGuiGridView).Com);
         public Grid NewGridView(GuiGridView guiGridView)

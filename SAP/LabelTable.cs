@@ -33,6 +33,8 @@ namespace RpaLib.SAP
         }
         public Label[][] TableArray { get; private set; }
         public DataTable DataTable { get; private set; }
+        public bool Selected { get; private set; }
+
         public Scroll VerticalScrollbar
         {
             get => new Scroll(ParentGuiUserArea.Com.VerticalScrollbar);
@@ -43,17 +45,19 @@ namespace RpaLib.SAP
         }
 
         public LabelTable(Session session, string guiUserAreaPathId, bool readOnly = true, int header = 0, int[] dropLines = null,
-            string selectRegex = null, int regexMatches = 1, int[] selectRows = null)
+            string selectRegex = null, int regexMatches = 1, int[] selectRows = null, bool symmetricMatch = false)
             : base(session, guiUserAreaPathId)
         {
             Header = header;
             DropLines = dropLines ?? new int[] { };
 
-            ParseTable(selectRegex: selectRegex, regexMatches: regexMatches, selectRows: selectRows, readOnly: readOnly);
+            var parsedTables = ParseTable(selectRegex: selectRegex, regexMatches: regexMatches, selectRows: selectRows, readOnly: readOnly, symmetricMatch: symmetricMatch);
+            Selected = parsedTables.Selected;
         }
 
         // TODO: Add pagination using vertical and horizontal scrolls
-        private ParsedTables ParseTable(List<Label[]> tableList = null, string selectRegex = null, int regexMatches = 1, int[] selectRows = null, int _rowIndex = 0, bool readOnly = true)
+        private ParsedTables ParseTable(List<Label[]> tableList = null, string selectRegex = null, int regexMatches = 1,
+            int[] selectRows = null, int _rowIndex = 0, bool readOnly = true, bool symmetricMatch = false)
         {
             const string colRegex = @"(?<=lbl\[)\d+(?=,\s*\d+\]$)";
             const string rowRegex = @"(?<=lbl\[\d+,\s*)\d+(?=\]$)";
@@ -99,7 +103,9 @@ namespace RpaLib.SAP
                 if (selectRegex != null && regexMatches > 0)
                 {
                     var selectRegexPattern = Ut.Replace(selectRegex, @"\s+", @"\s+");
-                    var columnsFound = rowList.Where(x => Ut.IsMatch(x.Text, selectRegexPattern)).ToArray();
+                    var columnsFound = rowList.Where(
+                        x => Ut.IsMatch(x.Text, selectRegexPattern) || (Ut.IsMatch(selectRegex, Ut.Replace(x.Text, @"\s+", " ")) && symmetricMatch)
+                        ).ToArray();
                     if (columnsFound.Length > 0)
                     {
                         columnsFound[0].GuiLabel.SetFocus();
@@ -109,7 +115,7 @@ namespace RpaLib.SAP
                         {
                             Session.PressEnter();
                             TableArray = tableList.ToArray();
-                            return new ParsedTables(TableArray, DataTable);
+                            return new ParsedTables(TableArray, DataTable, true);
                         }
                     }
                 }
@@ -144,7 +150,7 @@ namespace RpaLib.SAP
                 throw new PatternNotFoundForSelectionException(selectRegex);
 
             DataTable = GetDataTable(readOnly);
-            return new ParsedTables(TableArray, DataTable);
+            return new ParsedTables(TableArray, DataTable, selectRows == null ? false : true);
         }
 
         private DataTable GetDataTable(bool readOnly = true)

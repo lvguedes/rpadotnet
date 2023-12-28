@@ -57,6 +57,9 @@ namespace RpaLib.SAP
 
         public void SetFocus() => ((GuiVComponent)Com).SetFocus();
 
+        public SapComWrapper<dynamic>[] FindByText(string textRegex) => FindByText<dynamic>(textRegex);
+        public SapComWrapper<ObjFoundType>[] FindByText<ObjFoundType>(string textRegex) => Sap.FindByText<ObjFoundType>((GuiComponent)Com, textRegex);
+
         //public void Select() => (Com as ISapTabTarget).Select();
 
         //public void SelectAll() => (Com as ISapGridViewTarget).SelectAll();
