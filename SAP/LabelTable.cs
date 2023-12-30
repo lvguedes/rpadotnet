@@ -104,7 +104,7 @@ namespace RpaLib.SAP
                 {
                     var selectRegexPattern = Ut.Replace(selectRegex, @"\s+", @"\s+");
                     var columnsFound = rowList.Where(
-                        x => Ut.IsMatch(x.Text, selectRegexPattern) || (Ut.IsMatch(selectRegex, Ut.Replace(x.Text, @"\s+", " ")) && symmetricMatch)
+                        x => Ut.IsMatch(x.Text, selectRegexPattern) || (Ut.IsMatch(selectRegex, Ut.Replace(x.Text, @"\s+", " ")) && !string.IsNullOrEmpty(x.Text) && symmetricMatch)
                         ).ToArray();
                     if (columnsFound.Length > 0)
                     {
@@ -139,7 +139,7 @@ namespace RpaLib.SAP
             if (VerticalScrollbar.IsNeeded())
             {
                 VerticalScrollbar.NextPage();
-                return ParseTable(tableList, selectRegex, regexMatches, selectRows, _rowIndex);
+                return ParseTable(tableList, selectRegex, regexMatches, selectRows, _rowIndex, symmetricMatch: symmetricMatch);
             }
             else
             {

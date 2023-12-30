@@ -160,7 +160,17 @@ namespace RpaLib.SAP
         public void SelectComboBoxEntry(string guiComboBoxPathId, string entryToSelectRegex)
         {
             GuiComboBox guiComboBox = FindById<GuiComboBox>(guiComboBoxPathId).Com;
-            guiComboBox.Key = Ut.COMCollectionToICollection<GuiComboBoxEntry>(guiComboBox.Entries).Where(x => Ut.IsMatch(x.Value, entryToSelectRegex)).Select(x => x.Key).FirstOrDefault();
+            try
+            {
+                guiComboBox.Key = Ut.COMCollectionToICollection<GuiComboBoxEntry>(guiComboBox.Entries)
+                    .Where(x => Ut.IsMatch(x.Value, entryToSelectRegex))
+                    .Select(x => x.Key).FirstOrDefault();
+            }
+            catch (COMException ex) 
+            {
+                throw new OptionNotFoundException($"No option matching \"{entryToSelectRegex}\" was found in the combo box [{guiComboBoxPathId}].", ex);
+            }
+
         }
 
         /// <summary>

@@ -215,6 +215,7 @@
     <Compile Include="SAP\Exceptions\ExceededRetryLimitSapConnectionException.cs" />
     <Compile Include="SAP\Exceptions\FieldDatatypeConversionException.cs" />
     <Compile Include="SAP\Exceptions\GuiLabelTextRegexException.cs" />
+    <Compile Include="SAP\Exceptions\OptionNotFoundException.cs" />
     <Compile Include="SAP\Exceptions\PatternNotFoundForSelectionException.cs" />
     <Compile Include="SAP\Exceptions\PopupNotFoundException.cs" />
     <Compile Include="SAP\Exceptions\SapInSessionException.cs" />
