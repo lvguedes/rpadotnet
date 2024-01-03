@@ -108,6 +108,8 @@ namespace RpaLib.SAP
         //    Connection = connection;
         //}
 
+        public Sap() { }
+
         /// <summary>
         /// Open a new connection with connection description and transaction name. Don't make login, SAP user must be signed in.
         /// </summary>

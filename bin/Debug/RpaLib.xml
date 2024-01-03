@@ -200,6 +200,12 @@
             Property to get SAP executable info.
             </summary>
         </member>
+        <member name="M:RpaLib.SAP.Sap.#ctor">
+            <summary>
+            Initiate the object of this class with the given connection.
+            </summary>
+            <param name="connection"></param>
+        </member>
         <member name="M:RpaLib.SAP.Sap.#ctor(System.String,System.String)">
             <summary>
             Open a new connection with connection description and transaction name. Don't make login, SAP user must be signed in.

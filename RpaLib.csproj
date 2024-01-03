@@ -208,6 +208,7 @@
     <Compile Include="Exceptions\RpaLibFileNotFoundException.cs" />
     <Compile Include="Exceptions\RpaLibTimeoutException.cs" />
     <Compile Include="ProcessAutomation\CmdOutput.cs" />
+    <Compile Include="Exceptions\NoMatchesFoundException.cs" />
     <Compile Include="SAP\App.cs" />
     <Compile Include="SAP\Button.cs" />
     <Compile Include="SAP\Connection.cs" />

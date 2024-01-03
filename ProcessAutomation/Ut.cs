@@ -26,6 +26,7 @@ using ProcessStartInfo = System.Diagnostics.ProcessStartInfo;
 using Stopwatch = System.Diagnostics.Stopwatch;
 using RpaLib.Tracing;
 using System.IO.Pipes;
+using RpaLib.ProcessAutomation.Exceptions;
 
 /*
 Reference Assemblies:
@@ -67,7 +68,15 @@ namespace RpaLib.ProcessAutomation
         /// <param name="pattern">Regex pattern representing what to look for.</param>
         /// <param name="regexOptions">DotNet RegexOptions controling the Regular Expression options.</param>
         /// <returns>The text found.</returns>
-        public static string Match(string input, string pattern, RegexOptions regexOptions = RegexOptions.IgnoreCase) => Regex.Match(input, pattern, regexOptions).Value;
+        public static string Match(string input, string pattern, RegexOptions regexOptions = RegexOptions.IgnoreCase)
+        {
+            var found = Regex.Match(input, pattern, regexOptions);
+
+            if (found == System.Text.RegularExpressions.Match.Empty)
+                throw new NoMatchesFoundException($"No matches found using pattern \"{pattern}\" on input string \"{input}\"");
+
+            return found.Value;
+        }
 
         /// <summary>
         /// Check if the regex pattern matches somewhere in input string.
