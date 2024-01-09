@@ -9,6 +9,7 @@ using System.Data.SQLite;
 using System.IO;
 using System.Globalization;
 using RpaLib.Tracing;
+using RpaLib.ProcessAutomation;
 
 
 /// General Robot oriented class to ease manipulation of SQLite
@@ -19,14 +20,16 @@ namespace RpaLib.Database
     {
         private string _connectionString;
         private string _dbFilePath;
-        private bool _debugMessages = false;
+        public bool DebugMessages { get; }
  
-        public Sqlite(string dbFilePath)
+        public Sqlite(string dbFilePath, bool debugMessages = false)
         {
-            _dbFilePath = Path.GetFullPath(dbFilePath);
+            _dbFilePath = Ut.GetFullPath(dbFilePath);
             ConnectionString = dbFilePath;
+            DebugMessages = debugMessages;
         }
-        public Sqlite(string dbFilePath, string creationTablesDirPath) : this(dbFilePath)
+        public Sqlite(string dbFilePath, string creationTablesDirPath, bool debugMessages = false)
+            : this(dbFilePath, debugMessages)
         {
             CreatePopulateTablesIfDbNotExists(creationTablesDirPath);
         }
@@ -68,7 +71,7 @@ namespace RpaLib.Database
         public QueryReturn Query(string sqlcmd, bool debugMessages = false)
         {
             QueryResult = new QueryReturn();
-            Log.Write($"Trying to run the database query:\n{sqlcmd}");
+            Debug($"Trying to run the database query:\n{sqlcmd}");
             using (var connection = new SQLiteConnection(ConnectionString))
             {
                 connection.Open();
@@ -81,17 +84,33 @@ namespace RpaLib.Database
                 if (sqlCommandType == SqlCommandType.Select)
                 {
                     QueryResult = Db.DataReaderToDataTable(command.ExecuteReader(), debugMessages);
-                    Trace.WriteLine($"The query result is: \"{QueryResult}\"");
+                    Debug($"The query result is: \"{QueryResult}\"");
                 }
                 else
                 {
-                    Trace.WriteLine($"Command: \"{sqlCommandType}\"");
+                    Debug($"Command: \"{sqlCommandType}\"");
                     QueryResult.AffectedRows = command.ExecuteNonQuery();
-                    Trace.WriteLine($"Executed non-query. Rows affected: {QueryResult.AffectedRows}");
+                    Debug($"Executed non-query. Rows affected: {QueryResult.AffectedRows}");
                 }
             }
-            Log.Write("DB query: success.");
+            Debug("DB query: success.");
             return QueryResult;
+        }
+
+        public QueryReturn[] QueryAll(params string[] queries)
+        {
+            return QueryAll(false, queries);
+        }
+
+        public QueryReturn[] QueryAll(bool debugMessages, params string[] queries)
+        {
+            List<QueryReturn> queryResult = new List<QueryReturn>();
+            foreach (var query in queries)
+            {
+                queryResult.Add(Query(query, debugMessages));
+            }
+
+            return queryResult.ToArray();
         }
 
         public DataTable Select(string query) => Query(query).Table;
@@ -141,9 +160,9 @@ namespace RpaLib.Database
             CreatePopulateTables(sqlFilesDirPath);
         }
 
-        private void Debug(string message)
+        private void Debug(string message, bool debugMessages = false)
         {
-            if (_debugMessages)
+            if (DebugMessages || debugMessages)
                 Trace.WriteLine(message);
         }
     }
