@@ -27,6 +27,8 @@ namespace RpaLib.Tracing
             return foundListeners;
         }
 
+        public static void Flush() => SysTrace.Flush();
+
         // Copy the Trace stream to stdOut or stdErr
         public static void CopyTraceToConsole(bool toStdErr = false)
         {

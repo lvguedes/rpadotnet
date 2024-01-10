@@ -165,5 +165,14 @@ namespace RpaLib.Database
             if (DebugMessages || debugMessages)
                 Trace.WriteLine(message);
         }
+
+        public static string Escape(string valueToInsert)
+        {
+            var valueSingleSpaced = Ut.Replace(valueToInsert, @"[ \t]+", " ");
+            var valueWithoutSpacesAtStartAndEnd = Ut.Replace(valueSingleSpaced, @"^\s+|\s+$", string.Empty);
+            var valueEscaped = valueWithoutSpacesAtStartAndEnd.Replace("'", "''");
+
+            return valueEscaped;
+        }
     }
 }
