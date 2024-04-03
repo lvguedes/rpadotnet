@@ -27,6 +27,8 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 using RpaLib.Tracing;
 using System.IO.Pipes;
 using RpaLib.ProcessAutomation.Exceptions;
+using CredentialManagement;
+using System.Security.Authentication;
 
 /*
 Reference Assemblies:
@@ -647,6 +649,33 @@ namespace RpaLib.ProcessAutomation
             else Trace.WriteLine(ifCancel);
 
             return dr;
+        }
+
+        #endregion
+
+        #region CredentialManager
+
+        public static Credential GetStoredCredential(string target)
+        {
+            string username;
+            string password;
+            Credential cred = new Credential();
+
+            if (string.IsNullOrWhiteSpace(target)) 
+                throw new ArgumentException("You must type a valid target. The target is something like the ID of a credential.");
+
+            cred.Target = target;
+            cred.Load();
+            username = cred.Username;
+            password = cred.Password;
+
+
+            if (username == null || password == null)
+            {
+                throw new InvalidCredentialException();
+            }
+
+            return cred;
         }
 
         #endregion

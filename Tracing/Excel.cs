@@ -7,6 +7,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Office.Interop.Excel; // add Microsoft Excel COM reference
+using Microsoft.Office.Core;
 using DataTable = System.Data.DataTable;
 using System.Data;
 using RpaLib.ProcessAutomation;
@@ -26,15 +27,17 @@ namespace RpaLib.Tracing
         public string SheetName { get; private set; }
         public Dictionary<string, int> UsedRangeCount { get; private set; }
 
-        public Excel(string filePath, string sheetName)
+        public Excel(string filePath, string sheetName, bool disableMacros = false)
         {
             Application = new Application();
             Application.DisplayAlerts = false; // disable pop-ups when overwriting
 
+            if (disableMacros) Application.AutomationSecurity = MsoAutomationSecurity.msoAutomationSecurityForceDisable;
+
             FullFilePath = Ut.GetFullPath(filePath);
             SheetName = sheetName;
 
-            Workbook = Application.Workbooks.Open(FullFilePath);
+            Workbook = Application.Workbooks.Open(FullFilePath, ReadOnly: disableMacros);
             try
             {
                 Worksheet = Workbook.Sheets.Item[SheetName];
@@ -290,10 +293,10 @@ namespace RpaLib.Tracing
             return returnValue;
         }
 
-        public static DataTable ReadAll(string filePath, string sheetName, bool visible = false)
+        public static DataTable ReadAll(string filePath, string sheetName, bool visible = false, bool disableMacros = false)
         {
             string fileFullPath = Ut.GetFullPath(filePath);
-            Excel excel = new Excel(fileFullPath, sheetName);
+            Excel excel = new Excel(fileFullPath, sheetName, disableMacros);
 
             excel.ToggleVisible(visible);
 
@@ -310,10 +313,10 @@ namespace RpaLib.Tracing
             return ArrayStrTableToDataTable(contents);
         }
 
-        public static void WriteNextFreeRow(string filePath, DataTable table, string sheetName = DefaultSheetName, bool visible = false)
+        public static void WriteNextFreeRow(string filePath, DataTable table, string sheetName = DefaultSheetName, bool visible = false, bool disableMacros = false)
         {
             string fileFullPath = Ut.GetFullPath(filePath);
-            Excel excel = new Excel(fileFullPath, sheetName);
+            Excel excel = new Excel(fileFullPath, sheetName, disableMacros);
 
             excel.ToggleVisible(visible);
 

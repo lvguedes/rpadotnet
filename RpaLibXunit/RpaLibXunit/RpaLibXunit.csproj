@@ -26,4 +26,10 @@
     <ProjectReference Include="..\..\RpaLib.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="CredentialManagement">
+      <HintPath>..\..\packages\CredentialManagement.1.0.2\lib\net35\CredentialManagement.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

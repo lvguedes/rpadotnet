@@ -1,0 +1,433 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RpaLib</name>
+    </assembly>
+    <members>
+        <member name="M:RpaLib.APIs.Pipefy.Pipefy.MoveCardToPhase(System.String,System.String)">
+            <summary>
+            Move a card to a phase.
+            </summary>
+            <param name="cardId">The ID of a card. Can be string or int literal in GraphQL.</param>
+            <param name="destPhaseId">The ID of the destination phase. Can be string or int literal in GraphQL.</param>
+            <returns>A GraphQlResponse with Data of type CardQuery containing the new card phase.</returns>
+        </member>
+        <member name="M:RpaLib.APIs.Pipefy.Pipefy.ShowInfo(RpaLib.APIs.Pipefy.PipefyInfo,System.String,System.String)">
+            <summary>
+            Query pipefy info using API calls and redirects the info output to the Tracing.
+            </summary>
+            <param name="infoType">A PipefyInfo enum type indicating the kind of information to retrieve.</param>
+            <param name="phaseId">The Pipefy phase ID that is needed to perform some queries.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when a parameter is needed by some query but wasn't provided.</exception>
+        </member>
+        <member name="M:RpaLib.APIs.Pipefy.Pipefy.GetFieldValue(RpaLib.APIs.Pipefy.Model.Card,System.String)">
+            <summary>
+            Search for a card field which name is equal to "fieldName" parameter. If more than one field is found with the same name
+            the first one in the sequence of found fields will be returned.
+            </summary>
+            <param name="card">The card object to look for.</param>
+            <param name="fieldName">The card field name to search.</param>
+            <returns></returns>
+            <exception cref="T:RpaLib.APIs.Pipefy.Exception.CardFieldNotFoundException">Thrown when the card could not be found by the name passed as argument.</exception>
+        </member>
+        <member name="T:RpaLib.Database.QueryReturn">
+            <summary>
+            Class that represents the return type of any Query
+            </summary>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.Replace(System.String,System.String,System.String,System.Text.RegularExpressions.RegexOptions)">
+            <summary>
+            Replace a regex pattern match with a replacement string.
+            </summary>
+            <param name="input">The input string.</param>
+            <param name="pattern">The Regular Expression pattern.</param>
+            <param name="replacement">The string to replace the pattern found.</param>
+            <param name="regexOptions">RegexOptions enum to set regex options.</param>
+            <returns>The input string with replacement applied.</returns>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.Match(System.String,System.String,System.Text.RegularExpressions.RegexOptions)">
+            <summary>
+            Search for the first occurrence of pattern within input string.
+            </summary>
+            <param name="input">Text where to search for.</param>
+            <param name="pattern">Regex pattern representing what to look for.</param>
+            <param name="regexOptions">DotNet RegexOptions controling the Regular Expression options.</param>
+            <returns>The text found.</returns>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.IsMatch(System.String,System.String,System.Text.RegularExpressions.RegexOptions)">
+            <summary>
+            Check if the regex pattern matches somewhere in input string.
+            </summary>
+            <param name="input">Input text where to search for.</param>
+            <param name="pattern">Regex pattern to look for within input text.</param>
+            <param name="regexOptions">RegexOptions from dotnet controling regex options.</param>
+            <returns>True if pattern was found within input text, false otherwise.</returns>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.WaitUntilFileAppear(System.String,System.Int32,System.Int32)">
+            <summary>
+            Waits until a file (full path string) appears within its base directory.
+            It will wait until file appear or timeout exceed. The refresh rate sleep 
+            is also configurable (defaults to 0.5 seconds).
+            </summary>
+            <param name="fileFullPath">The full path to the file it's needed to wait until appear</param>
+            <param name="timeoutSeconds">The timeout in seconds you need to wait</param>
+            <param name="refreshDelay">The time in milliseconds between each refresh in files parent dir </param>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.WaitUntilFileAppear(System.String,System.String,System.Int32,System.Int32,System.Text.RegularExpressions.RegexOptions)">
+            <summary>
+            Waits until a file that matches the Regex appear in the full path to its parent dir given
+            </summary>
+            <param name="parentDirFullPath">File's parent directory full path</param>
+            <param name="fileRegex">Regex to match the file name</param>
+            <param name="timeoutSeconds">Timeout representing the maximuma time to wait for file until FileNotFoundException be thrown</param>
+            <param name="refreshDelay">The time in milliseconds between each refresh in file's parent directory</param>
+            <param name="regexOpts">Regular Expression matching options to be considered when matching, such as Ignoring Case</param>
+            <exception cref="T:System.IO.FileNotFoundException"></exception>
+        </member>
+        <member name="M:RpaLib.ProcessAutomation.Ut.COMCollectionToICollection``1(System.Object)">
+            <summary>
+            Converts a COMCollection, where it's impossible to use LINQ, to a ICollection which is LINQable.
+            </summary>
+            <typeparam name="T">Collection members type</typeparam>
+            <param name="comObj">COMCollection object</param>
+            <returns>ICollection from input COMCollection</returns>
+        </member>
+        <member name="T:RpaLib.SAP.App">
+            <summary>
+            Class to verify info, get objects directly from native COM object
+            </summary>
+        </member>
+        <member name="M:RpaLib.SAP.App.GetSapInteropApp(System.Double)">
+            <summary>
+            Low-level function to get the SAP Interop object
+            </summary>
+            <param name="timeout">Seconds to stay retrying to get the SAP object when the process is still starting.</param>
+            <returns></returns>
+        </member>
+        <member name="M:RpaLib.SAP.App.Update">
+            <summary>
+            After creating a new session or connection you must call this method so that this
+            class' object re-fetch the new content created from the COM object. Otherwise, the
+            new session or connection items won't appear in this class properties.
+            </summary>
+            <returns>This class' updated object</returns>
+        </member>
+        <member name="M:RpaLib.SAP.App.GetConnections">
+            <summary>
+            Convert a GuiCollection of GuiConnection to a string of Connection.
+            Connection is a wrapper to GuiConnection.
+            </summary>
+            <returns>An array of Connection objects.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.App.FindConnectionById(System.String)">
+            <summary>
+            Find a connection using Regex pattern over its path ID.
+            </summary>
+            <param name="connectionIdPattern">Regex pattern to be searched in Connection's Id property.</param>
+            <returns>The Connection object found or null.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.App.ConnectionsInfo">
+            <summary>
+            Returns a string containing info about all connections
+            </summary>
+            <returns>string with info about all connections</returns>
+        </member>
+        <member name="M:RpaLib.SAP.App.ShowConnectionsInfo">
+            <summary>
+            Prints on screen (Trace stream) info about all connections fetched from COM object. 
+            </summary>
+        </member>
+        <member name="M:RpaLib.SAP.Grid.Parse">
+            <summary>
+            Generate the DataTable property by parsing the GuiGridView object.
+            </summary>
+        </member>
+        <member name="T:RpaLib.SAP.ModalWindow">
+            <summary>
+            Class that represent a Pop-Up window (GuiModalWindow) within SAP
+            </summary>
+        </member>
+        <member name="T:RpaLib.SAP.Sap">
+            <summary>
+            Class to ease SAP controlling and data scrapping through SAPGui.
+            This class is based in a single connection that must be passed somehow to the constructor when instantiating.
+            You must create a object of this class for each connection you want to manage.
+            </summary>
+        </member>
+        <member name="P:RpaLib.SAP.Sap.App">
+            <summary>
+            Manage the Application COM object through the wrapper class App.
+            </summary>
+        </member>
+        <member name="F:RpaLib.SAP.Sap._connection">
+            <summary>
+            Backing field for the GuiConnection wrapper.
+            </summary>
+        </member>
+        <member name="P:RpaLib.SAP.Sap.TriedConnect">
+            <summary>
+            How many times a connection was tried to be established.
+            </summary>
+        </member>
+        <member name="P:RpaLib.SAP.Sap.FirstSessionAfterConnection">
+            <summary>
+            The first session right after a new connection is opened.
+            </summary>
+        </member>
+        <member name="P:RpaLib.SAP.Sap.ConnectionName">
+            <summary>
+            Connection name (description) from the GuiConnection object this class manages.
+            The connection name is the same that appears in the connection description in GUI.
+            </summary>
+        </member>
+        <member name="P:RpaLib.SAP.Sap.Connection">
+            <summary>
+            Sap connection managed by this class. All other methods will refer to this connection.
+            </summary>
+        </member>
+        <member name="P:RpaLib.SAP.Sap.Connections">
+            <summary>
+            All connections defined in the GuiApplication object got through its wrapper class App.
+            </summary>
+        </member>
+        <member name="T:RpaLib.SAP.Sap.SapExeInfo">
+            <summary>
+            Inner class that model SAP executable info
+            </summary>
+        </member>
+        <member name="P:RpaLib.SAP.Sap.SapExe">
+            <summary>
+            Property to get SAP executable info.
+            </summary>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.#ctor">
+            <summary>
+            Initiate the object of this class with the given connection.
+            </summary>
+            <param name="connection"></param>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.#ctor(System.String,System.String)">
+            <summary>
+            Open a new connection with connection description and transaction name. Don't make login, SAP user must be signed in.
+            </summary>
+            <param name="connectionName">The description name of the connection. The same that appear in GUI.</param>
+            <param name="transaction">The transaction name that should be accessed after opening the connection.</param>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.#ctor(System.String,System.String,System.String,System.String)">
+            <summary>
+            Open a new SAP connection and login to SAP.
+            </summary>
+            <param name="connectionName">The connection description that appear in GUI.</param>
+            <param name="user">The SAP user name.</param>
+            <param name="password">The SAP user password.</param>
+            <param name="transaction">The transaction name that must be accessed once connected.</param>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.#ctor(System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.Int32)">
+            <summary>
+            Open a new SAP connection and login. Additionally enable you to set up advanced settings to modify this class internal behavior.
+            </summary>
+            <param name="connectionName">The connection description that appear in GUI</param>
+            <param name="user">The SAP user name.</param>
+            <param name="password">The SAP user password.</param>
+            <param name="client">???</param>
+            <param name="language">???</param>
+            <param name="transaction">The transaction name that must be accessed once connected.</param>
+            <param name="connTimeoutSeconds">Try to connect by default 10 times waiting 1 second per attempt. 
+                                             The attempts per second can be changed through this parameter.</param>
+            <param name="getSapObjTimeoutSeconds">Seconds to stay retrying to get the SAP object when the process is still starting.</param>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.Login(System.String,System.String,System.String,System.String)">
+            <summary>
+            Low-level method to resolve login after starting a connection.
+            </summary>
+            <param name="user">The SAP user's username.</param>
+            <param name="password">The SAP user's password.</param>
+            <param name="client">???</param>
+            <param name="language">???</param>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.CreateSapConnection(System.String,System.Int32)">
+            <summary>
+            Low-level method to create a new connection to SAP Logon UI using the interop DLL.
+            </summary>
+            <param name="connectionName">The connection name (label-like description).</param>
+            <param name="timeoutSeconds">Timeout in seconds to stay retrying to get the SAP interop object.</param>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.Connect(System.String,System.Int32,System.Int32,System.String,System.String,System.String,System.String)">
+            <summary>
+            Connects to SAP UI object and possibly starts a transaction and do login if parameters were supplied.
+            </summary>
+            <param name="connectionName">Label-like connection name description (the same that appear in the description in GUI).</param>
+            <param name="connTimeoutSeconds">Timeout to retry connection by function recall.</param>
+            <param name="getSapObjTimeoutSeconds">Internal timeout to keep trying to get SAP interop object.</param>
+            <param name="user">SAP login username.</param>
+            <param name="password">SAP login password.</param>
+            <param name="client">??? discover what it does later.</param>
+            <param name="language">??? discover what it does later.</param>
+            <exception cref="T:RpaLib.SAP.Exceptions.ExceededRetryLimitSapConnectionException"></exception>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.FindConnectionById(System.String)">
+            <summary>
+            Search for a GuiConnection in Connections array using its Id as identifier criteria.
+            </summary>
+            <param name="connectionId">Connection Id to search for.</param>
+            <returns>The Connection wrapper object found within App connections collection.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.CloseConnection">
+            <summary>
+            Close the connection managed by this class. Close the connection along with all its sessions.
+            </summary>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.CreateNewSession(System.String,System.Int32,System.Boolean,System.Boolean,System.Int32)">
+            <summary>
+            Create a new session using the last session of Sessions as default creator.
+            A new session makes a new SAP Frame window to open and a transaction be starte with it.
+            The first transaction opened is always the "SESSION_MANAGER", but you can also specify
+            a different transaction to be opened.
+            </summary>
+            <param name="transactionId">Transaction to be accessed after the connection is opened.</param>
+            <param name="useSessionId">Session ID to use as the new session creator.</param>
+            <param name="iconify">Option to reduce the frame window size to its minimum. Useful when trying to block user interactions when automating.</param>
+            <param name="lockSessionUi">Option to lock Session User Interface so that no user interaction is possible until the session is unlocked
+                                        using UnlockSessionUI from GuiSession.</param>
+            <param name="connectionTimeoutSeconds">Try to connect by default 10 times waiting 1 second per attempt. 
+                                                   The attempts per second can be changed through this parameter.</param>
+            <returns></returns>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.FindSession(System.String)">
+            <summary>
+            Search for the first session which has the transaction.
+            </summary>
+            <param name="transaction">Transaction name.</param>
+            <returns>A Session (wrapper to GuiSession) object.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.CloseSession(System.String)">
+            <summary>
+            A session can be closed by calling this method of the connection. Closing the last session of a connection will close the connection, too.
+            </summary>
+            <param name="sessionId">The id of the session to close (like "/app/con[0]/ses[0]")</param>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.AccessTransaction(System.String,System.String)">
+            <summary>
+            Find the session with transaction and access the new transaction
+            </summary>
+            <param name="newTransaction">New transaction to be accessed.</param>
+            <param name="sessionWithTransaction">Session with this transaction will be found and changed to the new transaction.</param>
+            <returns>A Session wrapper containing the GuiSession object that controls the opened transaction.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.AccessTransaction(System.String)">
+            <summary>
+            Change the transaction of the session opened after establishing the SAP connection.
+            </summary>
+            <param name="transaction">The name of the new transaction to be switched for.</param>
+            <returns>A Session wrapper containing the GuiSession object.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.AccessTransaction(RpaLib.SAP.Session,System.String)">
+            <summary>
+            Access the transaction within the given session.
+            </summary>
+            <param name="session">Session in which we need to change the transaction</param>
+            <param name="transaction">The transaction name of the new transaction the session is going to access.</param>
+            <returns></returns>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.FindByText``1(sapfewse.GuiComponent,System.String)">
+            <summary>
+            Search for an element by matching its text with a regex pattern parameter.
+            </summary>
+            <typeparam name="T">The type of the Sap element you're looking for.</typeparam>
+            <param name="parent">The parent object in which to look for the element.</param>
+            <param name="labelTextRegex">Regex pattern to search within session. The first found will be returned.</param>
+            <returns>An array containing the SAP Gui elements found by text.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.ExistsTextInside``2(sapfewse.GuiComponent,System.String,System.String)">
+            <summary>
+            Verifies if a text exists inside any descendant objects of a parent object which is descendant of this Session.GuiSession.
+            </summary>
+            <typeparam name="P">Type of the parent object.</typeparam>
+            <typeparam name="C">Type of the object that contains a Text property in which the regex passed as parameter must match.
+            Note that it isn't the type of the parent object, instead, it's the type of its child that must contain the regex like text.</typeparam>
+            <param name="root">A GuiContainer from where to start the search.</param>
+            <param name="parentPathId">Path ID from the parent object which is inside root. All its children are considered recursively (children of children, etc.)</param>
+            <param name="textRegex">Pattern which any parent descendant's Text property must match</param>
+            <returns>Boolean indicating if there is at least one descendant with the text specified.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.AllSessionIds(sapfewse.GuiSession)">
+            <summary>
+            Get all children objects from a given GuiSession recursively.
+            </summary>
+            <param name="session">The GuiSession object to get the children objects tree as a list.</param>
+            <returns>A list of dictionaries containing info about each child object found.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.AllDescendants(System.Object)">
+            <summary>
+            Get all children objects recursively from a root object.
+            </summary>
+            <param name="rootContainer">The root object to start parsing the children tree.</param>
+            <returns>A list of dictionaries containing info about each child object found.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.Sap.AllDescendants(System.Collections.Generic.List{RpaLib.SAP.Model.SapGuiObject},System.Object)">
+            <summary>
+            Auxiliar method to get all children objects recursively from a root object.
+            </summary>
+            <param name="objects">List of captured IDs.</param>
+            <param name="root">The root object that will be changed through each recursive call.</param>
+            <returns>A list of dictionaries containing info about each child object found.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.Session.FindByText``1(System.String)">
+            <summary>
+            Search for an element by matching its text with a regex pattern parameter.
+            </summary>
+            <typeparam name="T">The type of the Sap element you're looking for.</typeparam>
+            <param name="labelTextPattern">Regex pattern to search within session. The first found will be returned.</param>
+            <returns></returns>
+        </member>
+        <member name="M:RpaLib.SAP.Session.CreateNewSession">
+            <summary>
+            Create a new session using the existing session as creator.
+            </summary>
+        </member>
+        <member name="M:RpaLib.SAP.Session.CreateNewSession(RpaLib.SAP.Session)">
+            <summary>
+            Create a new session from another existing session. The created session goes to collection of opened sessions within App COM object.
+            </summary>
+            <param name="session">Session used to create the new one.</param>
+        </member>
+        <member name="M:RpaLib.SAP.Session.ExistsTextInside``2(System.String,System.String)">
+            <summary>
+            Verifies if a text exists inside any descendant objects of a parent object which is descendant of this Session.GuiSession.
+            </summary>
+            <typeparam name="P">Type of the parent object.</typeparam>
+            <typeparam name="C">Type of the object that contains a Text property in which the regex passed as parameter must match.
+            Note that it isn't the type of the parent object, instead, it's the type of its child that must contain the regex like text.</typeparam>
+            <param name="parentPathId">Path ID from the parent object. All its children are considered recursively (children of children, etc.)</param>
+            <param name="textRegex">Pattern which any descendant's Text property must match</param>
+            <returns>Boolean indicating if there is at least one descendant with the text specified.</returns>
+        </member>
+        <member name="M:RpaLib.SAP.Session.GetWindow(System.Int32)">
+            <summary>
+            Get session GuiFrameWindow by index.
+            </summary>
+            <param name="wndIndex">Index of the window. For example, to get the window of ID "/app/conn/wnd[0]" it should be 0.</param>
+            <returns></returns>
+        </member>
+        <member name="M:RpaLib.SAP.Session.PressVKey(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Automate pressing enter for a number of times
+            </summary>
+            <param name="timesToPress">Number of times to press the enter key.</param>
+            <param name="pressingIntervalMillisec">Interval in milliseconds between each key press.</param>
+            <param name="wndIndex">GuiFrameWindow index of the window to apply the enter pressing action.</param>
+        </member>
+        <member name="M:RpaLib.SAP.Session.Close(System.String)">
+            <summary>
+            Unconditionally close the SAP session GuiFrameWindow. Auto-processes any confirmation pop-up that might appear.
+            </summary>
+            <param name="confirmButtonTxt">Text in the button to confirm to close the Session window.</param>
+        </member>
+        <member name="M:DocuSign.CodeExamples.Authentication.JWTAuth.AuthenticateWithJWT(System.String,System.String,System.String,System.String,System.Byte[])">
+            <summary>
+            Uses Json Web Token (JWT) Authentication Method to obtain the necessary information needed to make API calls.
+            </summary>
+            <returns>Auth token needed for API calls</returns>
+        </member>
+    </members>
+</doc>
