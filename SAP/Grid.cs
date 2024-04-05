@@ -108,7 +108,7 @@ namespace RpaLib.SAP
                   );
         }
 
-        public string PrintDataTable() => Ut.PrintDataTable(DataTable);
+        public string PrintDataTable() => Ut.DataTableToString(DataTable);
 
         /*
         TODO: 

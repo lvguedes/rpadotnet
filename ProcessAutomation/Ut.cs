@@ -45,7 +45,8 @@ namespace RpaLib.ProcessAutomation
         public static readonly Dictionary<string, string> CYGPATH =
             new Dictionary<string, string>() { { "PATH", GetFullPath(@"ProcessAutomation\lib\cygbase") } };
 
-        const string CURLPATH = @"ProcessAutomation\portables\curl\bin";
+        //const string CURLPATH = @"ProcessAutomation\portables\curl\bin";
+        const string CURLPATH = @"";
 
         [DllImport("Kernel32.dll", SetLastError = true)]
         public static extern int SetStdHandle(int device, IntPtr handle);
@@ -342,7 +343,7 @@ namespace RpaLib.ProcessAutomation
 
         #region DataPrinting
 
-        public static string PrintDataTable(DataTable dtable)
+        public static string DataTableToString(DataTable dtable)
         {
             StringBuilder info = new StringBuilder("DataTable Pretty Print:\n");
 

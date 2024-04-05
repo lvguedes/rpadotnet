@@ -20,5 +20,7 @@
     <!-- <file src="AutoItX3.Assembly.dll" target="lib\net472" /> -->
     <!-- <file src="AutoItX3.Assembly.xml" target="lib\net472" /> -->
     <file src="readme.md" target="docs\" />
+    <!-- Include everything in \build -->
+    <file src="build\**" target="build" />
   </files>
 </package>

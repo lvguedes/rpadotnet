@@ -264,48 +264,20 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
-    <None Include="ProcessAutomation\portables\curl\bin\curl-ca-bundle.crt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libbrotlicommon.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libbrotlidec.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libcrypto.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libcurl.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libcurl.dll.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libnghttp2.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libnghttp3.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libngtcp2.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libngtcp2_crypto_quictls.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libssh2.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libssl.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libz.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="ProcessAutomation\portables\curl\lib\libzstd.a">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <None Include="ProcessAutomation\portables\curl\bin\curl-ca-bundle.crt" />
+    <None Include="ProcessAutomation\portables\curl\lib\libbrotlicommon.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libbrotlidec.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libcrypto.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libcurl.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libcurl.dll.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libnghttp2.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libnghttp3.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libngtcp2.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libngtcp2_crypto_quictls.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libssh2.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libssl.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libz.a" />
+    <None Include="ProcessAutomation\portables\curl\lib\libzstd.a" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="Microsoft.Office.Core">
@@ -340,15 +312,9 @@
     <Folder Include="Utils\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="ProcessAutomation\portables\curl\bin\curl.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="ProcessAutomation\portables\curl\bin\libcurl-x64.def">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="ProcessAutomation\portables\curl\bin\libcurl-x64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <None Include="ProcessAutomation\portables\curl\bin\curl.exe" />
+    <None Include="ProcessAutomation\portables\curl\bin\libcurl-x64.def" />
+    <None Include="ProcessAutomation\portables\curl\bin\libcurl-x64.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

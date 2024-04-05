@@ -1,0 +1,76 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)curl\bin\curl.exe">
+      <Link>curl.exe</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\bin\curl-ca-bundle.crt">
+      <Link>curl-ca-bundle.crt</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\bin\libcurl-x64.def">
+      <Link>libcurl-x64.def</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\bin\libcurl-x64.dll">
+      <Link>libcurl-x64.dll</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libbrotlicommon.a">
+      <Link>libbrotlicommon.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libbrotlidec.a">
+      <Link>libbrotlidec.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libcrypto.a">
+      <Link>libcrypto.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libcurl.a">
+      <Link>libcurl.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libcurl.dll.a">
+      <Link>libcurl.dll.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libnghttp2.a">
+      <Link>libnghttp2.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libnghttp3.a">
+      <Link>libnghttp3.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libngtcp2.a">
+      <Link>libngtcp2.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libngtcp2_crypto_quictls.a">
+      <Link>libngtcp2_crypto_quictls.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libssh2.a">
+      <Link>libssh2.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libssl.a">
+      <Link>libssl.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libz.a">
+      <Link>libz.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\lib\libzstd.a">
+      <Link>libzstd.a</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)curl\LICENSE">
+      <Link>LICENSE</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

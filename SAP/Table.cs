@@ -464,7 +464,7 @@ namespace RpaLib.SAP
         public void PrintDataTable()
         {
             Trace.WriteLine($"Printing the DataTable that represents SAP table \"{Name}\":", color: ConsoleColor.Yellow);
-            Trace.WriteLine(Ut.PrintDataTable(_dt), withTimeSpec: false, color: ConsoleColor.Magenta);
+            Trace.WriteLine(Ut.DataTableToString(_dt), withTimeSpec: false, color: ConsoleColor.Magenta);
         }
     }
 }

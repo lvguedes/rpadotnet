@@ -220,7 +220,7 @@ namespace RpaLib.SAP
         public void PrintDataTable()
         {
             Trace.WriteLine($"Printing the DataTable that represents SAP GuiLabel Table \"{ParentGuiUserArea.Com.Id}\":", color: ConsoleColor.Yellow);
-            Trace.WriteLine(Ut.PrintDataTable(DataTable), withTimeSpec: false, color: ConsoleColor.Magenta);
+            Trace.WriteLine(Ut.DataTableToString(DataTable), withTimeSpec: false, color: ConsoleColor.Magenta);
         }
     }
 }

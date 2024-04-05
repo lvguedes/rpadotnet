@@ -79,8 +79,15 @@ namespace RpaLib.Tracing
 
         public void Quit()
         {
-            Workbook.Close(SaveChanges: false);
-            Application.Quit();
+            try
+            {
+                Workbook.Close(SaveChanges: false);
+                Application.Quit();
+            }
+            catch
+            {
+                Ut.KillProcess("EXCEL.exe");
+            } 
         }
 
         public void Save(string path = null)
@@ -214,7 +221,7 @@ namespace RpaLib.Tracing
         // Finalizer method
         ~Excel()
         {
-            Application.Quit();
+            Quit(); 
         }
 
         public static dynamic Helper(
@@ -296,7 +303,8 @@ namespace RpaLib.Tracing
         public static DataTable ReadAll(string filePath, string sheetName, bool visible = false, bool disableMacros = false)
         {
             string fileFullPath = Ut.GetFullPath(filePath);
-            Excel excel = new Excel(fileFullPath, sheetName, disableMacros);
+            bool disableMacroOnlyIfXlsm = disableMacros && Ut.IsMatch("filePath", @"\.xlsm$");
+            Excel excel = new Excel(fileFullPath, sheetName, disableMacroOnlyIfXlsm);
 
             excel.ToggleVisible(visible);
 
