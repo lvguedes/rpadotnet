@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.IO;
 using RpaLib.ProcessAutomation;
+using DocuSign.eSign.Model;
 
 namespace RpaLib.APIs.Pipefy
 {
@@ -25,39 +26,8 @@ namespace RpaLib.APIs.Pipefy
         public JsonSerializerSettings JsonSerializerSettingsSnake { get; private set; }
         public JsonSerializerSettings JsonSerializerSettingsCamel { get; private set; }
 
-        public Pipefy (string apiToken, string pipeId, string uri = null)
-        {
-            Uri = uri ?? PipefyDefaultEndPoint;
-
-            PipeId = pipeId;
-            Token = apiToken;
-
-            JsonSerializerSettingsSnake = CreateJsonSerializerSetting<SnakeCaseNamingStrategy>();
-            JsonSerializerSettingsCamel = CreateJsonSerializerSetting<CamelCaseNamingStrategy>();
-
-        }
-
-        public static JsonSerializerSettings CreateJsonSerializerSetting<T>() where T : NamingStrategy
-        {
-            var contractResolver = new DefaultContractResolver
-            {
-                NamingStrategy = (T)Activator.CreateInstance(typeof(T)),
-            };
-
-            var jsonSerializerSettings = new JsonSerializerSettings
-            {
-                ContractResolver = contractResolver,
-                Formatting = Formatting.Indented,
-            };
-
-            return jsonSerializerSettings;
-        }
-
-        #region Queries
-
-        public GraphQlResponse<MeResult> QueryUserInfo()
-        {
-            string query = @"
+        #region GraphQl_queries
+        private string queryUserInfo = @"
             {
                 me {
                     id
@@ -65,12 +35,7 @@ namespace RpaLib.APIs.Pipefy
                 }
             }";
 
-            return GraphQl.Query<MeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
-        }
-
-        public GraphQlResponse<PipeResult> QueryPipe(string pipeId)
-        {
-            var query = @"
+        private string queryPipe = @"
             {
                 pipe(id: ""<<PipeId>>"") {
                     organizationId
@@ -131,30 +96,24 @@ namespace RpaLib.APIs.Pipefy
                         }
                     }
                 }
+            }";
+
+        private string queryPipeSimple = @"
+            {
+                pipe(id: ""<<PipeId>>"") {
+                    organizationId
+                    name
+                    noun
+                    labels {
+                        id
+                        name
+                        color
+                    }
+                }
             }
-            ".Replace("<<PipeId>>", pipeId);
+            ";
 
-            //var query = @"
-            //{
-            //    pipe(id: ""<<PipeId>>"") {
-            //        organizationId
-            //        name
-            //        noun
-            //        labels {
-            //            id
-            //            name
-            //            color
-            //        }
-            //    }
-            //}
-            //".Replace("<<PipeId>>", pipeId);
-
-            return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettingsCamel);
-        }
-
-        public GraphQlResponse<OrganizationsResult> QueryOrganizations()
-        {
-            string query = @"
+        private string queryOrganizations = @"
             {
                 organizations {
                     createdAt
@@ -194,13 +153,7 @@ namespace RpaLib.APIs.Pipefy
                 }
             }";
 
-            return GraphQl.Query<OrganizationsResult>(query, Uri, Token, CreateJsonSerializerSetting<CamelCaseNamingStrategy>());
-        }
-
-        public GraphQlResponse<PipeResult> QueryPhases() => QueryPhases(PipeId);
-        public GraphQlResponse<PipeResult> QueryPhases(string pipeId)
-        {
-            string query = @"
+        private string queryPhases = @"
             {
                 pipe (id: $pipeId) {
                     phases {
@@ -209,14 +162,9 @@ namespace RpaLib.APIs.Pipefy
                         cards_count
                     }
                 }
-            }".Replace("$pipeId", pipeId);
+            }";
 
-            return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
-        }
-
-        public GraphQlResponse<PhaseResult> QueryPhaseCards(string phaseId, int max = 30, string afterCursor = null)
-        {
-            string query = @"
+        private string queryPhaseCards = @"
             {
               phase (id: $phaseId) {
                 cards_count
@@ -256,8 +204,233 @@ namespace RpaLib.APIs.Pipefy
                   }
                 }
               }
-            }
-            ".Replace("$phaseId", phaseId).Replace("$max", max.ToString());
+            }";
+
+        private string queryPhaseFields = @"
+            {
+              phase (id: $phaseId) {
+                cards_count
+                cards (first: $max, after: ""$afterCursor"") {
+                  pageInfo {
+                    hasPreviousPage
+            	    hasNextPage
+            	    startCursor
+            	    endCursor
+                  }
+                  edges {
+                    cursor
+                    node {
+            	      id
+                      current_phase {
+                        id
+                      }
+                      createdAt
+                      age
+            	      fields {
+            	        name
+            		    phase_field { id }
+                        field {
+                          id
+                          options
+                          label
+                          type
+                        }
+            	        value
+                      }
+            	      labels {
+            	        id
+            	        name
+            	        color
+            	      }
+            	    }
+                  }
+                }
+              }
+            }";
+
+        private string queryCard = @"
+            {
+              card (id: $cardId) {
+                id
+                current_phase {
+                  id
+                }
+                age
+                createdAt
+                expiration {
+                  expiredAt
+                  shouldExpireAt
+                }
+                fields {
+                  name
+                  phase_field { id }
+                  field {
+                    id
+                    options
+                    label
+                    type
+                  }
+                  value
+                }
+                labels {
+                  id
+                  name
+                  color
+                }
+                done
+                due_date
+                expired
+                updated_at
+              }
+            }";
+
+        private string moveCardToPhase = @"
+                mutation {
+                  moveCardToPhase(input: {
+                    card_id: ""<<IdCard>>"",
+                    destination_phase_id: ""<<IdPhase>>""
+                  }) {
+                    card {
+                      current_phase {
+                        id
+                      }
+                    }
+                  }
+                }";
+
+        private string updateCardField = @"
+                mutation {
+                    updateCardField(input: { 
+                        card_id: ""<<IdCard>>"",
+                        field_id: ""<<IdField>>"",
+                        new_value: <<NewValue>>
+                    }) {
+                        success
+                        card {
+                            id
+                            fields {
+                                name
+                                value
+                                updated_at
+                            }
+                        }
+                    }
+                }";
+
+        private string createPresignedUrl = @"
+                mutation {
+                    createPresignedUrl(input: { organizationId: <<OrgId>>, fileName: ""<<FileName>>"" }){
+                        clientMutationId
+                        url
+                    }
+                }
+            ";
+
+        #endregion
+
+        public Pipefy (string apiToken)
+            : this(apiToken, null) { }
+
+        public Pipefy(string apiToken, string pipeId)
+            : this(apiToken, pipeId, null) { }
+
+        public Pipefy (string apiToken, string pipeId, string uri)
+        {
+            Uri = uri ?? PipefyDefaultEndPoint;
+
+            PipeId = pipeId;
+            Token = apiToken;
+
+            JsonSerializerSettingsSnake = CreateJsonSerializerSetting<SnakeCaseNamingStrategy>();
+            JsonSerializerSettingsCamel = CreateJsonSerializerSetting<CamelCaseNamingStrategy>();
+
+        }
+
+        public static JsonSerializerSettings CreateJsonSerializerSetting<T>() where T : NamingStrategy
+        {
+            var contractResolver = new DefaultContractResolver
+            {
+                NamingStrategy = (T)Activator.CreateInstance(typeof(T)),
+            };
+
+            var jsonSerializerSettings = new JsonSerializerSettings
+            {
+                ContractResolver = contractResolver,
+                Formatting = Formatting.Indented,
+            };
+
+            return jsonSerializerSettings;
+        }
+
+        #region Queries
+
+        public GraphQlResponse<MeResult> QueryUserInfo()
+        {
+            var query = queryUserInfo;
+
+            return GraphQl.Query<MeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
+        public async Task<GraphQlResponse<MeResult>> QueryUserInfoAsync()
+        {
+            var query = queryUserInfo;
+
+            return await GraphQl.QueryAsync<MeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
+        public GraphQlResponse<PipeResult> QueryPipe(string pipeId, bool noPhaseInfo = false)
+        {
+            var selectedQuery = queryPipe;
+            if (noPhaseInfo) selectedQuery = queryPipeSimple;
+
+            var query = selectedQuery.Replace("<<PipeId>>", pipeId);
+
+            return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettingsCamel);
+        }
+
+        public async Task<GraphQlResponse<PipeResult>> QueryPipeAsync(string pipeId, bool noPhaseInfo = false)
+        {
+            var selectedQuery = queryPipe;
+            if (noPhaseInfo) selectedQuery = queryPipeSimple;
+
+            var query = selectedQuery.Replace("<<PipeId>>", pipeId);
+
+            return await GraphQl.QueryAsync<PipeResult>(query, Uri, Token, JsonSerializerSettingsCamel);
+        }
+
+        public GraphQlResponse<OrganizationsResult> QueryOrganizations()
+        {
+            string query = queryOrganizations;
+
+            return GraphQl.Query<OrganizationsResult>(query, Uri, Token, CreateJsonSerializerSetting<CamelCaseNamingStrategy>());
+        }
+
+        public async Task<GraphQlResponse<OrganizationsResult>> QueryOrganizationsAsync()
+        {
+            string query = queryOrganizations;
+
+            return await GraphQl.QueryAsync<OrganizationsResult>(query, Uri, Token, CreateJsonSerializerSetting<CamelCaseNamingStrategy>());
+        }
+
+        public GraphQlResponse<PipeResult> QueryPhases() => QueryPhases(PipeId);
+        public GraphQlResponse<PipeResult> QueryPhases(string pipeId)
+        {
+            string query = queryPhases.Replace("$pipeId", pipeId);
+
+            return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
+        public async Task<GraphQlResponse<PipeResult>> QueryPhasesAsync() => await QueryPhasesAsync(PipeId);
+        public async Task<GraphQlResponse<PipeResult>> QueryPhasesAsync(string pipeId)
+        {
+            string query = queryPhases.Replace("$pipeId", pipeId);
+
+            return await GraphQl.QueryAsync<PipeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
+        public GraphQlResponse<PhaseResult> QueryPhaseCards(string phaseId, int max = 30, string afterCursor = null)
+        {
+            string query = queryPhaseCards.Replace("$phaseId", phaseId).Replace("$max", max.ToString());
 
             if (string.IsNullOrEmpty(afterCursor))
             {
@@ -271,6 +444,22 @@ namespace RpaLib.APIs.Pipefy
             return GraphQl.Query<PhaseResult>(query, Uri, Token, JsonSerializerSettingsSnake);
         }
 
+        public async Task<GraphQlResponse<PhaseResult>> QueryPhaseCardsAsync(string phaseId, int max = 30, string afterCursor = null)
+        {
+            string query = queryPhaseCards.Replace("$phaseId", phaseId).Replace("$max", max.ToString());
+
+            if (string.IsNullOrEmpty(afterCursor))
+            {
+                query = query.Replace(@", after: ""$afterCursor""", string.Empty);
+            }
+            else
+            {
+                query = query.Replace("$afterCursor", afterCursor);
+            }
+
+            return await GraphQl.QueryAsync<PhaseResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
         public enum OrderCardsBy
         {
             Nothing,
@@ -278,6 +467,69 @@ namespace RpaLib.APIs.Pipefy
             Older
         }
 
+        private dynamic QueryAllPhaseCardsInnerLogic(dynamic fn, string phaseId, int limit = 0, OrderCardsBy orderBy = OrderCardsBy.Nothing)
+        {
+            List<CardEdge> cardEdges = new List<CardEdge>();
+            dynamic response;
+
+            string pageCursor = null;
+            bool hasNextPage = false;
+            bool limitReached = false;
+
+            do
+            {
+                response = fn(pageCursor);
+
+                var phaseCards = response.Data.Phase.Cards.Edges;
+                hasNextPage = response.Data.Phase.Cards.Pageinfo.Hasnextpage;
+
+                if (hasNextPage)
+                    pageCursor = response.Data.Phase.Cards.Pageinfo.Endcursor;
+
+                if (phaseCards.Count == 0)
+                {
+                    Trace.WriteLine($"No cards in phase \"[ID: {phaseId}]\". Total cards: {phaseCards.Count}");
+                    return null;
+                }
+
+                foreach (var cardEdge in phaseCards)
+                {
+                    cardEdges.Add(cardEdge);
+
+                    // limit results
+                    if (limit > 0)
+                        if (cardEdges.Count == limit)
+                        {
+                            limitReached = true;
+                            break;
+                        }
+
+                }
+
+            } while (hasNextPage && !limitReached);
+
+            // order results
+            if (orderBy == OrderCardsBy.Older)
+            {
+                cardEdges = cardEdges.OrderBy(x => x.Node.Createdat).ToList();
+            }
+            else if (orderBy == OrderCardsBy.Newer)
+            {
+                cardEdges = cardEdges.OrderBy(x => x.Node.Createdat).Reverse().ToList();
+            }
+
+            response.Data.Phase.Cards.Edges = cardEdges;
+
+            return response;
+        }
+
+        public GraphQlResponse<PhaseResult> QueryAllPhaseCards(string phaseId, int limit = 0, OrderCardsBy orderBy = OrderCardsBy.Nothing)
+        {
+            var syncFunction = new Func<string, GraphQlResponse<PhaseResult>>((afterCursor) => QueryPhaseCards(phaseId, afterCursor: afterCursor));
+            return QueryAllPhaseCardsInnerLogic(syncFunction, phaseId, limit, orderBy);
+        }
+
+        /* Legacy
         public GraphQlResponse<PhaseResult> QueryAllPhaseCards(string phaseId, int limit = 0, OrderCardsBy orderBy = OrderCardsBy.Nothing)
         {
             List<CardEdge> cardEdges = new List<CardEdge>();
@@ -333,66 +585,40 @@ namespace RpaLib.APIs.Pipefy
 
             return response;
         }
+        */
+
+        public async Task<GraphQlResponse<PhaseResult>> QueryAllPhaseCardsAsync(string phaseId, int limit = 0, OrderCardsBy orderBy = OrderCardsBy.Nothing)
+        {
+            var asyncFunction = new Func<string, Task<GraphQlResponse<PhaseResult>>>(async(afterCursor) => await QueryPhaseCardsAsync(phaseId, afterCursor: afterCursor));
+            return QueryAllPhaseCardsInnerLogic(asyncFunction, phaseId, limit, orderBy);
+        }
 
         public GraphQlResponse<PhaseResult> QueryPhaseFields(string phaseId)
         {
-            string query = @"
-            {
-              phase (id: $phaseId) {
-                id
-                name
-                fields {
-                  label
-                  id
-                  options
-                }
-              }
-            }
-            ".Replace("$phaseId", phaseId);
+            string query = queryPhaseFields.Replace("$phaseId", phaseId);
 
             return GraphQl.Query<PhaseResult>(query, Uri, Token, JsonSerializerSettingsSnake);
         }
 
+        public async Task<GraphQlResponse<PhaseResult>> QueryPhaseFieldsAsync(string phaseId)
+        {
+            string query = queryPhaseFields.Replace("$phaseId", phaseId);
+
+            return await GraphQl.QueryAsync<PhaseResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
         public GraphQlResponse<CardResult> QueryCard(string cardId)
         {
-            string query = @"
-            {
-              card (id: $cardId) {
-                id
-                current_phase {
-                  id
-                }
-                age
-                createdAt
-                expiration {
-                  expiredAt
-                  shouldExpireAt
-                }
-                fields {
-                  name
-                  phase_field { id }
-                  field {
-                    id
-                    options
-                    label
-                    type
-                  }
-                  value
-                }
-                labels {
-                  id
-                  name
-                  color
-                }
-                done
-                due_date
-                expired
-                updated_at
-              }
-            }
-            ".Replace("$cardId", cardId);
+            string query = queryCard.Replace("$cardId", cardId);
 
             return GraphQl.Query<CardResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
+        public async Task<GraphQlResponse<CardResult>> QueryCardAsync(string cardId)
+        {
+            string query = queryCard.Replace("$cardId", cardId);
+
+            return await GraphQl.QueryAsync<CardResult>(query, Uri, Token, JsonSerializerSettingsSnake);
         }
 
         #endregion
@@ -406,27 +632,22 @@ namespace RpaLib.APIs.Pipefy
         /// <returns>A GraphQlResponse with Data of type CardQuery containing the new card phase.</returns>
         public GraphQlResponse<CardResult> MoveCardToPhase(string cardId, string destPhaseId)
         {
-            var query = @"
-                mutation {
-                  moveCardToPhase(input: {
-                    card_id: ""<<IdCard>>"",
-                    destination_phase_id: ""<<IdPhase>>""
-                  }) {
-                    card {
-                      current_phase {
-                        id
-                      }
-                    }
-                  }
-                }".Replace("<<IdCard>>", cardId).Replace("<<IdPhase>>", destPhaseId);
+            var query = moveCardToPhase.Replace("<<IdCard>>", cardId).Replace("<<IdPhase>>", destPhaseId);
 
             return GraphQl.Query<CardResult>(query, Uri, Token);
         }
 
-        public GraphQlResponse<UpdateCardFieldResult> UpdateCardField(string cardId, string fieldId, string[] newValues)
+        public async Task<GraphQlResponse<CardResult>> MoveCardToPhaseAsync(string cardId, string destPhaseId)
+        {
+            var query = moveCardToPhase.Replace("<<IdCard>>", cardId).Replace("<<IdPhase>>", destPhaseId);
+
+            return await GraphQl.QueryAsync<CardResult>(query, Uri, Token);
+        }
+
+        private string GetListForUpdateCardField(string[] newValues)
         {
             List<string> escapedNewValues = new List<string>();
-            string newValueStringList; 
+            string newValueStringList;
 
             foreach (var newValue in newValues)
             {
@@ -438,48 +659,51 @@ namespace RpaLib.APIs.Pipefy
             var newValuesJoined = string.Join("\", ", escapedNewValues);
             newValueStringList = $"[{newValuesJoined}]";
 
-            return UpdateCardField(cardId, fieldId, newValueStringList);
+            return newValueStringList;
+        }
+
+        public GraphQlResponse<UpdateCardFieldResult> UpdateCardField(string cardId, string fieldId, string[] newValues)
+        {
+            return UpdateCardField(cardId, fieldId, GetListForUpdateCardField(newValues));
         }
 
         public GraphQlResponse<UpdateCardFieldResult> UpdateCardField(string cardId, string fieldId, string newValue)
         {
             var treatedValue = !Ut.IsMatch(newValue, @"\[[^\]]+\]") ? $"\"{newValue}\"" : newValue;
-            var query = @"
-                mutation {
-                    updateCardField(input: { 
-                        card_id: ""<<IdCard>>"",
-                        field_id: ""<<IdField>>"",
-                        new_value: <<NewValue>>
-                    }) {
-                        success
-                        card {
-                            id
-                            fields {
-                                name
-                                value
-                                updated_at
-                            }
-                        }
-                    }
-                }".Replace("<<IdCard>>", cardId).Replace("<<IdField>>", fieldId).Replace("<<NewValue>>", treatedValue);
+            var query = updateCardField.Replace("<<IdCard>>", cardId).Replace("<<IdField>>", fieldId).Replace("<<NewValue>>", treatedValue);
 
             return GraphQl.Query<UpdateCardFieldResult>(query, Uri, Token);
+        }
+
+        public async Task<GraphQlResponse<UpdateCardFieldResult>> UpdateCardFieldAsync(string cardId, string fieldId, string[] newValues)
+        {
+            return await UpdateCardFieldAsync(cardId, fieldId, GetListForUpdateCardField(newValues));
+        }
+
+        public async Task<GraphQlResponse<UpdateCardFieldResult>> UpdateCardFieldAsync(string cardId, string fieldId, string newValue)
+        {
+            var treatedValue = !Ut.IsMatch(newValue, @"\[[^\]]+\]") ? $"\"{newValue}\"" : newValue;
+            var query = updateCardField.Replace("<<IdCard>>", cardId).Replace("<<IdField>>", fieldId).Replace("<<NewValue>>", treatedValue);
+
+            return await GraphQl.QueryAsync<UpdateCardFieldResult>(query, Uri, Token);
         }
 
         public GraphQlResponse<CreatePresignedUrlResult> CreatePresignedUrl(string fileBaseName)
         {
             var organizationId = QueryPipe(PipeId).Data.Pipe.OrganizationId;
 
-            var query = @"
-                mutation {
-                    createPresignedUrl(input: { organizationId: <<OrgId>>, fileName: ""<<FileName>>"" }){
-                        clientMutationId
-                        url
-                    }
-                }
-            ".Replace("<<OrgId>>", organizationId).Replace("<<FileName>>", fileBaseName);
+            var query = createPresignedUrl.Replace("<<OrgId>>", organizationId).Replace("<<FileName>>", fileBaseName);
 
             return GraphQl.Query<CreatePresignedUrlResult>(query, Uri, Token, JsonSerializerSettingsCamel);
+        }
+
+        public async Task<GraphQlResponse<CreatePresignedUrlResult>> CreatePresignedUrlAsync(string fileBaseName)
+        {
+            var organizationId = (await QueryPipeAsync(PipeId)).Data.Pipe.OrganizationId;
+
+            var query = createPresignedUrl.Replace("<<OrgId>>", organizationId).Replace("<<FileName>>", fileBaseName);
+
+            return await GraphQl.QueryAsync<CreatePresignedUrlResult>(query, Uri, Token, JsonSerializerSettingsCamel);
         }
 
         #endregion

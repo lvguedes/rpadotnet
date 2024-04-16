@@ -31,13 +31,14 @@ namespace RpaLib.Tracing
         {
             Application = new Application();
             Application.DisplayAlerts = false; // disable pop-ups when overwriting
+            var disableMacrosOnlyXlsm = disableMacros && Ut.IsMatch(filePath, @"\.xlsm$");
 
-            if (disableMacros) Application.AutomationSecurity = MsoAutomationSecurity.msoAutomationSecurityForceDisable;
+            if (disableMacrosOnlyXlsm) Application.AutomationSecurity = MsoAutomationSecurity.msoAutomationSecurityForceDisable;
 
             FullFilePath = Ut.GetFullPath(filePath);
             SheetName = sheetName;
 
-            Workbook = Application.Workbooks.Open(FullFilePath, ReadOnly: disableMacros);
+            Workbook = Application.Workbooks.Open(FullFilePath, ReadOnly: disableMacrosOnlyXlsm);
             try
             {
                 Worksheet = Workbook.Sheets.Item[SheetName];

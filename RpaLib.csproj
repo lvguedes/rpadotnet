@@ -224,6 +224,7 @@
     <Compile Include="SAP\Exceptions\PopupNotFoundException.cs" />
     <Compile Include="SAP\Exceptions\SapInSessionException.cs" />
     <Compile Include="SAP\Exceptions\SapException.cs" />
+    <Compile Include="SAP\Exceptions\SapTextFieldException.cs" />
     <Compile Include="SAP\Exceptions\ValueNotFoundInTableException.cs" />
     <Compile Include="SAP\Field.cs" />
     <Compile Include="SAP\Grid.cs" />

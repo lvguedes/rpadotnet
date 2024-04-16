@@ -2,8 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using RpaLib.ProcessAutomation;
+using RpaLib.SAP.Exceptions;
 
 namespace RpaLib.SAP
 {
@@ -13,7 +16,20 @@ namespace RpaLib.SAP
         public string Text
         {
             get => ((GuiVComponent)Com).Text;
-            set => ((GuiVComponent)Com).Text = value;
+            set
+            {
+                try
+                {
+                    ((GuiVComponent)Com).Text = value;
+                }
+                catch (COMException ex)
+                {
+                    if (Ut.IsMatch(ex.Message, @"\."))
+                    {
+                        throw new SapTextFieldException(value, ex);
+                    }
+                }
+            }
         }
 
         //public string Key

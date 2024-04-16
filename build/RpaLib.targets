@@ -68,8 +68,8 @@
       <Link>libzstd.a</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)curl\LICENSE">
-      <Link>LICENSE</Link>
+    <None Include="$(MSBuildThisFileDirectory)curl\CURL_LICENSE">
+      <Link>CURL_LICENSE</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
