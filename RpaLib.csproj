@@ -309,9 +309,7 @@
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </COMReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Utils\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <None Include="ProcessAutomation\portables\curl\bin\curl.exe" />
     <None Include="ProcessAutomation\portables\curl\bin\libcurl-x64.def" />

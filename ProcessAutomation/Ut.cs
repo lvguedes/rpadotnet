@@ -10,6 +10,7 @@ using System.Threading;
 using System.Text.RegularExpressions;
 //using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 using System.Xml.Linq;
 using System.Data;
 using YamlDotNet.Serialization.NamingConventions;
@@ -631,7 +632,7 @@ namespace RpaLib.ProcessAutomation
 
         #endregion
 
-        #region GUI
+        #region Forms
 
         public static void PopUp(string message)
         {
@@ -650,6 +651,20 @@ namespace RpaLib.ProcessAutomation
             else Trace.WriteLine(ifCancel);
 
             return dr;
+        }
+
+        public static void MarkCheckedListBoxItem (CheckedListBox checkedListBox, string itemNameRegex)
+        {
+            object itemFound = checkedListBox.Items.Cast<string>().Where(x => Ut.IsMatch(x, itemNameRegex)).FirstOrDefault();
+            if (itemFound != null)
+            {
+                int indexItemFound = checkedListBox.Items.IndexOf(itemFound);
+                checkedListBox.SetItemChecked(indexItemFound, true);
+            }
+            else
+            {
+                throw new RpaLibException($"CheckedListBox item which name matches the pattern '{itemNameRegex}' was not found.");
+            }
         }
 
         #endregion

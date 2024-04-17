@@ -13,7 +13,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.IO;
 using RpaLib.ProcessAutomation;
-using DocuSign.eSign.Model;
 
 namespace RpaLib.APIs.Pipefy
 {
@@ -32,6 +31,8 @@ namespace RpaLib.APIs.Pipefy
                 me {
                     id
                     email
+                    name
+                    username
                 }
             }";
 
@@ -412,7 +413,16 @@ namespace RpaLib.APIs.Pipefy
             return await GraphQl.QueryAsync<OrganizationsResult>(query, Uri, Token, CreateJsonSerializerSetting<CamelCaseNamingStrategy>());
         }
 
-        public GraphQlResponse<PipeResult> QueryPhases() => QueryPhases(PipeId);
+        public GraphQlResponse<PipeResult> QueryPhases()
+        {
+            if (PipeId == null)
+            {
+                throw new RpaLibException("Null Pipe ID: To query info about the phases the Pipe ID is mandatory.");
+            }
+
+            return QueryPhases(PipeId);
+        }
+            
         public GraphQlResponse<PipeResult> QueryPhases(string pipeId)
         {
             string query = queryPhases.Replace("$pipeId", pipeId);
@@ -420,7 +430,16 @@ namespace RpaLib.APIs.Pipefy
             return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
         }
 
-        public async Task<GraphQlResponse<PipeResult>> QueryPhasesAsync() => await QueryPhasesAsync(PipeId);
+        public async Task<GraphQlResponse<PipeResult>> QueryPhasesAsync()
+        {
+            if (PipeId == null)
+            {
+                throw new RpaLibException("Null Pipe ID: To query info about the phases the Pipe ID is mandatory.");
+            }
+
+            return await QueryPhasesAsync(PipeId);
+        }
+
         public async Task<GraphQlResponse<PipeResult>> QueryPhasesAsync(string pipeId)
         {
             string query = queryPhases.Replace("$pipeId", pipeId);
@@ -690,6 +709,11 @@ namespace RpaLib.APIs.Pipefy
 
         public GraphQlResponse<CreatePresignedUrlResult> CreatePresignedUrl(string fileBaseName)
         {
+            if (PipeId == null)
+            {
+                throw new RpaLibException("Null Pipe ID: To create a presigned URL the Pipe ID is mandatory.");
+            }
+
             var organizationId = QueryPipe(PipeId).Data.Pipe.OrganizationId;
 
             var query = createPresignedUrl.Replace("<<OrgId>>", organizationId).Replace("<<FileName>>", fileBaseName);
@@ -699,6 +723,11 @@ namespace RpaLib.APIs.Pipefy
 
         public async Task<GraphQlResponse<CreatePresignedUrlResult>> CreatePresignedUrlAsync(string fileBaseName)
         {
+            if (PipeId == null)
+            {
+                throw new RpaLibException("Null Pipe ID: To create a presigned URL the Pipe ID is mandatory.");
+            }
+
             var organizationId = (await QueryPipeAsync(PipeId)).Data.Pipe.OrganizationId;
 
             var query = createPresignedUrl.Replace("<<OrgId>>", organizationId).Replace("<<FileName>>", fileBaseName);
@@ -714,49 +743,127 @@ namespace RpaLib.APIs.Pipefy
         /// <param name="infoType">A PipefyInfo enum type indicating the kind of information to retrieve.</param>
         /// <param name="phaseId">The Pipefy phase ID that is needed to perform some queries.</param>
         /// <exception cref="ArgumentNullException">Thrown when a parameter is needed by some query but wasn't provided.</exception>
-        public void ShowInfo(PipefyInfo infoType, string phaseId = null, string cardId = null)
+        public async Task<string> ShowInfoAsync(PipefyInfo infoType, string phaseId = null, string cardId = null)
         {
+            StringBuilder infoMsg = new StringBuilder();
+
             switch (infoType)
             {
                 case PipefyInfo.PhasesAndCardsCount:
-                    var phases = QueryPhases().Data.Pipe.Phases;
+                    var phases = (await QueryPhasesAsync()).Data.Pipe.Phases;
 
                     foreach (Phase phase in phases)
                     {
-                        Trace.WriteLine($"Number of cards in phase (ID {phase.Id}) \"{phase.Name}\": {phase.CardsCount}");
+                        infoMsg.AppendLine($"Number of cards in phase (ID {phase.Id}) \"{phase.Name}\": {phase.CardsCount}");
                     }
                     break;
 
                 case PipefyInfo.PhaseFields:
                     if (phaseId == null)
                         throw new RpaLibArgumentNullException("Phase ID argument is mandatory to fetch the fields from that phase.");
-                    PhaseResult phaseQuery = QueryPhaseFields(phaseId).Data;
-                    Trace.WriteLine($"Phase (ID {phaseQuery.Phase.Id}) {phaseQuery.Phase.Name}, has the following fields:");
+                    PhaseResult phaseQuery = (await QueryPhaseFieldsAsync(phaseId)).Data;
+                    infoMsg.AppendLine($"Phase (ID {phaseQuery.Phase.Id}) {phaseQuery.Phase.Name}, has the following fields:");
                     foreach (PhaseField field in phaseQuery.Phase.Fields)
                     {
                         string msg = string.Join("\n",
-                            "    ID: " + field.Id,
-                            "    Label: " + field.Label,
-                            "    Options: " + string.Join(", ", field.Options));
-                        Trace.WriteLine(msg, withTimeSpec: false);
+                            "- ID: " + field.Id,
+                            "  Label: " + field.Label,
+                            "  Options: " + string.Join(", ", field.Options));
+                        infoMsg.AppendLine(msg);
                     }
                     break;
 
                 case PipefyInfo.CardFields:
                     if (cardId == null)
                         throw new RpaLibArgumentNullException("Card ID argument is mandatory to fetch the fields from that card.");
-                    CardResult cardQuery = QueryCard(cardId).Data;
-                    Trace.WriteLine($"Card (ID {cardQuery.Card.Id}) has the following fields");
+                    CardResult cardQuery = (await QueryCardAsync(cardId)).Data;
+                    infoMsg.AppendLine($"Card (ID {cardQuery.Card.Id}) has the following fields");
                     foreach (CardField field in cardQuery.Card.Fields)
                     {
                         string msg = string.Join(Environment.NewLine,
-                            "    ID: " + field.Field.Id,
-                            "    Name: " + field.Name,
-                            "    Options: " + string.Join(", ", field.Field.Options));
-                        Trace.WriteLine(msg, withTimeSpec: false);
+                            "- ID: " + field.Field.Id,
+                            "  Name: " + field.Name,
+                            "  Options: " + string.Join(", ", field.Field.Options));
+                        infoMsg.AppendLine(msg);
                     }
                     break;
+
+                case PipefyInfo.Organizations:
+                    OrganizationsResult organizationsQuery = (await QueryOrganizationsAsync()).Data;
+                    infoMsg.AppendLine($"Organizations registered within this accound are:");
+
+                    var getPipesString = new Func<Organization, string>((org) =>
+                    {
+                        StringBuilder pipesStr = new StringBuilder();
+
+                        foreach (var pipe in org.Pipes)
+                        {
+                            var currentPipeInfo = string.Join(Environment.NewLine,
+                            "  - Pipe ID: " + pipe.Id,
+                            "    Pipe Name: " + pipe.Name);
+
+                            pipesStr.AppendLine(currentPipeInfo);
+                        }
+
+                        return pipesStr.ToString();
+                    });
+
+                    var getUsersString = new Func<Organization, string>((org) =>
+                    {
+                        StringBuilder usrStr = new StringBuilder();
+
+                        foreach (var user in org.Users)
+                        {
+                            var currentPipeInfo = string.Join(Environment.NewLine,
+                            "  - User ID: " + user.Id,
+                            "    User Name: " + user.Name,
+                            "    User Email: " + user.Email,
+                            "    User Username: " + user.Username);
+
+                            usrStr.AppendLine(currentPipeInfo);
+                        }
+
+                        return usrStr.ToString();
+                    });
+
+                    foreach (var org in organizationsQuery.Organizations)
+                    {
+                        string msg = string.Join(Environment.NewLine,
+                            "- Org ID: " + org.Id,
+                            "  Org Name: " + org.Name,
+                            "  PipesCount: " + org.PipesCount,
+                            "  Pipes: ",
+                            getPipesString(org),
+                            "  Users:",
+                            getUsersString(org),
+                            "  PlanName: " + org.PlanName,
+                            "  Role: " + org.Role
+                            );
+                        infoMsg.AppendLine(msg);
+                    }
+                    break;
+
+                case PipefyInfo.CurrentUser:
+                    var meQuery = (await QueryUserInfoAsync()).Data;
+                    infoMsg.AppendLine($"Current connected user:");
+                    infoMsg.AppendLine($"  ID: {meQuery.Me.Id}");
+                    infoMsg.AppendLine($"  Name: {meQuery.Me.Name}");
+                    infoMsg.AppendLine($"  Email: {meQuery.Me.Email}");
+                    infoMsg.AppendLine($"  Username: {meQuery.Me.Username}");
+
+                    break;
             }
+
+            return infoMsg.ToString();
+        }
+
+        public void ShowInfo(PipefyInfo infoType, string phaseId = null, string cardId = null)
+        {
+            Task<string> t1 = ShowInfoAsync(infoType, phaseId, cardId);
+
+            t1.Wait();
+
+            Trace.WriteLine(t1.Result, withTimeSpec: false, color: ConsoleColor.Yellow);
         }
 
         /// <summary>

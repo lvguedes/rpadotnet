@@ -11,5 +11,7 @@ namespace RpaLib.APIs.Pipefy
         PhasesAndCardsCount,
         PhaseFields,
         CardFields,
+        Organizations,
+        CurrentUser,
     }
 }

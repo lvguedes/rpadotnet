@@ -21,5 +21,31 @@ namespace RpaLibXunit
             Console.WriteLine(logMsg);
         }
 
+        [Fact]
+        public void BlockingShowOrgInfo()
+        {
+            string jwt = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9" +
+                ".eyJ1c2VyIjp7ImlkIjo5MDU5NDYsImVtYWlsIjoiYW5kcmVhLmpld29yb3dza2lAY2FwZ2VtaW5pLmNvbSIsImFwcGxpY2F0aW9uIjozMDAxNzQ2MDJ9fQ" +
+                ".xT705GbX3CbTv8gQ0WH6kOPcsr-2DNa1tTTsPOXLdeQFyF7N55t2r-F-MZzCGZvMQi7pBZOiFbBsu-83rNm6lQ";
+
+            Pipefy pipefy = new Pipefy(jwt);
+
+            pipefy.ShowInfo(PipefyInfo.Organizations);
+        }
+
+        [Fact]
+        public async void NonBlockingShowOrgInfo()
+        {
+            string jwt = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9" +
+                ".eyJ1c2VyIjp7ImlkIjo5MDU5NDYsImVtYWlsIjoiYW5kcmVhLmpld29yb3dza2lAY2FwZ2VtaW5pLmNvbSIsImFwcGxpY2F0aW9uIjozMDAxNzQ2MDJ9fQ" +
+                ".xT705GbX3CbTv8gQ0WH6kOPcsr-2DNa1tTTsPOXLdeQFyF7N55t2r-F-MZzCGZvMQi7pBZOiFbBsu-83rNm6lQ";
+
+            Pipefy pipefy = new Pipefy(jwt);
+
+            var result = await pipefy.ShowInfoAsync(PipefyInfo.Organizations);
+
+            Console.WriteLine(result);
+        }
+
     }
 }

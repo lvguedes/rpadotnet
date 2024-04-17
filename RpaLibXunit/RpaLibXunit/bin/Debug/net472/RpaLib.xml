@@ -12,7 +12,7 @@
             <param name="destPhaseId">The ID of the destination phase. Can be string or int literal in GraphQL.</param>
             <returns>A GraphQlResponse with Data of type CardQuery containing the new card phase.</returns>
         </member>
-        <member name="M:RpaLib.APIs.Pipefy.Pipefy.ShowInfo(RpaLib.APIs.Pipefy.PipefyInfo,System.String,System.String)">
+        <member name="M:RpaLib.APIs.Pipefy.Pipefy.ShowInfoAsync(RpaLib.APIs.Pipefy.PipefyInfo,System.String,System.String)">
             <summary>
             Query pipefy info using API calls and redirects the info output to the Tracing.
             </summary>
