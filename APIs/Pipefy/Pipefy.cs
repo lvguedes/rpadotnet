@@ -161,6 +161,9 @@ namespace RpaLib.APIs.Pipefy
                         name
                         id
                         cards_count
+                        cards_can_be_moved_to_phases {
+                            name
+                        }
                     }
                 }
             }";
@@ -544,8 +547,9 @@ namespace RpaLib.APIs.Pipefy
 
         public GraphQlResponse<PhaseResult> QueryAllPhaseCards(string phaseId, int limit = 0, OrderCardsBy orderBy = OrderCardsBy.Nothing)
         {
-            var syncFunction = new Func<string, GraphQlResponse<PhaseResult>>((afterCursor) => QueryPhaseCards(phaseId, afterCursor: afterCursor));
-            return QueryAllPhaseCardsInnerLogic(syncFunction, phaseId, limit, orderBy);
+            var taskQueryAll = QueryAllPhaseCardsAsync(phaseId, limit, orderBy);
+            taskQueryAll.Wait();
+            return taskQueryAll.Result;
         }
 
         /* Legacy
@@ -608,8 +612,58 @@ namespace RpaLib.APIs.Pipefy
 
         public async Task<GraphQlResponse<PhaseResult>> QueryAllPhaseCardsAsync(string phaseId, int limit = 0, OrderCardsBy orderBy = OrderCardsBy.Nothing)
         {
-            var asyncFunction = new Func<string, Task<GraphQlResponse<PhaseResult>>>(async(afterCursor) => await QueryPhaseCardsAsync(phaseId, afterCursor: afterCursor));
-            return QueryAllPhaseCardsInnerLogic(asyncFunction, phaseId, limit, orderBy);
+            List<CardEdge> cardEdges = new List<CardEdge>();
+            GraphQlResponse<PhaseResult> response;
+
+            string pageCursor = null;
+            bool hasNextPage = false;
+            bool limitReached = false;
+
+            do
+            {
+                response = await QueryPhaseCardsAsync(phaseId, afterCursor: pageCursor);
+
+                var phaseCards = response.Data.Phase.Cards.Edges;
+                hasNextPage = response.Data.Phase.Cards.Pageinfo.Hasnextpage;
+
+                if (hasNextPage)
+                    pageCursor = response.Data.Phase.Cards.Pageinfo.Endcursor;
+
+                //if (phaseCards.Count == 0)
+                //{
+                //    Trace.WriteLine($"No cards in phase \"[ID: {phaseId}]\". Total cards: {phaseCards.Count}");
+                //    return null;
+                //}
+
+                foreach (var cardEdge in phaseCards)
+                {
+                    cardEdges.Add(cardEdge);
+
+                    // limit results
+                    if (limit > 0)
+                        if (cardEdges.Count == limit)
+                        {
+                            limitReached = true;
+                            break;
+                        }
+
+                }
+
+            } while (hasNextPage && !limitReached);
+
+            // order results
+            if (orderBy == OrderCardsBy.Older)
+            {
+                cardEdges = cardEdges.OrderBy(x => x.Node.Createdat).ToList();
+            }
+            else if (orderBy == OrderCardsBy.Newer)
+            {
+                cardEdges = cardEdges.OrderBy(x => x.Node.Createdat).Reverse().ToList();
+            }
+
+            response.Data.Phase.Cards.Edges = cardEdges;
+
+            return response;
         }
 
         public GraphQlResponse<PhaseResult> QueryPhaseFields(string phaseId)
@@ -752,9 +806,16 @@ namespace RpaLib.APIs.Pipefy
                 case PipefyInfo.PhasesAndCardsCount:
                     var phases = (await QueryPhasesAsync()).Data.Pipe.Phases;
 
+                    infoMsg.AppendLine("Phases and available cards: ");
                     foreach (Phase phase in phases)
                     {
-                        infoMsg.AppendLine($"Number of cards in phase (ID {phase.Id}) \"{phase.Name}\": {phase.CardsCount}");
+                        var canBeMovedTo = string.Join(", ", phase.CardsCanBeMovedToPhases.Select(x => $"\"{x.Name}\"").ToArray());
+                        var msg = string.Join(Environment.NewLine,
+                            $"- Phase Name: \"{phase.Name}\"",
+                            $"  Phase ID: {phase.Id}",
+                            $"  Number of cards in phase: {phase.CardsCount}",
+                            $"  Cards can be moved to phases: {canBeMovedTo}");
+                        infoMsg.AppendLine(msg + Environment.NewLine);
                     }
                     break;
 
