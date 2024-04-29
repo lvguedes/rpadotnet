@@ -274,13 +274,44 @@ namespace RpaLib.ProcessAutomation
             return false;
         }
 
-        public static void KillProcess(string processName, bool outputProcesses = false)
+        public static void CloseMainWindow(int windowHandle, bool backgroundKill = false)
         {
-            foreach (Process proc in Process.GetProcessesByName(processName))
-            {
-                if (outputProcesses) Trace.WriteLine($"Killing process {proc.ProcessName}");
-                proc.Kill();
-            }
+            CloseMainWindow((IntPtr)windowHandle, backgroundKill);
+        }
+
+        public static void CloseMainWindow(IntPtr windowHandle, bool backgroundKill = false)
+        {
+            var procList = Process.GetProcesses().Cast<Process>()
+                .Where(x => x.MainWindowHandle == windowHandle)
+                .ToList();
+
+            procList.ForEach(x => x.CloseMainWindow());
+            if (backgroundKill)
+                procList.ForEach(x => x.Kill());
+        }
+
+        public static void KillProcess(int windowHandle)
+        {
+            var winHandle = new IntPtr(windowHandle);
+            KillProcess(winHandle);
+        }
+
+        public static void KillProcess(IntPtr windowHandle)
+        {
+            var procList = Process.GetProcesses().Cast<Process>()
+                .Where(x => x.MainWindowHandle == windowHandle)
+                .ToList();
+
+            procList.ForEach(x => x.Kill());
+        }
+
+        public static void KillProcess(string processNameWithoutExtensionRegex)
+        {
+            var procList = Process.GetProcesses().Cast<Process>()
+                .Where(x => IsMatch(x.ProcessName, processNameWithoutExtensionRegex))
+                .ToList();
+
+            procList.ForEach(x => x.Kill());
         }
 
         public static void StartWaitProcess(string exePath, int timeoutSeconds = 300, bool outputProcesses = false)
@@ -653,7 +684,7 @@ namespace RpaLib.ProcessAutomation
             return dr;
         }
 
-        public static void MarkCheckedListBoxItem (CheckedListBox checkedListBox, string itemNameRegex)
+        public static void MarkCheckedListBoxItem (in CheckedListBox checkedListBox, string itemNameRegex)
         {
             object itemFound = checkedListBox.Items.Cast<string>().Where(x => Ut.IsMatch(x, itemNameRegex)).FirstOrDefault();
             if (itemFound != null)

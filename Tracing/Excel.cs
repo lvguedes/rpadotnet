@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Principal;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Office.Interop.Excel; // add Microsoft Excel COM reference
 using Microsoft.Office.Core;
@@ -20,12 +21,13 @@ namespace RpaLib.Tracing
     public class Excel
     {
         public const string DefaultSheetName = "Sheet1";
+        public const string ProcessName = "EXCEL";
         public Application Application { get; }
         public Workbook Workbook { get; private set; }
         public string FullFilePath { get; private set; }
         public Worksheet Worksheet { get; private set; }
         public string SheetName { get; private set; }
-        public Dictionary<string, int> UsedRangeCount { get; private set; }
+        public SheetUsedRange UsedRangeCount { get; private set; }
 
         public Excel(string filePath, string sheetName, bool disableMacros = false)
         {
@@ -54,18 +56,15 @@ namespace RpaLib.Tracing
                     throw ex;
                 }
             }
-            
 
+            UsedRangeCount = new SheetUsedRange();
             UpdateUsedRangeCount();
         }
 
         private void UpdateUsedRangeCount()
         {
-            UsedRangeCount = new Dictionary<string, int>()
-            {
-                { "rows", Worksheet.UsedRange.Rows.Count },
-                { "cols", Worksheet.UsedRange.Columns.Count }
-            };
+            UsedRangeCount.Rows = Worksheet.UsedRange.Rows.Count;
+            UsedRangeCount.Cols = Worksheet.UsedRange.Columns.Count;
         }
 
         public static int[] Range(int start, int end)
@@ -78,25 +77,130 @@ namespace RpaLib.Tracing
             return range.ToArray();
         }
 
+        public Range GetRange(string excelRange)
+        {
+            var range = Worksheet.Range[excelRange];
+            return range;
+        }
+
+        public Range GetRange(string firstCell, string lastCell)
+        {
+            var range = Worksheet.Range[firstCell, lastCell];
+            return range;
+        }
+
+        public Range GetRange(int firstCellRow, int firstCellCol, int lastCellRow, int lastCellCol)
+        {
+            var range = Worksheet.Range[Worksheet.Cells[firstCellRow, firstCellCol], Worksheet.Cells[lastCellRow, lastCellCol]];
+            return range;
+        }
+
+        // usage: InsertFormula("=VLOOKUP()", "A1:B20");
+        public void InsertFormula(string formula, string excelRange)
+        {
+            Range formulaFullRange = GetRange(excelRange);
+            //Range formulaCell = formulaFullRange.Cells[1];
+            //formulaCell.Formula = formula;
+            //formulaCell.AutoFill(formulaFullRange, XlAutoFillType.xlFillDefault);
+            InsertFormula(formulaFullRange, formula);
+        }
+
+        // usage: InsertFormula("=VLOOKUP()", "A1", "B20");
+        public void InsertFormula(string formula, string firstCell, string lastCell)
+        {
+            Range formulaFullRange = GetRange(firstCell, lastCell);
+            InsertFormula(formulaFullRange, formula);
+        }
+
+        // To work with sheet used ranges.
+        // usage:
+        //    InsertFormula("=VLOOKUP()", 1, 1, 20, 2); // insert formula in range "A1:B20"
+        //    InsertFormula("=VLOOKUP()", 1, 1); //last cell will be the last used firstCellRow and column
+        //    InsertFormula("=VLOOKUP()", 1, 1, 20); // last cell column will be the last used
+        //    InsertFormula("=VLOOKUP()", 1, 1, lastCellCol: 2); // last cell firstCellRow will be the last used
+        public void InsertFormula(string formula, int firstCellRow, int firstCellCol, int lastCellRow = -1, int lastCellCol = -1)
+        {
+            if (lastCellRow < 0)
+                lastCellRow = UsedRangeCount.Rows;
+
+            if (lastCellCol < 0)
+                lastCellCol = UsedRangeCount.Cols;
+
+            Range formulaFullRange = GetRange(firstCellRow, firstCellCol, lastCellRow, lastCellCol);
+            InsertFormula(formulaFullRange, formula);
+        }
+
+        private void InsertFormula(Range range, string excelFormula)
+        {
+            range.Formula = excelFormula;
+        }
+
         public void Quit()
         {
             try
             {
-                Workbook.Close(SaveChanges: false);
-                Application.Quit();
+                //Workbook.Close(SaveChanges: false);
+                Application.DisplayAlerts = false; // disable confirmation popups
+                Application.Quit(); // Maybe an interop bug: just puts in background instead of closing.
+
+                /*
+                // try quit while instance still alive
+                while (true)
+                {
+                    Ut.CloseMainWindow(Application.Hwnd, backgroundKill: true);
+                    Thread.Sleep(2000);
+                    //Ut.KillProcess(Application.Hwnd);
+
+                    if (CheckInstanceAlive())
+                        Thread.Sleep(5000); // wait only if still alive
+                    else
+                        break;
+                }
+                */
             }
             catch
             {
-                Ut.KillProcess("EXCEL.exe");
+                Ut.KillProcess(ProcessName);
             } 
+               
         }
 
-        public void Save(string path = null)
+        // return true if instance alive and false otherwise
+        private bool CheckInstanceAlive()
         {
-            if (path == null)
-                Workbook.Save();
-            else
-                Workbook.SaveAs(Ut.GetFullPath(path));
+            try
+            {
+                // try to access a COM obj property
+                // to see if object is still alive
+                _ = Application.Path;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public void SaveAndQuit()
+        {
+            Save();
+            Quit();
+        }
+
+        public void SaveAndQuit(string path)
+        {
+            Save(path);
+            Quit();
+        }
+
+        public void Save()
+        {
+            Workbook.Save();
+        }
+
+        public void Save(string path)
+        {
+            Workbook.SaveAs(Ut.GetFullPath(path));
         }
 
         public Dictionary<string, string> GetActiveSheet()
@@ -159,7 +263,43 @@ namespace RpaLib.Tracing
             return cells.ToArray();
         }
 
-        public string[][] ReadCell(int[] rows, int[] cols, bool breakAtEmptyLine = false)
+        public string[][] ReadCellMultiProc(int[] rows, int[] cols, bool breakAtEmptyLine = false, int threads = 8)
+        {
+            // divide the range into threads equally
+            int rowNum = rows.Length / threads;
+            var tasks = new List<Task<List<string[]>>>();
+
+            for (int i = 1; i <= threads; i++)
+            {
+                int minRow = (i - 1) * rowNum + 1;
+                int maxRow = i * rowNum;
+
+                if (i == threads)
+                    maxRow += (rows.Length % threads);
+
+                var rowRange = Range(minRow, maxRow);
+
+                tasks.Add(Task.Factory.StartNew(() => ReadCellEditAppendRows(rowRange, cols, breakAtEmptyLine))); 
+            }
+
+            Task.WaitAll(tasks.ToArray());
+
+            List<string[]> table = null;
+
+            for (int i = 0; i < tasks.Count; i++)
+            {
+                var task = tasks[i];
+
+                if (table == null)
+                    table = task.Result;
+                else
+                    task.Result.ForEach(x => table.Add(x));
+            }
+
+            return table.ToArray();
+        }
+
+        public List<string[]> ReadCellEditAppendRows(int[] rows, int[] cols, bool breakAtEmptyLine = false)
         {
             List<string[]> table = new List<string[]>();
 
@@ -168,14 +308,33 @@ namespace RpaLib.Tracing
                 List<string> line = new List<string>();
                 foreach (int col in cols)
                 {
-                    line.Add((string)Worksheet.Rows.Item[row].Columns.Item[col].Text);
+                    while (true)
+                    {
+                        try
+                        {
+                            line.Add((string)Worksheet.Rows.Item[row].Columns.Item[col].Text);
+                            break;
+                        }
+                        catch (COMException ex)
+                        {
+                            if (Ut.IsMatch(ex.Message, @"The message filter indicated that the application is busy\."))
+                                continue;
+                            else
+                                throw ex;
+                        }
+                    }
                 }
                 if (IsEmptyLine(line.ToArray()) && breakAtEmptyLine)
                     break;
                 else
                     table.Add(line.ToArray());
             }
-            return table.ToArray();
+            return table;
+        }
+
+        public string[][] ReadCell(int[] rows, int[] cols, bool breakAtEmptyLine = false)
+        {
+            return ReadCellEditAppendRows(rows, cols, breakAtEmptyLine).ToArray();
         }
 
         public string[][] ReadCell(int startRow, int startCol, int endRow, int endCol, bool breakAtEmptyLine = false)
@@ -194,17 +353,17 @@ namespace RpaLib.Tracing
             UpdateUsedRangeCount();
         }
 
-        public void WriteCell(int row, int col, string[] values, InsertMethod rowOrCol)
+        public void WriteCell(int firstCellRow, int firstCellCol, string[] values, InsertMethod rowOrCol)
         {
             for (int j = 0; j < values.Count(); j++)
             {
                 switch (rowOrCol)
                 {
                     case InsertMethod.AsRow:
-                        Worksheet.Rows.Item[row].Columns[col + j] = values[j];
+                        Worksheet.Rows.Item[firstCellRow].Columns[firstCellCol + j] = values[j];
                         break;
                     case InsertMethod.AsColumn:
-                        Worksheet.Rows.Item[row + j].Columns[col] = values[j];
+                        Worksheet.Rows.Item[firstCellRow + j].Columns[firstCellCol] = values[j];
                         break;
                     default:
                         throw new RpaLibArgumentException($"Invalid insertion method: {rowOrCol}");
@@ -251,16 +410,16 @@ namespace RpaLib.Tracing
             excel.ToggleVisible(makeVisible: visible);
 
             if (appendRow)
-                startRow = excel.UsedRangeCount["rows"] + 1;
+                startRow = excel.UsedRangeCount.Rows + 1;
 
             if (appendCol)
-                startCol = excel.UsedRangeCount["cols"] + 1;
+                startCol = excel.UsedRangeCount.Cols + 1;
 
             if (endRow < 1)
-                endRow = excel.UsedRangeCount["rows"];
+                endRow = excel.UsedRangeCount.Rows;
 
             if (endCol < 1)
-                endCol = excel.UsedRangeCount["cols"];
+                endCol = excel.UsedRangeCount.Cols;
 
             if (writeRow != null)
                 excel.WriteCell(startRow, startCol, writeRow, InsertMethod.AsRow);
@@ -286,8 +445,8 @@ namespace RpaLib.Tracing
             if (readAll)
                 returnValue =
                     excel.ReadCell(startRow, startCol,
-                        excel.UsedRangeCount["rows"],
-                        excel.UsedRangeCount["cols"]);
+                        excel.UsedRangeCount.Rows,
+                        excel.UsedRangeCount.Cols);
             else if (readRow > 0)
                 returnValue =
                     excel.ReadCell(readRow, Excel.Range(startCol, endCol));
@@ -301,7 +460,7 @@ namespace RpaLib.Tracing
             return returnValue;
         }
 
-        public static DataTable ReadAll(string filePath, string sheetName, bool visible = false, bool disableMacros = false)
+        public static DataTable ReadAll(string filePath, string sheetName, bool visible = false, bool disableMacros = false, bool breakAtEmptyLine = true, int startRow = 1, int startCol = 1)
         {
             string fileFullPath = Ut.GetFullPath(filePath);
             bool disableMacroOnlyIfXlsm = disableMacros && Ut.IsMatch("filePath", @"\.xlsm$");
@@ -309,17 +468,66 @@ namespace RpaLib.Tracing
 
             excel.ToggleVisible(visible);
 
-            int startRow = 1;
-            int startCol = 1;
-
             var contents = excel.ReadCell(startRow, startCol,
-                            excel.UsedRangeCount["rows"],
-                            excel.UsedRangeCount["cols"],
+                            excel.UsedRangeCount.Rows,
+                            excel.UsedRangeCount.Cols,
                             breakAtEmptyLine: true);
+
+            //var contents = excel.ReadCellMultiProc(Range(startRow, excel.UsedRangeCount.Rows), Range(startCol, excel.UsedRangeCount.Cols), breakAtEmptyLine: breakAtEmptyLine);
 
             excel.Quit();
 
             return ArrayStrTableToDataTable(contents);
+        }
+
+        // Writes an array of values as a column or firstCellRow into the sheet. It starts at the cell specified by firstCellRow and firstCellCol values.
+        // If firstCellRow or firstCellCol are negative, it will consider the next free one. 
+        public static void WriteAll(string filePath, string sheetName, int row, int col, string[] values, InsertMethod rowOrCol, bool visible = false)
+        {
+            var excel = new Excel(filePath, sheetName, disableMacros: false);
+            excel.ToggleVisible(visible);
+
+            if (row < 0)
+                row = excel.UsedRangeCount.Rows;
+
+            if (col < 0)
+                col = excel.UsedRangeCount.Cols;
+
+            excel.WriteCell(row, col, values, rowOrCol);
+            excel.Save();
+            excel.Quit();
+        }
+
+        // TODO: code validation for excel Range (accept only: A1, A1:B2, A:A)
+        // formula must be in the English like manner =VLOOKUP(G2,A:C,3,0) 
+        public static void InsertFormula(string filePath, string sheetName, string excelRange, string formula, bool visible = false)
+        {
+            var excel = new Excel(filePath, sheetName, disableMacros: false);
+            excel.ToggleVisible(visible);
+
+            excel.InsertFormula(formula, excelRange);
+
+            excel.SaveAndQuit();
+        }
+
+        public static void InsertFormula(string filePath, string sheetName, string formula, int firstCellRow, int firstCellCol, int lastCellRow = -1, int lastCellCol = -1, bool visible = false)
+        {
+            var excel = new Excel(filePath, sheetName, disableMacros: false);
+            excel.ToggleVisible(visible);
+
+            excel.InsertFormula(formula, firstCellRow, firstCellCol, lastCellRow, lastCellCol);
+
+            excel.SaveAndQuit();
+        }
+
+        public static void InsertFormula(string filePath, string sheetName, string formula, string firstCell, string lastCell, bool visible = false)
+        {
+            var excel = new Excel(filePath, sheetName, disableMacros: false);
+            excel.ToggleVisible(visible);
+
+            excel.InsertFormula(formula, firstCell, lastCell);
+
+            excel.SaveAndQuit();
         }
 
         public static void WriteNextFreeRow(string filePath, DataTable table, string sheetName = DefaultSheetName, bool visible = false, bool disableMacros = false)
@@ -329,7 +537,7 @@ namespace RpaLib.Tracing
 
             excel.ToggleVisible(visible);
 
-            int startRow = excel.UsedRangeCount["rows"] + 1;
+            int startRow = excel.UsedRangeCount.Rows + 1;
             int startCol = 1;
 
             List<string[]> rowList = new List<string[]>();
@@ -412,7 +620,7 @@ namespace RpaLib.Tracing
 
             // Define dataRows from definition of dataColumn and assign arrayStrTable values to it
             var listStrTable = new List<string[]>(arrayStrTable);
-            listStrTable.RemoveAt(0); // remove the header row
+            listStrTable.RemoveAt(0); // remove the header firstCellRow
             foreach (var row in listStrTable)
             {
                 DataRow dataRow = dataTable.NewRow();

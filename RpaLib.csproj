@@ -248,6 +248,7 @@
     <Compile Include="SDKs\AutoIt\SendKeysFlagEnum.cs" />
     <Compile Include="SDKs\AutoIt\WindowStateEnum.cs" />
     <Compile Include="Tracing\Excel.cs" />
+    <Compile Include="Tracing\ExcelColumnEnum.cs" />
     <Compile Include="Tracing\Exceptions\ExcelException.cs" />
     <Compile Include="Tracing\Exceptions\WorksheetNotFoundException.cs" />
     <Compile Include="Tracing\InsertMethodEnum.cs" />
@@ -257,6 +258,7 @@
     <Compile Include="SAP\Legacy\Sap.cs" />
     <Compile Include="Tracing\Log.cs" />
     <Compile Include="Tracing\LogTypeEnum.cs" />
+    <Compile Include="Tracing\SheetUsedRange.cs" />
     <Compile Include="Tracing\Trace.cs" />
     <Compile Include="Web\Selenium.cs" />
     <Compile Include="Web\SeleniumExceptions.cs" />
