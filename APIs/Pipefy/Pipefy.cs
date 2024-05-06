@@ -328,8 +328,7 @@ namespace RpaLib.APIs.Pipefy
             ";
 
         private string cardsImporter = @"
-            {
-	            mutation { 
+	          mutation { 
                 cardsImporter(
                   input: <<ParseInput>> 
                 ) { 
@@ -340,7 +339,6 @@ namespace RpaLib.APIs.Pipefy
                   } 
                 } 
               }
-            }
             ";
 
         #endregion
@@ -816,21 +814,21 @@ namespace RpaLib.APIs.Pipefy
             return await GraphQl.QueryAsync<CreatePresignedUrlResult>(query, Uri, Token, JsonSerializerSettingsCamel);
         }
 
-        private string CardsImporterParseInput(string url, string assigneesColumn = null, string labelsColumn = null, 
-            string dueDateColumn = null, string currentPhaseColumn = null, Dictionary<ExcelColumn, string> fieldValuesColumn = null)
+        private string CardsImporterParseInput(string url, ExcelColumn assigneesColumn = ExcelColumn.None, ExcelColumn labelsColumn = ExcelColumn.None,
+            ExcelColumn dueDateColumn = ExcelColumn.None, ExcelColumn currentPhaseColumn = ExcelColumn.None, Dictionary<ExcelColumn, string> fieldValuesColumn = null)
         {
             StringBuilder input = new StringBuilder($"{{ pipeId: \"{PipeId}\", url: \"{url}\"");
 
-            if (assigneesColumn != null)
+            if (assigneesColumn != ExcelColumn.None)
                 input.Append($", assigneesColumn: \"{assigneesColumn}\"");
 
-            if (labelsColumn != null)
+            if (labelsColumn != ExcelColumn.None)
                 input.Append($", labelsColumn: \"{labelsColumn}\"");
 
-            if (dueDateColumn != null)
+            if (dueDateColumn != ExcelColumn.None)
                 input.Append($", dueDateColumn: \"{dueDateColumn}\"");
 
-            if (currentPhaseColumn != null)
+            if (currentPhaseColumn != ExcelColumn.None)
                 input.Append($", currentPhaseColumn: \"{currentPhaseColumn}\"");
 
             if (fieldValuesColumn != null)
@@ -853,21 +851,50 @@ namespace RpaLib.APIs.Pipefy
             return input.ToString();
         }
 
-        public async Task<GraphQlResponse<CardsImporterResult>> CardsImporterAsync(string excelFilePath, string assigneesColumn = null,
-            string labelsColumn = null, string dueDateColumn = null, string currentPhaseColumn = null, Dictionary<ExcelColumn, string> exlColumnPipField = null)
+        public async Task<GraphQlResponse<CardsImporterResult>> CardsImporterAsync(string excelFilePath, ExcelColumn assigneesColumn = ExcelColumn.None,
+            ExcelColumn labelsColumn = ExcelColumn.None, ExcelColumn dueDateColumn = ExcelColumn.None, ExcelColumn currentPhaseColumn = ExcelColumn.None,
+            Dictionary<ExcelColumn, string> exlColumnPipField = null)
         {
             var cloudFileName = Path.GetFileName(excelFilePath);
             var uploadResult = await UploadFileAsync(excelFilePath, cloudFileName);
 
             var input = CardsImporterParseInput(uploadResult.DownloadUrl, assigneesColumn, labelsColumn, dueDateColumn, currentPhaseColumn, exlColumnPipField);
 
+            /* Exemplo de como deve ficar a query:
+             mutation { 
+                cardsImporter(
+                  input: { 
+                    pipeId: "902791",
+                    url: "https://app.pipefy.com/storage/v1/signed/orgs/058fec5c-828c-4220-9f44-ccb4e183f8a8/uploads/c8b5f927-8dab-468f-9aa2-c491aac5759c/Cronograma_de_Fechamento_Import_Pipefy_maio.2024.xlsx?signature=eRta4CngLFDvuuT7%2Fr6qbop3Dny3yRG%2F2BeUJZea%2F0M%3D",
+                    fieldValuesColumns: [ { column: "B", fieldId: "solciita_o" },
+          										            { column: "C", fieldId: "detalhes" },
+          										            { column: "D", fieldId: "prazo_ideal" },
+          										            { column: "E", fieldId: "frequency" },
+          										            { column: "F", fieldId: "action_plan_performer" },
+          										            { column: "G", fieldId: "performer_email" }, 
+          										            { column: "H", fieldId: "entidade_respons_vel" },
+          										            { column: "I", fieldId: "fiscal_year_period" },
+          										            { column: "J", fieldId: "copy_of_per_odo_do_ano_fiscal" },
+          										            { column: "K", fieldId: "aprovador_respons_vel_1" },
+          										            { column: "L", fieldId: "approver_email_address" } ] 
+      
+                  }) { 
+                  cardsImportation { 
+                    id
+                    status
+                    importedCards
+                  } 
+                } 
+              }
+             */
             var query = cardsImporter.Replace("<<ParseInput>>", input);
 
             return await GraphQl.QueryAsync<CardsImporterResult>(query, Uri, Token, JsonSerializerSettingsCamel);
         }
 
-        public GraphQlResponse<CardsImporterResult> CardsImporter(string excelFilePath, string assigneesColumn = null,
-            string labelsColumn = null, string dueDateColumn = null, string currentPhaseColumn = null, Dictionary<ExcelColumn, string> exlColumnPipField = null)
+        public GraphQlResponse<CardsImporterResult> CardsImporter(string excelFilePath, ExcelColumn assigneesColumn = ExcelColumn.None,
+            ExcelColumn labelsColumn = ExcelColumn.None, ExcelColumn dueDateColumn = ExcelColumn.None, ExcelColumn currentPhaseColumn = ExcelColumn.None, 
+            Dictionary<ExcelColumn, string> exlColumnPipField = null)
         {
             var asyncVersion = CardsImporterAsync(excelFilePath, assigneesColumn, labelsColumn, dueDateColumn, currentPhaseColumn, exlColumnPipField);
             asyncVersion.Wait();
@@ -1100,7 +1127,7 @@ namespace RpaLib.APIs.Pipefy
 
         public async Task<UploadFileReturn> UploadFileAsync(string filePath, string fileNameInCloudWithExtension)
         {
-            var presignedUrl = CreatePresignedUrl(fileNameInCloudWithExtension).Data.CreatePresignedUrl;
+            var presignedUrl = (await CreatePresignedUrlAsync(fileNameInCloudWithExtension))?.Data.CreatePresignedUrl;
             var uploadUrl = presignedUrl.Url;
             var downloadUrl = presignedUrl.DownloadUrl;
 

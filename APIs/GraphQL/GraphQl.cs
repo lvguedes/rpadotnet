@@ -82,7 +82,7 @@ namespace RpaLib.APIs.GraphQL
 
             graphQLHttpClient.Dispose();
 
-            return new GraphQlResponse<T>(response);
+            return new GraphQlResponse<T>(response, graphQlQuery);
         }
 
     }
