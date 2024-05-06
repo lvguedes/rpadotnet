@@ -30,6 +30,7 @@
     <Reference Include="CredentialManagement">
       <HintPath>..\..\packages\CredentialManagement.1.0.2\lib\net35\CredentialManagement.dll</HintPath>
     </Reference>
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
 </Project>

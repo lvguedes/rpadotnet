@@ -30,6 +30,7 @@ using System.IO.Pipes;
 using RpaLib.ProcessAutomation.Exceptions;
 using CredentialManagement;
 using System.Security.Authentication;
+using System.Runtime.Serialization.Formatters.Binary;
 
 /*
 Reference Assemblies:
@@ -51,6 +52,16 @@ namespace RpaLib.ProcessAutomation
 
         [DllImport("Kernel32.dll", SetLastError = true)]
         public static extern int SetStdHandle(int device, IntPtr handle);
+
+        public static int[] Seq(int start, int end)
+        {
+            List<int> range = new List<int>();
+
+            for (int i = start; i <= end; i++)
+                range.Add(i);
+
+            return range.ToArray();
+        }
 
         #region RegularExpressions
 
@@ -371,6 +382,29 @@ namespace RpaLib.ProcessAutomation
             return yaml;
         }
 
+        public static void BinarySerialize(object obj, string filePath)
+        {
+            using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                BinaryFormatter formatter = new BinaryFormatter();
+                formatter.Serialize(fileStream, obj);
+            }
+        }
+
+        public static T BinaryDeserialize<T>(string filePath)
+        {
+            T deserializedData;
+
+            using (FileStream fileStream = new FileStream(filePath, FileMode.Open))
+            {
+                BinaryFormatter formatter = new BinaryFormatter();
+                deserializedData = (T)formatter.Deserialize(fileStream);
+            }
+
+            return deserializedData;
+        }
+
+
         #endregion
 
         #region DataPrinting
@@ -650,6 +684,28 @@ namespace RpaLib.ProcessAutomation
             Trace.WriteLine(response.StatusCode);
 
             return response;
+        }
+
+        public static async Task<HttpResponseMessage> HttpPutFileAsync(string filePath, string apiUrl)
+        {
+            // Read the file into a byte array
+            byte[] fileBytes = File.ReadAllBytes(filePath);
+
+            // Create a HttpClient instance
+            using (HttpClient client = new HttpClient())
+            {
+                ByteArrayContent content = new ByteArrayContent(fileBytes);
+
+                // Send the PUT request to the API endpoint
+                HttpResponseMessage response = await client.PutAsync(apiUrl, content);
+
+                if (! response.IsSuccessStatusCode)
+                {
+                    throw new RpaLibException($"Error uploading file. Response status code: {response.StatusCode}");
+                }
+
+                return response;
+            }
         }
 
         #endregion

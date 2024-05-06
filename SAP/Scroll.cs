@@ -73,7 +73,7 @@ namespace RpaLib.SAP
                     $"  Minimum:  {scrollbar.Minimum}",  // index of first filled line
                     $"  Maximum:  {scrollbar.Maximum}",  // index of last filled line
                     $"  PageSize: {scrollbar.PageSize}", // number of lines (filled or not) supported by each page
-                    $"  Range:    {scrollbar.Range}"     // same as Maximum
+                    $"  Seq:    {scrollbar.Range}"     // same as Maximum
                 )
             );
         }

@@ -179,6 +179,8 @@
     <Compile Include="APIs\Pipefy\Model\CardEdge.cs" />
     <Compile Include="APIs\Pipefy\Model\CardField.cs" />
     <Compile Include="APIs\Pipefy\Model\CardResult.cs" />
+    <Compile Include="APIs\Pipefy\Model\CardsImportation.cs" />
+    <Compile Include="APIs\Pipefy\Model\CardsImporterResult.cs" />
     <Compile Include="APIs\Pipefy\Model\CreatePresignedUrlData.cs" />
     <Compile Include="APIs\Pipefy\Model\CreatePresignedUrlResult.cs" />
     <Compile Include="APIs\Pipefy\Model\FieldLabel.cs" />
@@ -199,6 +201,7 @@
     <Compile Include="APIs\Pipefy\Model\User.cs" />
     <Compile Include="APIs\Pipefy\Pipefy.cs" />
     <Compile Include="APIs\Pipefy\PipefyInfoEnum.cs" />
+    <Compile Include="APIs\Pipefy\UploadFileReturn.cs" />
     <Compile Include="Database\Db.cs" />
     <Compile Include="Database\QueryReturn.cs" />
     <Compile Include="Database\SharePoint.cs" />

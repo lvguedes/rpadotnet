@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Net.Http;
 using RpaLib.APIs.GraphQL;
 using RpaLib.APIs.Pipefy.Model;
 using RpaLib.APIs.Pipefy.Exception;
@@ -13,6 +14,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.IO;
 using RpaLib.ProcessAutomation;
+using System.Security.Policy;
 
 namespace RpaLib.APIs.Pipefy
 {
@@ -161,6 +163,12 @@ namespace RpaLib.APIs.Pipefy
                         name
                         id
                         cards_count
+                        fields {
+                            id
+                            options
+                            label
+                            type 
+                        }
                         cards_can_be_moved_to_phases {
                             name
                         }
@@ -214,40 +222,15 @@ namespace RpaLib.APIs.Pipefy
             {
               phase (id: $phaseId) {
                 cards_count
-                cards (first: $max, after: ""$afterCursor"") {
-                  pageInfo {
-                    hasPreviousPage
-            	    hasNextPage
-            	    startCursor
-            	    endCursor
-                  }
-                  edges {
-                    cursor
-                    node {
-            	      id
-                      current_phase {
-                        id
-                      }
-                      createdAt
-                      age
-            	      fields {
-            	        name
-            		    phase_field { id }
-                        field {
-                          id
-                          options
-                          label
-                          type
-                        }
-            	        value
-                      }
-            	      labels {
-            	        id
-            	        name
-            	        color
-            	      }
-            	    }
-                  }
+                fields {
+                  label
+                  id
+                  options
+                  type
+                  is_multiple
+                  description
+                  editable
+                  required
                 }
               }
             }";
@@ -288,6 +271,19 @@ namespace RpaLib.APIs.Pipefy
               }
             }";
 
+        private string queryStartFormFields = @"
+            query {
+                pipe(id: ""<<PipeId>>"") {
+                    start_form_fields {
+                        id
+                        options
+                        label
+                        type
+                    }
+                }
+            }
+            ";
+
         private string moveCardToPhase = @"
                 mutation {
                   moveCardToPhase(input: {
@@ -326,8 +322,25 @@ namespace RpaLib.APIs.Pipefy
                     createPresignedUrl(input: { organizationId: <<OrgId>>, fileName: ""<<FileName>>"" }){
                         clientMutationId
                         url
+                        downloadUrl
                     }
                 }
+            ";
+
+        private string cardsImporter = @"
+            {
+	            mutation { 
+                cardsImporter(
+                  input: <<ParseInput>> 
+                ) { 
+                  cardsImportation { 
+                    id
+                    status
+                    importedCards
+                  } 
+                } 
+              }
+            }
             ";
 
         #endregion
@@ -666,6 +679,20 @@ namespace RpaLib.APIs.Pipefy
             return response;
         }
 
+        public GraphQlResponse<PipeResult> QueryStartFormFields()
+        {
+            string query = queryStartFormFields.Replace(@"<<PipeId>>", PipeId);
+
+            return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
+        public async Task<GraphQlResponse<PipeResult>> QueryStartFormFieldsAsync()
+        {
+            string query = queryStartFormFields.Replace(@"<<PipeId>>", PipeId);
+
+            return await GraphQl.QueryAsync<PipeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
         public GraphQlResponse<PhaseResult> QueryPhaseFields(string phaseId)
         {
             string query = queryPhaseFields.Replace("$phaseId", phaseId);
@@ -789,6 +816,64 @@ namespace RpaLib.APIs.Pipefy
             return await GraphQl.QueryAsync<CreatePresignedUrlResult>(query, Uri, Token, JsonSerializerSettingsCamel);
         }
 
+        private string CardsImporterParseInput(string url, string assigneesColumn = null, string labelsColumn = null, 
+            string dueDateColumn = null, string currentPhaseColumn = null, Dictionary<ExcelColumn, string> fieldValuesColumn = null)
+        {
+            StringBuilder input = new StringBuilder($"{{ pipeId: \"{PipeId}\", url: \"{url}\"");
+
+            if (assigneesColumn != null)
+                input.Append($", assigneesColumn: \"{assigneesColumn}\"");
+
+            if (labelsColumn != null)
+                input.Append($", labelsColumn: \"{labelsColumn}\"");
+
+            if (dueDateColumn != null)
+                input.Append($", dueDateColumn: \"{dueDateColumn}\"");
+
+            if (currentPhaseColumn != null)
+                input.Append($", currentPhaseColumn: \"{currentPhaseColumn}\"");
+
+            if (fieldValuesColumn != null)
+            {
+                input.Append($", fieldValuesColumns: [ ");
+                var processedItems = 0;
+                foreach (var columnField in fieldValuesColumn)
+                {
+                    if (processedItems > 0)
+                        input.Append(", "); // item separator from second to the end
+
+                    input.Append($"{{ column: \"{columnField.Key}\", fieldId: \"{columnField.Value}\" }}");
+                    processedItems++;
+                }
+                input.Append("] ");
+            }
+
+            input.Append("} ");
+
+            return input.ToString();
+        }
+
+        public async Task<GraphQlResponse<CardsImporterResult>> CardsImporterAsync(string excelFilePath, string assigneesColumn = null,
+            string labelsColumn = null, string dueDateColumn = null, string currentPhaseColumn = null, Dictionary<ExcelColumn, string> exlColumnPipField = null)
+        {
+            var cloudFileName = Path.GetFileName(excelFilePath);
+            var uploadResult = await UploadFileAsync(excelFilePath, cloudFileName);
+
+            var input = CardsImporterParseInput(uploadResult.DownloadUrl, assigneesColumn, labelsColumn, dueDateColumn, currentPhaseColumn, exlColumnPipField);
+
+            var query = cardsImporter.Replace("<<ParseInput>>", input);
+
+            return await GraphQl.QueryAsync<CardsImporterResult>(query, Uri, Token, JsonSerializerSettingsCamel);
+        }
+
+        public GraphQlResponse<CardsImporterResult> CardsImporter(string excelFilePath, string assigneesColumn = null,
+            string labelsColumn = null, string dueDateColumn = null, string currentPhaseColumn = null, Dictionary<ExcelColumn, string> exlColumnPipField = null)
+        {
+            var asyncVersion = CardsImporterAsync(excelFilePath, assigneesColumn, labelsColumn, dueDateColumn, currentPhaseColumn, exlColumnPipField);
+            asyncVersion.Wait();
+            return asyncVersion.Result;
+        }
+
         #endregion
 
         /// <summary>
@@ -822,7 +907,8 @@ namespace RpaLib.APIs.Pipefy
                 case PipefyInfo.PhaseFields:
                     if (phaseId == null)
                         throw new RpaLibArgumentNullException("Phase ID argument is mandatory to fetch the fields from that phase.");
-                    PhaseResult phaseQuery = (await QueryPhaseFieldsAsync(phaseId)).Data;
+                    var phaseQueryResp = await QueryPhaseFieldsAsync(phaseId);
+                    PhaseResult phaseQuery = phaseQueryResp.Data;
                     infoMsg.AppendLine($"Phase (ID {phaseQuery.Phase.Id}) {phaseQuery.Phase.Name}, has the following fields:");
                     foreach (PhaseField field in phaseQuery.Phase.Fields)
                     {
@@ -955,7 +1041,7 @@ namespace RpaLib.APIs.Pipefy
             return foundFieldValue;
         }
 
-        public string AttachFileToCard(string filePath, string cardId, string fieldId)
+        public string AttachFileToCardCurl(string filePath, string cardId, string fieldId)
         {
             var fileBaseName = Path.GetFileName(filePath);
             var url = CreatePresignedUrl(fileBaseName).Data.CreatePresignedUrl.Url;
@@ -968,6 +1054,66 @@ namespace RpaLib.APIs.Pipefy
             var result = UpdateCardField(cardId, fieldId, new string[] { pathFromUrl });
 
             return null;
+        }
+
+        public GraphQlResponse<UpdateCardFieldResult> AttachFileToCard(string filePath, string cardId, string fieldId)
+        {
+            var asyncVersion = AttachFileToCardAsync(filePath, cardId, fieldId);
+            asyncVersion.Wait();
+            return asyncVersion.Result;
+        }
+
+        public async Task<GraphQlResponse<UpdateCardFieldResult>> AttachFileToCardAsync(string filePath, string cardId, string fieldId)
+        {
+            var fileBaseName = Path.GetFileName(filePath);
+            var uploadFileReturn = await UploadFileAsync(filePath, fileBaseName);
+
+            var pathFromUrl = Ut.Replace(uploadFileReturn.UploadUrl, @"^https://[^/]+/", string.Empty);
+            pathFromUrl = Ut.Match(pathFromUrl, @"^.+" + fileBaseName.Replace(".", @"\."));
+
+            var result = await UpdateCardFieldAsync(cardId, fieldId, new string[] { pathFromUrl });
+
+            return result;
+        }
+
+        public UploadFileReturn UploadFile(string filePath)
+        {
+            var fileNameInCloudWithExtension = Path.GetFileName(filePath);
+            return UploadFile(filePath, fileNameInCloudWithExtension);
+        }
+
+        public UploadFileReturn UploadFile(string filePath, string fileNameInCloudWithExtension)
+        {
+            var asyncVersion = UploadFileAsync(filePath, fileNameInCloudWithExtension);
+
+            asyncVersion.Wait();
+
+            return asyncVersion.Result;
+        }
+
+
+        public async Task<UploadFileReturn> UploadFileAsync(string filePath)
+        {
+            var fileNameInCloudWithExtension = Path.GetFileName(filePath);
+            return await UploadFileAsync(filePath, fileNameInCloudWithExtension);
+        }
+
+        public async Task<UploadFileReturn> UploadFileAsync(string filePath, string fileNameInCloudWithExtension)
+        {
+            var presignedUrl = CreatePresignedUrl(fileNameInCloudWithExtension).Data.CreatePresignedUrl;
+            var uploadUrl = presignedUrl.Url;
+            var downloadUrl = presignedUrl.DownloadUrl;
+
+            var testFilePath = Ut.GetFullPath(filePath);
+
+            var response = await Ut.HttpPutFileAsync(testFilePath, uploadUrl);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new RpaLibException($"The file \"{filePath}\" could not be uploaded to AWS bucket (via presigned URL)");
+            }
+
+            return new UploadFileReturn(uploadUrl, downloadUrl);
         }
     }
 }

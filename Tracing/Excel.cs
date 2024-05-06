@@ -67,31 +67,83 @@ namespace RpaLib.Tracing
             UsedRangeCount.Cols = Worksheet.UsedRange.Columns.Count;
         }
 
-        public static int[] Range(int start, int end)
-        {
-            List<int> range = new List<int>();
-
-            for (int i = start; i <= end; i++)
-                range.Add(i);
-
-            return range.ToArray();
-        }
-
         public Range GetRange(string excelRange)
         {
-            var range = Worksheet.Range[excelRange];
+            Range range;
+            try
+            {
+                range = Worksheet.Range[excelRange];
+            }
+            catch(COMException ex)
+            {
+                throw new ExcelException($"The specified range \"{excelRange}\" wasn't accepted by Excel. COMException message: {ex.Message}.", ex);
+            }
+            
             return range;
         }
 
         public Range GetRange(string firstCell, string lastCell)
         {
-            var range = Worksheet.Range[firstCell, lastCell];
+            Range range;
+            try
+            {
+                range = Worksheet.Range[firstCell, lastCell];
+            }
+            catch (COMException ex)
+            {
+                throw new ExcelException($"Either specified range \"{firstCell}\" or \"{lastCell}\" weren't accepted by Excel. COMException message: {ex.Message}.", ex);
+            }
+            
             return range;
+        }
+
+        public Range GetRange(int firstCellRow, ExcelColumn firstCellCol, int lastCellRow, ExcelColumn lastCellCol)
+        {
+            return GetRange(firstCellRow, (int)firstCellCol, lastCellRow, (int)lastCellCol);
         }
 
         public Range GetRange(int firstCellRow, int firstCellCol, int lastCellRow, int lastCellCol)
         {
-            var range = Worksheet.Range[Worksheet.Cells[firstCellRow, firstCellCol], Worksheet.Cells[lastCellRow, lastCellCol]];
+            Range firstCell;
+            Range lastCell;
+            Range range;
+
+            if (firstCellRow <= 0 | firstCellCol <= 0 | lastCellRow <= 0 | lastCellCol <= 0)
+            {
+                throw new RpaLibArgumentException($"Row and Column excel indexes start must be positive integers starting from 1.");
+            }
+
+            // parse the first cell
+            try
+            {
+                firstCell = Worksheet.Cells[firstCellRow, firstCellCol];
+            }
+            catch (COMException ex)
+            {
+                throw new ExcelException($"The specified row [{firstCellRow}] or column [{firstCellCol}] for the first cell weren't accepted by Excel. COMException message: {ex.Message}", ex);
+            }
+
+            // parse the last cell
+            try
+            {
+                lastCell = Worksheet.Cells[lastCellRow, lastCellCol];
+            }
+            catch (COMException ex)
+            {
+                throw new ExcelException($"The specified row [{lastCellRow}] or column [{lastCellCol}] for the last cell weren't accepted by Excel. COMException message: {ex.Message}", ex);
+            }
+
+            // get full range between first and last cell in left-right up-down order in a reading like manner.
+
+            try
+            {
+                range = Worksheet.Range[firstCell, lastCell];
+            }
+            catch (COMException ex)
+            {
+                throw new ExcelException($"The specified range between cells ({firstCellRow}, {firstCellCol}) and ({lastCellRow}, {lastCellCol}) wasn't accepted by Excel. COMException message: {ex.Message}");
+            }
+
             return range;
         }
 
@@ -99,9 +151,6 @@ namespace RpaLib.Tracing
         public void InsertFormula(string formula, string excelRange)
         {
             Range formulaFullRange = GetRange(excelRange);
-            //Range formulaCell = formulaFullRange.Cells[1];
-            //formulaCell.Formula = formula;
-            //formulaCell.AutoFill(formulaFullRange, XlAutoFillType.xlFillDefault);
             InsertFormula(formulaFullRange, formula);
         }
 
@@ -120,19 +169,52 @@ namespace RpaLib.Tracing
         //    InsertFormula("=VLOOKUP()", 1, 1, lastCellCol: 2); // last cell firstCellRow will be the last used
         public void InsertFormula(string formula, int firstCellRow, int firstCellCol, int lastCellRow = -1, int lastCellCol = -1)
         {
-            if (lastCellRow < 0)
+            if (lastCellRow <= 0)
                 lastCellRow = UsedRangeCount.Rows;
 
-            if (lastCellCol < 0)
+            if (lastCellCol <= 0)
                 lastCellCol = UsedRangeCount.Cols;
 
             Range formulaFullRange = GetRange(firstCellRow, firstCellCol, lastCellRow, lastCellCol);
             InsertFormula(formulaFullRange, formula);
         }
 
+        public void InsertFormula(string formula, int firstCellRow, ExcelColumn firstCellCol, int lastCellRow = -1, ExcelColumn lastCellCol = ExcelColumn.None)
+        {
+            InsertFormula(formula, firstCellRow, (int)firstCellCol, lastCellRow, (int)lastCellCol);
+        }
+
         private void InsertFormula(Range range, string excelFormula)
         {
-            range.Formula = excelFormula;
+            try
+            {
+                range.Formula = excelFormula;
+            }
+            catch (COMException ex)
+            {
+                throw new ExcelException("Excel: Error trying to insert formula in cell. Check formula syntax.", ex);
+            }
+            
+        }
+
+        public string ExtractFormula(string cell)
+        {
+            Range cellRange = GetRange(cell);
+            
+            string extractedFormula = (string)cellRange.Formula;
+
+            return extractedFormula;
+        }
+
+        public void RemoveFormulaKeepValue(string cellRange)
+        {
+            Range range = GetRange(cellRange);
+
+            foreach (Range cell in range)
+            {
+                if (cell.HasFormula)
+                    cell.Value = cell.Value;
+            }
         }
 
         public void Quit()
@@ -277,7 +359,7 @@ namespace RpaLib.Tracing
                 if (i == threads)
                     maxRow += (rows.Length % threads);
 
-                var rowRange = Range(minRow, maxRow);
+                var rowRange = Ut.Seq(minRow, maxRow);
 
                 tasks.Add(Task.Factory.StartNew(() => ReadCellEditAppendRows(rowRange, cols, breakAtEmptyLine))); 
             }
@@ -339,18 +421,28 @@ namespace RpaLib.Tracing
 
         public string[][] ReadCell(int startRow, int startCol, int endRow, int endCol, bool breakAtEmptyLine = false)
         {
-            return ReadCell(Range(startRow, endRow), Range(startCol, endCol), breakAtEmptyLine);
+            return ReadCell(Ut.Seq(startRow, endRow), Ut.Seq(startCol, endCol), breakAtEmptyLine);
         }
 
         public string[] ReadCell(int row, int startCol, int endCol)
         {
-            return ReadCell(row, Range(startCol, endCol));
+            return ReadCell(row, Ut.Seq(startCol, endCol));
+        }
+
+        public void WriteCell(int row, ExcelColumn col, string value)
+        {
+            WriteCell(row, (int)col, value);
         }
 
         public void WriteCell(int row, int col, string value)
         {
             Worksheet.Rows.Item[row].Columns.Item[col] = value;
             UpdateUsedRangeCount();
+        }
+
+        public void WriteCell(int firstCellRow, ExcelColumn firstCellCol, string[] values, InsertMethod rowOrCol)
+        {
+            WriteCell(firstCellRow, (int)firstCellCol, values, rowOrCol);
         }
 
         public void WriteCell(int firstCellRow, int firstCellCol, string[] values, InsertMethod rowOrCol)
@@ -372,10 +464,15 @@ namespace RpaLib.Tracing
             UpdateUsedRangeCount();
         }
 
-        public void WriteCell(int row, int col, string[][] tableOfValues)
+        public void WriteCell(int firstCellRow, ExcelColumn firstCellCol, string[][] tableOfValues)
+        {
+            WriteCell(firstCellRow, (int)firstCellCol, tableOfValues);
+        }
+
+        public void WriteCell(int firstCellRow, int firstCellCol, string[][] tableOfValues)
         {
             for (int i = 0; i < tableOfValues.Count(); i++)
-                WriteCell(i + row, col, tableOfValues[i], InsertMethod.AsRow);
+                WriteCell(i + firstCellRow, firstCellCol, tableOfValues[i], InsertMethod.AsRow);
         }
 
         // Finalizer method
@@ -449,10 +546,10 @@ namespace RpaLib.Tracing
                         excel.UsedRangeCount.Cols);
             else if (readRow > 0)
                 returnValue =
-                    excel.ReadCell(readRow, Excel.Range(startCol, endCol));
+                    excel.ReadCell(readRow, Ut.Seq(startCol, endCol));
             else if (readCol > 0)
                 returnValue =
-                    excel.ReadCell(Excel.Range(startRow, endRow), readCol);
+                    excel.ReadCell(Ut.Seq(startRow, endRow), readCol);
 
             excel.Save(saveAs);
             excel.Quit();
@@ -473,7 +570,7 @@ namespace RpaLib.Tracing
                             excel.UsedRangeCount.Cols,
                             breakAtEmptyLine: true);
 
-            //var contents = excel.ReadCellMultiProc(Range(startRow, excel.UsedRangeCount.Rows), Range(startCol, excel.UsedRangeCount.Cols), breakAtEmptyLine: breakAtEmptyLine);
+            //var contents = excel.ReadCellMultiProc(Ut.Seq(startRow, excel.UsedRangeCount.Rows), Ut.Seq(startCol, excel.UsedRangeCount.Cols), breakAtEmptyLine: breakAtEmptyLine);
 
             excel.Quit();
 
@@ -498,7 +595,7 @@ namespace RpaLib.Tracing
             excel.Quit();
         }
 
-        // TODO: code validation for excel Range (accept only: A1, A1:B2, A:A)
+        // TODO: code validation for excel Ut.Seq (accept only: A1, A1:B2, A:A)
         // formula must be in the English like manner =VLOOKUP(G2,A:C,3,0) 
         public static void InsertFormula(string filePath, string sheetName, string excelRange, string formula, bool visible = false)
         {
