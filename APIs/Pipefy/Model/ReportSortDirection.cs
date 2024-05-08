@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace RpaLib.APIs.Pipefy.Model
 {
-    public class CardsImporterResult
+    public class ReportSortDirection
     {
-        public CardsImporterData CardsImporter {  get; set; }
+        public SortDirection Direction { get; set; }
+        public string Field { get; set; }
     }
 }

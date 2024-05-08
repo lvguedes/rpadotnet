@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace RpaLib.APIs.Pipefy.Model
 {
-    public class CardsImporterResult
+    public enum SortDirection
     {
-        public CardsImporterData CardsImporter {  get; set; }
+        Asc,
+        Desc,
     }
 }

@@ -180,9 +180,13 @@
     <Compile Include="APIs\Pipefy\Model\CardField.cs" />
     <Compile Include="APIs\Pipefy\Model\CardResult.cs" />
     <Compile Include="APIs\Pipefy\Model\CardsImportation.cs" />
+    <Compile Include="APIs\Pipefy\Model\CardsImporterData.cs" />
     <Compile Include="APIs\Pipefy\Model\CardsImporterResult.cs" />
     <Compile Include="APIs\Pipefy\Model\CreatePresignedUrlData.cs" />
     <Compile Include="APIs\Pipefy\Model\CreatePresignedUrlResult.cs" />
+    <Compile Include="APIs\Pipefy\Model\ExpirationStateEnum.cs" />
+    <Compile Include="APIs\Pipefy\Model\ExportPipeReportData.cs" />
+    <Compile Include="APIs\Pipefy\Model\ExportPipeReportResult.cs" />
     <Compile Include="APIs\Pipefy\Model\FieldLabel.cs" />
     <Compile Include="APIs\Pipefy\Model\Label.cs" />
     <Compile Include="APIs\Pipefy\Model\MeResult.cs" />
@@ -195,7 +199,13 @@
     <Compile Include="APIs\Pipefy\Model\PhaseField.cs" />
     <Compile Include="APIs\Pipefy\Model\PhaseResult.cs" />
     <Compile Include="APIs\Pipefy\Model\Pipe.cs" />
+    <Compile Include="APIs\Pipefy\Model\PipeReport.cs" />
+    <Compile Include="APIs\Pipefy\Model\PipeReportExport.cs" />
+    <Compile Include="APIs\Pipefy\Model\PipeReportExportResult.cs" />
+    <Compile Include="APIs\Pipefy\Model\PipeReportFormulaField.cs" />
     <Compile Include="APIs\Pipefy\Model\PipeResult.cs" />
+    <Compile Include="APIs\Pipefy\Model\ReportSortDirection.cs" />
+    <Compile Include="APIs\Pipefy\Model\SortDirectionEnum.cs" />
     <Compile Include="APIs\Pipefy\Model\UpdateCardFieldData.cs" />
     <Compile Include="APIs\Pipefy\Model\UpdateCardFieldResult.cs" />
     <Compile Include="APIs\Pipefy\Model\User.cs" />

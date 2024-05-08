@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace RpaLib.APIs.Pipefy.Model
 {
-    public class CardsImporterResult
+    public enum ExpirationState
     {
-        public CardsImporterData CardsImporter {  get; set; }
+        Processing,
+        Done,
+        Failed,
     }
 }

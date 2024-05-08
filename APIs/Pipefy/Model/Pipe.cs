@@ -16,5 +16,6 @@ namespace RpaLib.APIs.Pipefy.Model
         public string OrganizationId { get; set; }
         public Organization Organization { get; set; }
         public List<PhaseField> StartFormFields { get; set; }
+        public List<PipeReport> Reports { get; set; }
     }
 }

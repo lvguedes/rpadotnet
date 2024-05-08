@@ -20,6 +20,9 @@ namespace RpaLib.APIs.Pipefy
 {
     public class Pipefy
     {
+        private string _msgPipeIdRequired = @"Pipe ID must be given to the object constructor or as parameter to this method.";
+        private List<PhaseField> _startFormFields;
+        private List<PipeReport> _pipeReports;
         public readonly static string PipefyDefaultEndPoint = @"https://app.pipefy.com/queries";
         public string Token { get; private set; }
         public string PipeId { get; private set; }
@@ -115,6 +118,17 @@ namespace RpaLib.APIs.Pipefy
                 }
             }
             ";
+
+        private string queryPipeReports = @"
+            query {
+                pipe(id: ""<<PipeId>>"") {
+                    reports {
+                        id
+                        name
+                    }
+                }
+            }
+        ";
 
         private string queryOrganizations = @"
             {
@@ -341,6 +355,29 @@ namespace RpaLib.APIs.Pipefy
               }
             ";
 
+        private string exportReportCreateObj = @"
+            mutation {
+                exportPipeReport (input: {pipeId: ""<<PipeId>>"", pipeReportId: ""<<PipeReportId>>""}) {
+                    pipeReportExport {
+                        id
+                    }
+                }
+            }
+        ";
+
+        private string exportReportExportGetUrl = @"
+            query {
+                pipeReportExport(id: ""<<ExportObjId>>"") {
+                    fileURL
+                    state
+                    startedAt
+                    requestedBy {
+                        id
+                    }
+                }
+            }
+        ";
+
         #endregion
 
         public Pipefy (string apiToken)
@@ -393,6 +430,14 @@ namespace RpaLib.APIs.Pipefy
             return await GraphQl.QueryAsync<MeResult>(query, Uri, Token, JsonSerializerSettingsSnake);
         }
 
+        public GraphQlResponse<PipeResult> QueryPipe(bool noPhaseInfo = false)
+        {
+            if (PipeId == null)
+                throw new RpaLibException(_msgPipeIdRequired);
+            else
+                return QueryPipe(PipeId, noPhaseInfo);
+        }
+
         public GraphQlResponse<PipeResult> QueryPipe(string pipeId, bool noPhaseInfo = false)
         {
             var selectedQuery = queryPipe;
@@ -403,12 +448,50 @@ namespace RpaLib.APIs.Pipefy
             return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettingsCamel);
         }
 
+        public async Task<GraphQlResponse<PipeResult>> QueryPipeAsync(bool noPhaseInfo = false)
+        {
+            if (PipeId == null)
+                throw new RpaLibException(_msgPipeIdRequired);
+            else
+                return await QueryPipeAsync(PipeId, noPhaseInfo);
+        }
+
         public async Task<GraphQlResponse<PipeResult>> QueryPipeAsync(string pipeId, bool noPhaseInfo = false)
         {
             var selectedQuery = queryPipe;
             if (noPhaseInfo) selectedQuery = queryPipeSimple;
 
             var query = selectedQuery.Replace("<<PipeId>>", pipeId);
+
+            return await GraphQl.QueryAsync<PipeResult>(query, Uri, Token, JsonSerializerSettingsCamel);
+        }
+
+        public GraphQlResponse<PipeResult> QueryPipeReports()
+        {
+            if (PipeId == null)
+                throw new RpaLibException(_msgPipeIdRequired);
+            else
+                return QueryPipeReports(PipeId);
+        }
+
+        public GraphQlResponse<PipeResult> QueryPipeReports(string pipeId)
+        {
+            var query = queryPipeReports.Replace("<<PipeId>>", pipeId);
+
+            return GraphQl.Query<PipeResult>(query, Uri, Token, JsonSerializerSettingsCamel);
+        }
+
+        public async Task<GraphQlResponse<PipeResult>> QueryPipeReportsAsync()
+        {
+            if (PipeId == null)
+                throw new RpaLibException(_msgPipeIdRequired);
+            else
+                return await QueryPipeReportsAsync(PipeId);
+        }
+
+        public async Task<GraphQlResponse<PipeResult>> QueryPipeReportsAsync(string pipeId)
+        {
+            var query = queryPipeReports.Replace("<<PipeId>>", pipeId);
 
             return await GraphQl.QueryAsync<PipeResult>(query, Uri, Token, JsonSerializerSettingsCamel);
         }
@@ -430,11 +513,9 @@ namespace RpaLib.APIs.Pipefy
         public GraphQlResponse<PipeResult> QueryPhases()
         {
             if (PipeId == null)
-            {
-                throw new RpaLibException("Null Pipe ID: To query info about the phases the Pipe ID is mandatory.");
-            }
-
-            return QueryPhases(PipeId);
+                throw new RpaLibException(_msgPipeIdRequired);
+            else
+                return QueryPhases(PipeId);
         }
             
         public GraphQlResponse<PipeResult> QueryPhases(string pipeId)
@@ -447,11 +528,9 @@ namespace RpaLib.APIs.Pipefy
         public async Task<GraphQlResponse<PipeResult>> QueryPhasesAsync()
         {
             if (PipeId == null)
-            {
-                throw new RpaLibException("Null Pipe ID: To query info about the phases the Pipe ID is mandatory.");
-            }
-
-            return await QueryPhasesAsync(PipeId);
+                throw new RpaLibException(_msgPipeIdRequired);
+            else
+                return await QueryPhasesAsync(PipeId);
         }
 
         public async Task<GraphQlResponse<PipeResult>> QueryPhasesAsync(string pipeId)
@@ -903,6 +982,8 @@ namespace RpaLib.APIs.Pipefy
 
         #endregion
 
+        #region DisplayInfo
+
         /// <summary>
         /// Query pipefy info using API calls and redirects the info output to the Tracing.
         /// </summary>
@@ -1040,6 +1121,10 @@ namespace RpaLib.APIs.Pipefy
             Trace.WriteLine(t1.Result, withTimeSpec: false, color: ConsoleColor.Yellow);
         }
 
+        #endregion
+
+        #region Utils
+
         /// <summary>
         /// Search for a card field which name is equal to "fieldName" parameter. If more than one field is found with the same name
         /// the first one in the sequence of found fields will be returned.
@@ -1142,5 +1227,151 @@ namespace RpaLib.APIs.Pipefy
 
             return new UploadFileReturn(uploadUrl, downloadUrl);
         }
+
+        private string MsgApiRespNotSuccess<T>(GraphQlResponse<T> response)
+        {
+            return $"Status code is not success for querying start form fields through" +
+                        $" query: {response.Queried}" + Environment.NewLine +
+                        $"Status code: {response.StatusCode}";
+        }
+
+        public string GetReportId(string reportNameRegex, bool queryOnlyOnFirstCall = false)
+        {
+            var asyncVersion = GetReportIdAsync(reportNameRegex, queryOnlyOnFirstCall);
+            asyncVersion.Wait();
+            return asyncVersion.Result;
+        }
+
+        public async Task<string> GetReportIdAsync(string reportNameRegex, bool queryOnlyOnFirstCall = false)
+        {
+            if (queryOnlyOnFirstCall == false || (queryOnlyOnFirstCall == true && _pipeReports == null))
+            {
+                var resp = await QueryPipeReportsAsync();
+
+                if (!resp.IsSuccessStatusCode)
+                    throw new RpaLibException(MsgApiRespNotSuccess(resp));
+                else
+                    _pipeReports = resp.Data.Pipe.Reports;
+            }
+
+            var found = _pipeReports.Where(x => Ut.IsMatch(x.Name, reportNameRegex));
+
+            if (found.Count() > 1)
+            {
+                var foundCsv = string.Join(", ", found.Select(x => $"{x.Name}[{x.Id}]"));
+                throw new RpaLibException($"More than one Pipe Report match the regex \"{reportNameRegex}\": {foundCsv}");
+            }
+            else if (found.Count() == 0)
+            {
+                throw new RpaLibException($"No Pipe Reports found in which their name that match the regex \"{reportNameRegex}\"");
+            }
+            else
+                return found.ToArray()[0].Id;
+        }
+
+        public string GetStartFormFieldId(string startFormFieldLabelRegex, bool queryOnlyOnFirstCall = false)
+        {
+            var asyncVersion = GetStartFormFieldIdAsync(startFormFieldLabelRegex, queryOnlyOnFirstCall);
+            asyncVersion.Wait();
+            return asyncVersion.Result;
+        }
+
+        public async Task<string> GetStartFormFieldIdAsync(string startFormFieldLabelRegex, bool queryOnlyOnFirstCall = false)
+        {
+            if (queryOnlyOnFirstCall == false || ( queryOnlyOnFirstCall == true && _startFormFields == null ))
+            {
+                var resp = await QueryStartFormFieldsAsync();
+
+                if (!resp.IsSuccessStatusCode)
+                    throw new RpaLibException(MsgApiRespNotSuccess(resp));
+                else
+                    _startFormFields = resp.Data.Pipe.StartFormFields;
+
+            }
+
+            var found = _startFormFields.Where(x => Ut.IsMatch(x.Label, startFormFieldLabelRegex));
+
+            if (found.Count() > 1)
+            {
+                var foundCsv = string.Join(", ", found.Select(x => $"{x.Label}[{x.Id}]"));
+                throw new RpaLibException($"More than one Start Form Field match the regex \"{startFormFieldLabelRegex}\": {foundCsv}");
+            }
+            else if (found.Count() == 0)
+            {
+                throw new RpaLibException($"No Start Form Fields found in which their name that match the regex \"{startFormFieldLabelRegex}\"");
+            }
+            else
+                return found.ToArray()[0].Id;
+        }
+
+        public string ExportPipeReport(string reportNameRegex, string filePath)
+        {
+            if (PipeId == null)
+                throw new RpaLibException(_msgPipeIdRequired);
+            else
+                return ExportPipeReport(PipeId, reportNameRegex, filePath);
+        }
+
+        public string ExportPipeReport(string pipeId, string reportNameRegex, string filePath)
+        {
+            var asyncVersion = ExportPipeReportAsync(pipeId, reportNameRegex, filePath);
+            asyncVersion.Wait();
+            return asyncVersion.Result;
+        }
+
+        public async Task<string> ExportPipeReportAsync(string reportNameRegex, string filePath)
+        {
+            if (PipeId == null)
+                throw new RpaLibException(_msgPipeIdRequired);
+            else
+                return await ExportPipeReportAsync(PipeId, reportNameRegex, filePath);
+        }
+
+        // mutation to create the export obj using report ID and Pipe ID
+        private async Task<string> ExportPipeReportCreateObj(string pipeId, string reportId)
+        {
+            var queryExportObj = exportReportCreateObj.Replace("<<PipeId>>", pipeId).Replace("<<PipeReportId>>", reportId);
+            
+            var respExportObj = await GraphQl.QueryAsync<ExportPipeReportResult>(queryExportObj, Uri, Token, JsonSerializerSettingsCamel);
+
+            if (!respExportObj.IsSuccessStatusCode)
+                throw new RpaLibException(MsgApiRespNotSuccess(respExportObj));
+
+            return respExportObj.Data.ExportPipeReport.PipeReportExport.Id;
+        }
+
+        // query to get the report download URL using the export obj ID from the mutation above
+        private async Task<string> ExportPipeReportGetUrl(string exportObjId)
+        {
+            GraphQlResponse<PipeReportExportResult> respGetUrl;
+            var queryGetUrl = exportReportExportGetUrl.Replace("<<ExportObjId>>", exportObjId);
+
+            do
+            {
+                respGetUrl = await GraphQl.QueryAsync<PipeReportExportResult>(queryGetUrl, Uri, Token, JsonSerializerSettingsCamel);
+
+                if (!respGetUrl.IsSuccessStatusCode)
+                    throw new RpaLibException(MsgApiRespNotSuccess(respGetUrl));
+
+            } while (respGetUrl.Data.PipeReportExport.State == ExpirationState.Processing);
+
+            return respGetUrl.Data.PipeReportExport.FileURL;
+        }
+
+        public async Task<string> ExportPipeReportAsync(string pipeId, string reportNameRegex, string filePath)
+        {
+            // Gets the report ID
+            var reportId = await GetReportIdAsync(reportNameRegex);
+
+            var exportObjId = await ExportPipeReportCreateObj(pipeId, reportId);
+
+            var downloadUrl = await ExportPipeReportGetUrl(exportObjId);
+
+            Ut.DownloadFile(downloadUrl, filePath);
+
+            return downloadUrl;
+        }
+
+        #endregion
     }
 }

@@ -47,14 +47,16 @@ namespace RpaLib.Tracing
             }
             catch (COMException ex)
             {
-                if (Ut.IsMatch(ex.Message, @"Invalid index\. \(Exception from HRESULT: 0x8002000B \(DISP_E_BADINDEX\)\)"))
-                {
-                    throw new WorksheetNotFoundException(sheetName, filePath);
-                }
-                else
-                {
-                    throw ex;
-                }
+                //if (Ut.IsMatch(ex.Message, @"Invalid index\. \(Exception from HRESULT: 0x8002000B \(DISP_E_BADINDEX\)\)"))
+                //{
+                //    throw new WorksheetNotFoundException(sheetName, filePath);
+                //}
+                //else
+                //{
+                //    throw ex;
+                //}
+
+                throw new WorksheetNotFoundException(sheetName, filePath);
             }
 
             UsedRangeCount = new SheetUsedRange();

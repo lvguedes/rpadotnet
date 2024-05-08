@@ -14,11 +14,25 @@ namespace RpaLibXunit
     {
         //private string jwt = "Bearer {enter token here}";
         private string jwt = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJ1c2VyIjp7ImlkIjo5MDU5NDYsImVtYWlsIjoiYW5kcmVhLmpld29yb3dza2lAY2FwZ2VtaW5pLmNvbSIsImFwcGxpY2F0aW9uIjozMDAxNzQ2MDJ9fQ.xT705GbX3CbTv8gQ0WH6kOPcsr-2DNa1tTTsPOXLdeQFyF7N55t2r-F-MZzCGZvMQi7pBZOiFbBsu-83rNm6lQ";
+        private string pipeId = "902791";
+
+        private Pipefy GetPipefyWithouPipeId()
+        {
+            return new Pipefy(jwt);
+        }
+
+        private Pipefy GetPipefyWithPipeId()
+        {
+            var pipeId = "902791";
+            Pipefy pipefy = new Pipefy(jwt, pipeId);
+
+            return pipefy;
+        }
 
         [Fact]
         public void QueryAccountInfo()
         {
-            Pipefy pipefy = new Pipefy(jwt);
+            var pipefy = GetPipefyWithouPipeId();
 
             string logMsg = $"Me:\n{pipefy.QueryUserInfo()}\nOrganizations:\n{pipefy.QueryOrganizations()}";
 
@@ -28,8 +42,7 @@ namespace RpaLibXunit
         [Fact]
         public void QueryPipeFields()
         {
-            var pipeId = "902791";
-            Pipefy pipefy = new Pipefy(jwt, pipeId);
+            var pipefy = GetPipefyWithPipeId();
 
             var pipeFields = pipefy.QueryStartFormFields();
         }
@@ -37,8 +50,7 @@ namespace RpaLibXunit
         [Fact]
         public void ShowInfo()
         {
-            var pipeId = "902791";
-            Pipefy pipefy = new Pipefy(jwt, pipeId);
+            var pipefy = GetPipefyWithPipeId();
             var phases = new string[] { "6118794", "6118797", "7287878", "6118796", "6118799", "7287890", "7287891", "7335279" };
 
             pipefy.ShowInfo(PipefyInfo.PhasesAndCardsCount);
@@ -54,7 +66,7 @@ namespace RpaLibXunit
         [Fact]
         public void BlockingShowOrgInfo()
         {
-            Pipefy pipefy = new Pipefy(jwt);
+            var pipefy = GetPipefyWithouPipeId();
 
             pipefy.ShowInfo(PipefyInfo.Organizations);
         }
@@ -62,7 +74,7 @@ namespace RpaLibXunit
         [Fact]
         public async void NonBlockingShowOrgInfo()
         {
-            Pipefy pipefy = new Pipefy(jwt);
+            var pipefy = GetPipefyWithouPipeId();
 
             var result = await pipefy.ShowInfoAsync(PipefyInfo.Organizations);
 
@@ -70,10 +82,9 @@ namespace RpaLibXunit
         }
 
         [Fact]
-        public async void UploadFile()
+        public void UploadFile()
         {
-            var pipeId = "902791";
-            Pipefy pipefy = new Pipefy(jwt, pipeId);
+            var pipefy = GetPipefyWithPipeId();
 
             var presignedUrl = pipefy.CreatePresignedUrl("ArquivoTeste.xlsx").Data.CreatePresignedUrl;
             var upload = presignedUrl.Url;
@@ -93,6 +104,15 @@ namespace RpaLibXunit
             Console.WriteLine(t1.Result.StatusCode);
             Console.WriteLine($"The download URL is: {download}");
         }
+
+        [Fact]
+        public async Task ExportPipeReportAsync()
+        {
+            var pipefy = GetPipefyWithPipeId();
+            var reportNameRegex = @"Automação Cronograma de Fechamento - Visualização Sharepoint";
+
+            var downloadUrl = await pipefy.ExportPipeReportAsync(reportNameRegex, @"%USERPROFILE%\Downloads");
+        } 
 
     }
 }

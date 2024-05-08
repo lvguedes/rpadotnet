@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace RpaLib.APIs.Pipefy.Model
 {
-    public class CardsImporterResult
+    public class ExportPipeReportResult
     {
-        public CardsImporterData CardsImporter {  get; set; }
+        public ExportPipeReportData ExportPipeReport { get; set; }
     }
 }
