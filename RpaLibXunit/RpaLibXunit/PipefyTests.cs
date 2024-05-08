@@ -13,7 +13,7 @@ namespace RpaLibXunit
     public class PipefyTests
     {
         //private string jwt = "Bearer {enter token here}";
-        private string jwt = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJ1c2VyIjp7ImlkIjo5MDU5NDYsImVtYWlsIjoiYW5kcmVhLmpld29yb3dza2lAY2FwZ2VtaW5pLmNvbSIsImFwcGxpY2F0aW9uIjozMDAxNzQ2MDJ9fQ.xT705GbX3CbTv8gQ0WH6kOPcsr-2DNa1tTTsPOXLdeQFyF7N55t2r-F-MZzCGZvMQi7pBZOiFbBsu-83rNm6lQ";
+        private string jwt = "Bearer eyJ0eXAiOiJK...";
         private string pipeId = "902791";
 
         private Pipefy GetPipefyWithouPipeId()
