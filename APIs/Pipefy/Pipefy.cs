@@ -130,6 +130,24 @@ namespace RpaLib.APIs.Pipefy
             }
         ";
 
+        private string queryCardsImportations = @"
+            query MyQuery {
+              cardsImportations(<<Input>>) {
+                id
+                status
+                importedCards
+                createdAt
+                createdBy {
+                  email
+                  name
+                  username
+                  id
+                }
+                url
+              }
+            }
+        ";
+
         private string queryOrganizations = @"
             {
                 organizations {
@@ -796,6 +814,46 @@ namespace RpaLib.APIs.Pipefy
             string query = queryCard.Replace("$cardId", cardId);
 
             return await GraphQl.QueryAsync<CardResult>(query, Uri, Token, JsonSerializerSettingsSnake);
+        }
+
+        public GraphQlResponse<CardsImportationsResult> QueryCardsImportations(string[] status = null)
+        {
+            if (PipeId == null)
+                throw new RpaLibException(_msgPipeIdRequired);
+
+            return QueryCardsImportations(PipeId, status);
+        }
+
+        public GraphQlResponse<CardsImportationsResult> QueryCardsImportations(string pipeId, string[] status = null)
+        {
+            var asyncVersion = QueryCardsImportationsAsync(pipeId, status);
+            asyncVersion.Wait();
+            return asyncVersion.Result;
+        }
+
+        public async Task<GraphQlResponse<CardsImportationsResult>> QueryCardsImportationsAsync(string[] status = null)
+        {
+            if (PipeId == null)
+                throw new RpaLibException(_msgPipeIdRequired);
+
+            return await QueryCardsImportationsAsync(PipeId);
+        }
+
+        public async Task<GraphQlResponse<CardsImportationsResult>> QueryCardsImportationsAsync(string pipeId, string[] status = null)
+        {
+            string input = $"pipeId: \"{pipeId}\"";
+
+            if (status != null && status.Length > 0)
+            {
+                var csvDoubleQuotedItems = string.Join(", ", status.Select(x => $"\"{x}\""));
+                input += $", status: [{csvDoubleQuotedItems}]";
+            }
+
+            var query = queryCardsImportations.Replace("<<Input>>", input);
+
+            var response = await GraphQl.QueryAsync<CardsImportationsResult>(query, Uri, Token, JsonSerializerSettingsCamel);
+
+            return response;
         }
 
         #endregion

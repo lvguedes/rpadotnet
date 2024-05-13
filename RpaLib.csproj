@@ -180,6 +180,7 @@
     <Compile Include="APIs\Pipefy\Model\CardField.cs" />
     <Compile Include="APIs\Pipefy\Model\CardResult.cs" />
     <Compile Include="APIs\Pipefy\Model\CardsImportation.cs" />
+    <Compile Include="APIs\Pipefy\Model\CardsImportationsResult.cs" />
     <Compile Include="APIs\Pipefy\Model\CardsImporterData.cs" />
     <Compile Include="APIs\Pipefy\Model\CardsImporterResult.cs" />
     <Compile Include="APIs\Pipefy\Model\CreatePresignedUrlData.cs" />
