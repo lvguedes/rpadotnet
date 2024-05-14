@@ -272,7 +272,8 @@
     <Compile Include="SAP\Legacy\Sap.cs" />
     <Compile Include="Tracing\Log.cs" />
     <Compile Include="Tracing\LogTypeEnum.cs" />
-    <Compile Include="Tracing\SheetUsedRange.cs" />
+    <Compile Include="Tracing\SheetInfo.cs" />
+    <Compile Include="Tracing\UsedRange.cs" />
     <Compile Include="Tracing\Trace.cs" />
     <Compile Include="Web\Selenium.cs" />
     <Compile Include="Web\SeleniumExceptions.cs" />

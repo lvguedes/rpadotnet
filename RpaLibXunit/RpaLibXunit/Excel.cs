@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Xunit;
 using Exc = RpaLib.Tracing.Excel;
 using RpaLib.ProcessAutomation;
+using RpaLib.Tracing;
 
 namespace RpaLibXunit
 {
@@ -32,6 +33,24 @@ namespace RpaLibXunit
 
             //Exc.InsertFormula(excelFile, aba, "H1:H20", formula, visible: true);
             Exc.InsertFormula(excelFile, aba, formula, 1, 8, lastCellCol: 8, visible: true);
+        }
+
+        [Fact]
+        public void ReadAllSheets()
+        {
+            var excelFile = @"%USERPROFILE%\Downloads\PlanilhaAtividades\CronogramaFechamento_Datas_e_Responsáveis.xlsx";
+
+            var sheetsToRead = new SheetInfo[]
+            {
+                new SheetInfo()
+                {
+                    FirstCol = ExcelColumn.F,
+                    LastCol = ExcelColumn.H
+                },
+                new SheetInfo()
+            };
+
+            var sheets = Exc.ReadAllSheets(excelFile, sheetsToRead, visible: true);
         }
     }
 }

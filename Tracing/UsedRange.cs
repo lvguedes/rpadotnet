@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace RpaLib.Tracing
 {
-    public class SheetUsedRange
+    public class UsedRange
     {
-        public int Rows { get; set; }
-        public int Cols {  get; set; }
+        public int LastRow { get; set; }
+        public ExcelColumn LastCol {  get; set; }
     }
 }
