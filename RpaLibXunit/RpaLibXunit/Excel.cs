@@ -52,5 +52,22 @@ namespace RpaLibXunit
 
             var sheets = Exc.ReadAllSheets(excelFile, sheetsToRead, visible: true);
         }
+
+        [Fact]
+        public void DeleteFromRange()
+        {
+            var excelFile = @"%USERPROFILE%\Downloads\PlanilhaAtividades\CronogramaFechamento_Datas_e_Responsáveis.xlsx";
+            var sheetName = "Datas";
+
+            var excel = new Exc(excelFile, sheetName);
+            excel.ToggleVisible(true);
+
+            var firstRow = 2;
+            var usedRange = excel.GetUsedRange($"{ExcelColumn.F}:{ExcelColumn.H}");
+
+            excel.DeleteCells($"{ExcelColumn.F}{firstRow}:{ExcelColumn.H}{usedRange.LastRow}");
+
+            excel.SaveAndQuit();
+        }
     }
 }

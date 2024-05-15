@@ -114,6 +114,7 @@ namespace RpaLib.Tracing
 
         public void AccessWorksheet(string worksheetName)
         {
+            ValidateSheetName(worksheetName);
             try
             {
                 //CurrentWorksheet = Workbook.Sheets.Item[CurrentSheetName];
@@ -167,6 +168,11 @@ namespace RpaLib.Tracing
             return range;
         }
 
+        public Range GetRange(int firstCellRow, ExcelColumn firstCellCol, ExcelColumn lastCellCol)
+        {
+            return GetRange(firstCellRow, firstCellCol, UsedRangeCount.LastRow, lastCellCol);
+        }
+
         public Range GetRange(int firstCellRow, ExcelColumn firstCellCol, int lastCellRow, ExcelColumn lastCellCol)
         {
             return GetRange(firstCellRow, (int)firstCellCol, lastCellRow, (int)lastCellCol);
@@ -217,7 +223,12 @@ namespace RpaLib.Tracing
             return range;
         }
 
-        public UsedRange GetUsedRange(Range range)
+        public UsedRange GetUsedRange(string excelRange)
+        {
+            return GetUsedRange(GetRange(excelRange));
+        }
+
+        private UsedRange GetUsedRange(Range range)
         {
             // doesn't work: gets the last column of the sheet instead of the last column from range
             //var lastCell = range.Cells.SpecialCells(XlCellType.xlCellTypeLastCell);
@@ -230,12 +241,24 @@ namespace RpaLib.Tracing
                 StringBuilder rowValue = new StringBuilder();
 
                 foreach (Range cell in row.Cells)
-                    rowValue.Append(cell.Value?.ToString() ?? string.Empty);
+                {
+                    var cellValue = cell.Value?.ToString() ?? string.Empty;
+
+                    // stop at first blank cell of row
+                    if (!string.IsNullOrWhiteSpace(cellValue))
+                        rowValue.Append(cellValue);
+                    else
+                        break;
+                }
 
                 var fullRow = rowValue.ToString();
 
                 if (!string.IsNullOrWhiteSpace(fullRow) && row.Row > biggestRow)
                     biggestRow = row.Row;
+
+                // stop if the current full row is all blank
+                if (string.IsNullOrWhiteSpace(fullRow))
+                    break;
             }
 
             foreach (Range col in range.Columns)
@@ -243,12 +266,24 @@ namespace RpaLib.Tracing
                 var colValue = new StringBuilder();
 
                 foreach (Range cell in col.Cells)
-                    colValue.Append(cell.Value?.ToString() ?? string.Empty);
+                {
+                    var cellValue = cell.Value?.ToString() ?? string.Empty;
 
+                    // stop at first blank cell of column
+                    if (!string.IsNullOrWhiteSpace(cellValue))
+                        colValue.Append(cellValue);
+                    else
+                        break;
+                }
+                    
                 var fullColumn = colValue.ToString();
 
                 if (!string.IsNullOrWhiteSpace(fullColumn) && col.Column > biggestCol) 
                     biggestCol = col.Column;
+
+                // stop if the current full column is all blank
+                if (string.IsNullOrWhiteSpace(fullColumn))
+                    break;
             }
 
             var usedRange = new UsedRange
@@ -258,6 +293,24 @@ namespace RpaLib.Tracing
             };
 
             return usedRange;
+        }
+
+        public void DeleteCells(string excelRange)
+        {
+            DeleteCells(GetRange(excelRange));
+        }
+
+        private void DeleteCells(Range range)
+        {
+            try
+            {
+                range.Delete(XlDeleteShiftDirection.xlShiftUp);
+            }
+            catch(Exception ex)
+            {
+                throw new ExcelException("Error when trying to delete all cells from a Range object of Excel interop." +
+                    $" Inner Exception: {ex}", ex);
+            }
         }
 
         // usage: InsertFormula("=VLOOKUP()", "A1:B20");
@@ -407,13 +460,13 @@ namespace RpaLib.Tracing
             };
         }
 
-        public void SetActiveSheet(dynamic nameOrIndex)
-        {
-            if (nameOrIndex is string || nameOrIndex is int)
-                _ = Workbook.Sheets.Item[nameOrIndex];
-            else
-                throw new RpaLibArgumentException("SetActiveSheet() receives nameOrIndex of types int or string only.");
-        }
+        //public void SetActiveSheet(dynamic nameOrIndex)
+        //{
+        //    if (nameOrIndex is string || nameOrIndex is int)
+        //        _ = Workbook.Sheets.Item[nameOrIndex];
+        //    else
+        //        throw new RpaLibArgumentException("SetActiveSheet() receives nameOrIndex of types int or string only.");
+        //}
 
         public void ToggleVisible()
         {
@@ -428,9 +481,82 @@ namespace RpaLib.Tracing
                 Application.Visible = false;
         }
 
-        public string ReadCellTest(int row, int col)
+        //public string ReadCellTest(int row, int col)
+        //{
+        //    return (string)Application.Cells[row, col].Text;
+        //}
+
+        public DataTable ReadAll()
         {
-            return (string)Application.Cells[row, col].Text;
+            return ReadAll(1, ExcelColumn.A, UsedRangeCount.LastRow, UsedRangeCount.LastCol);
+        }
+
+        public DataTable ReadAll(int startRow, ExcelColumn startCol)
+        {
+            return ReadAll(startRow, startCol, UsedRangeCount.LastRow, UsedRangeCount.LastCol);
+        }
+
+        public DataTable ReadAll(int startRow, ExcelColumn startCol, ExcelColumn endCol)
+        {
+            return ReadAll(startRow, startCol, UsedRangeCount.LastRow, endCol);
+        }
+
+        public DataTable ReadAll(ExcelColumn startCol, ExcelColumn endCol)
+        {
+            return ReadAll(1, startCol, UsedRangeCount.LastRow, endCol);
+        }
+
+        public DataTable ReadAll(SheetInfo sheet, bool breakAtEmptyLine = true)
+        {
+            return ReadAll(sheet.FirstRow, sheet.FirstCol, sheet.LastRow, sheet.LastCol, breakAtEmptyLine);
+        }
+
+        public DataTable ReadAll(int startRow, ExcelColumn startCol, int endRow, ExcelColumn endCol, bool breakAtEmptyLine = true)
+        {
+            var usedRange = GetUsedRange(GetRange(startRow, startCol, endRow, endCol));
+
+            if (endRow <= 0)
+                endRow = usedRange.LastRow;
+
+            if (endCol <= ExcelColumn.None)
+                endCol = usedRange.LastCol;
+
+            var contents = ReadCell(startRow, (int)startCol,
+                                          endRow, (int)endCol,
+                                          breakAtEmptyLine: breakAtEmptyLine);
+
+            return ArrayStrTableToDataTable(contents);
+        }
+
+        public Dictionary<string, DataTable> ReadAllSheets(SheetInfo[] sheets, bool breakAtEmptyLine = true)
+        {
+            var sheetsRead = new Dictionary<string, DataTable>();
+
+            for (var i = 0; i < AllSheetNames.Length; i++)
+            {
+                var sheetInfo = sheets[i];
+
+                var currentSheetName = sheetInfo.Name == DefaultSheetName ? AllSheetNames[i] : sheetInfo.Name;
+                AccessWorksheet(currentSheetName);
+
+                // if SheetInfo don't define sheet last row and column use the last used in sheet
+                var endRow = sheetInfo.LastRow <= 0 ? UsedRangeCount.LastRow : sheetInfo.LastRow;
+                var endCol = sheetInfo.LastCol <= ExcelColumn.None ? UsedRangeCount.LastCol : sheetInfo.LastCol;
+
+                // get the actual used range based on sheetInfo parameters
+                var usedRange = GetUsedRange(GetRange(sheetInfo.FirstRow, sheetInfo.FirstCol, endRow, endCol));
+
+
+                var contents = ReadCell(sheetInfo.FirstRow, (int)sheetInfo.FirstCol,
+                                                usedRange.LastRow, (int)usedRange.LastCol,
+                                                breakAtEmptyLine: breakAtEmptyLine);
+
+                var dtContents = ArrayStrTableToDataTable(contents);
+
+                sheetsRead.Add(currentSheetName, dtContents);
+            }
+
+            return sheetsRead;
         }
 
         public string ReadCell(int row, int col)
@@ -540,6 +666,33 @@ namespace RpaLib.Tracing
         public string[] ReadCell(int row, int startCol, int endCol)
         {
             return ReadCell(row, Ut.Seq(startCol, endCol));
+        }
+
+        private void ValidateSheetName(string sheetName)
+        {
+            var tryFindSheetName = AllSheetNames.Where(x => Ut.IsMatch(x, sheetName)).FirstOrDefault();
+            if (tryFindSheetName == null)
+                throw new ExcelException($"The worksheet named \"{sheetName}\" was not found.");
+        }
+
+        public void WriteNextFreeRow(DataTable table, string sheetName = DefaultSheetName)
+        {
+            int startRow = UsedRangeCount.LastRow + 1;
+            int startCol = (int)ExcelColumn.A;
+
+            AccessWorksheet(sheetName);
+
+            List<string[]> rowList = new List<string[]>();
+            for (int i = 0; i < table.Rows.Count; i++)
+            {
+                List<string> row = new List<string>();
+                for (int j = 0; j < table.Columns.Count; j++)
+                {
+                    row.Add($"{table.Rows[i][j]}");
+                }
+                rowList.Add(row.ToArray());
+            }
+            WriteCell(startRow, startCol, rowList.ToArray());
         }
 
         public void WriteCell(int row, ExcelColumn col, string value)
@@ -673,39 +826,26 @@ namespace RpaLib.Tracing
         public static DataTable ReadAll(string filePath, SheetInfo sheet, bool visible = false, bool disableMacros = false, bool breakAtEmptyLine = true)
         {
             Excel excel = new Excel(filePath, sheet.Name, disableMacros);
+            excel.ToggleVisible(visible);
 
-            return ReadAll(excel, visible, breakAtEmptyLine, sheet.FirstRow, sheet.FirstCol, sheet.LastRow, sheet.LastCol);
+            var content = excel.ReadAll(sheet, breakAtEmptyLine);
+
+            excel.Quit();
+
+            return content;
         }
 
         public static DataTable ReadAll(string filePath, string sheetName, bool visible = false, bool disableMacros = false, bool breakAtEmptyLine = true,
             int startRow = 1, ExcelColumn startCol = ExcelColumn.A, int endRow = 0, ExcelColumn endCol = ExcelColumn.None)
         {
             Excel excel = new Excel(filePath, sheetName, disableMacros);
-
-            return ReadAll(excel, visible, breakAtEmptyLine, startRow, startCol, endRow, endCol);
-        }
-
-        private static DataTable ReadAll(Excel excel, bool visible, bool breakAtEmptyLine,
-            int startRow, ExcelColumn startCol, int endRow, ExcelColumn endCol)
-        {
-            var usedRange = excel.GetUsedRange(excel.GetRange(startRow, startCol, endRow, endCol));
             excel.ToggleVisible(visible);
 
-            if (endRow <= 0)
-                endRow = usedRange.LastRow;
-
-            if (endCol <= ExcelColumn.None)
-                endCol = usedRange.LastCol;
-
-            var contents = excel.ReadCell(startRow, (int)startCol,
-                                          endRow, (int)endCol,
-                                          breakAtEmptyLine: breakAtEmptyLine);
-
-            //var contents = excel.ReadCellMultiProc(Ut.Seq(startRow, excel.UsedRangeCount.LastRow), Ut.Seq(startCol, excel.UsedRangeCount.LastCol), breakAtEmptyLine: breakAtEmptyLine);
+            var content = excel.ReadAll(startRow, startCol, endRow, endCol, breakAtEmptyLine);
 
             excel.Quit();
 
-            return ArrayStrTableToDataTable(contents);
+            return content;
         }
 
         public static Dictionary<string, DataTable> ReadAllSheets(string filePath, bool visible = false, bool disableMacros = false, bool breakAtEmptyLine = true)
@@ -725,35 +865,11 @@ namespace RpaLib.Tracing
         {
             excel.ToggleVisible(visible);
 
-            var sheetsRead = new Dictionary<string,DataTable>();
-
-            for (var i = 0; i < excel.AllSheetNames.Length; i++)
-            {
-                var sheetInfo = sheets[i];
-
-                var currentSheetName = sheetInfo.Name == DefaultSheetName ? excel.AllSheetNames[i] : sheetInfo.Name;
-                excel.AccessWorksheet(currentSheetName);
-
-                // if SheetInfo don't define sheet last row and column use the last used in sheet
-                var endRow = sheetInfo.LastRow <= 0 ? excel.UsedRangeCount.LastRow : sheetInfo.LastRow;
-                var endCol = sheetInfo.LastCol <= ExcelColumn.None ? excel.UsedRangeCount.LastCol : sheetInfo.LastCol;
-
-                // get the actual used range based on sheetInfo parameters
-                var usedRange = excel.GetUsedRange(excel.GetRange(sheetInfo.FirstRow, sheetInfo.FirstCol, endRow, endCol));
-
-
-                var contents = excel.ReadCell(sheetInfo.FirstRow, (int)sheetInfo.FirstCol,
-                                                usedRange.LastRow, (int)usedRange.LastCol,
-                                                breakAtEmptyLine: breakAtEmptyLine);
-
-                var dtContents = ArrayStrTableToDataTable(contents);
-
-                sheetsRead.Add(currentSheetName, dtContents);
-            }
+            var contentsAllSheets = excel.ReadAllSheets(sheets, breakAtEmptyLine);
 
             excel.Quit();
 
-            return sheetsRead;
+            return contentsAllSheets;
         }
 
         // Writes an array of values as a column or firstCellRow into the sheetName. It starts at the cell specified by firstCellRow and firstCellCol values.
@@ -813,20 +929,7 @@ namespace RpaLib.Tracing
 
             excel.ToggleVisible(visible);
 
-            int startRow = excel.UsedRangeCount.LastRow + 1;
-            int startCol = 1;
-
-            List<string[]> rowList = new List<string[]>();
-            for (int i = 0; i < table.Rows.Count; i++)
-            {
-                List<string> row = new List<string>();
-                for (int j = 0; j < table.Columns.Count; j++)
-                {
-                    row.Add($"{table.Rows[i][j]}");
-                }
-                rowList.Add(row.ToArray());
-            }
-            excel.WriteCell(startRow, startCol, rowList.ToArray());
+            excel.WriteNextFreeRow(table, sheetName);
 
             excel.Save();
             excel.Quit();

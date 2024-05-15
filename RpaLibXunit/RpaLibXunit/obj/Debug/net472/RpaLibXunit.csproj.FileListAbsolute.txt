@@ -151,3 +151,5 @@ C:\lucas\cygwin\home\LSILVA46\git\csharp\rpalib\RpaLibXunit\RpaLibXunit\obj\Debu
 C:\lucas\cygwin\home\LSILVA46\git\csharp\rpalib\RpaLibXunit\RpaLibXunit\obj\Debug\net472\RpaLibXunit.csproj.CopyComplete
 C:\lucas\cygwin\home\LSILVA46\git\csharp\rpalib\RpaLibXunit\RpaLibXunit\obj\Debug\net472\RpaLibXunit.dll
 C:\lucas\cygwin\home\LSILVA46\git\csharp\rpalib\RpaLibXunit\RpaLibXunit\obj\Debug\net472\RpaLibXunit.pdb
+C:\lucas\cygwin\home\LSILVA46\git\csharp\rpalib\RpaLibXunit\RpaLibXunit\obj\Debug\net472\Interop.Microsoft.Office.Interop.Excel.dll
+C:\lucas\cygwin\home\LSILVA46\git\csharp\rpalib\RpaLibXunit\RpaLibXunit\obj\Debug\net472\RpaLibXunit.csproj.ResolveComReference.cache
