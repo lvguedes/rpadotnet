@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RpaLibXunit")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2a399037eaf87225cf9c0ac48ec25f51b76fc1bd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4ac3a15efae3e91d7c531e0d321424093ca5311a")]
 [assembly: System.Reflection.AssemblyProductAttribute("RpaLibXunit")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RpaLibXunit")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

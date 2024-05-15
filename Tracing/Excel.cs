@@ -103,8 +103,9 @@ namespace RpaLib.Tracing
 
         private void UpdateUsedRangeCount()
         {
-            UsedRangeCount.LastRow = CurrentWorksheet.UsedRange.Rows.Count;
-            UsedRangeCount.LastCol = (ExcelColumn)CurrentWorksheet.UsedRange.Columns.Count;
+            var worksheetUsedRange = GetUsedRange(CurrentWorksheet.UsedRange);
+            UsedRangeCount.LastRow = worksheetUsedRange.LastRow;
+            UsedRangeCount.LastCol = worksheetUsedRange.LastCol;
         }
 
         public bool IsMacroSupported()
