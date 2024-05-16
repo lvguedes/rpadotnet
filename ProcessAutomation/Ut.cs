@@ -63,6 +63,8 @@ namespace RpaLib.ProcessAutomation
             return range.ToArray();
         }
 
+        public static void Sleep(int millisecondsTimeout) => Thread.Sleep(millisecondsTimeout);
+
         #region RegularExpressions
 
         /// <summary>
