@@ -31,6 +31,7 @@ using RpaLib.ProcessAutomation.Exceptions;
 using CredentialManagement;
 using System.Security.Authentication;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Reflection;
 
 /*
 Reference Assemblies:
@@ -64,6 +65,46 @@ namespace RpaLib.ProcessAutomation
         }
 
         public static void Sleep(int millisecondsTimeout) => Thread.Sleep(millisecondsTimeout);
+
+        #region Math
+        public static bool IsEven(float number) => IsEven((int)number);
+        public static bool IsEven(double number) => IsEven((int)number);
+        public static bool IsEven(int number)
+        {
+            if (number % 2 == 0)
+                return true;
+            else
+                return false;
+        }
+        #endregion
+
+        #region Reflection
+        public static IEnumerable<string> TypeProperties<T>()
+        {
+            Type type = typeof(T);
+
+            // Get all public properties of the class
+            PropertyInfo[] properties = type.GetProperties();
+
+            // Iterate over the properties and yield their names
+            foreach (PropertyInfo property in properties)
+                yield return property.Name;
+        }
+
+        public static Dictionary<string, object> ObjProperties(object obj)
+        {
+            Type type = obj.GetType();
+            var propertyValuePair = new Dictionary<string, object>();
+
+            // Get all public properties of the class
+            PropertyInfo[] properties = type.GetProperties();
+
+            foreach (var property in properties)
+                propertyValuePair.Add(property.Name, property.GetValue(obj));
+
+            return propertyValuePair;
+        }
+        #endregion
 
         #region RegularExpressions
 
@@ -409,7 +450,22 @@ namespace RpaLib.ProcessAutomation
 
         #endregion
 
-        #region DataPrinting
+        #region DataTables
+
+        public static string DataTableColumnRegex(DataTable dtable, string columnRegex)
+        {
+            var foundColumnNames = dtable.Columns.Cast<DataColumn>()
+                                                .Where(x => IsMatch(x.ColumnName, columnRegex))
+                                                .Select(x => x.ColumnName);
+
+            if (foundColumnNames.Count() == 0)
+                throw new RpaLibException($"Column name not found by regular expression matching using pattern '{columnRegex}'.");
+            else if (foundColumnNames.Count() > 1)
+                throw new RpaLibException($"More than one column name matched the pattern '{columnRegex}':" +
+                    $" {string.Join(", ", foundColumnNames)}");
+
+            return foundColumnNames.ToArray()[0];
+        }
 
         public static string DataTableToString(DataTable dtable)
         {

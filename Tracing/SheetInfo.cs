@@ -11,7 +11,7 @@ namespace RpaLib.Tracing
     {
         public string Name { get; set; } = Excel.DefaultSheetName;
 
-        private int _firstRow = 1;
+        private int _firstRow = 0;
         public int FirstRow
         {
             get => _firstRow;
@@ -22,7 +22,7 @@ namespace RpaLib.Tracing
             }
         }
 
-        private ExcelColumn _firstCol = ExcelColumn.A;
+        private ExcelColumn _firstCol = ExcelColumn.None;
         public ExcelColumn FirstCol
         {
             get => _firstCol;

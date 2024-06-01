@@ -226,6 +226,8 @@
     <Compile Include="Exceptions\RpaLibTimeoutException.cs" />
     <Compile Include="ProcessAutomation\CmdOutput.cs" />
     <Compile Include="Exceptions\NoMatchesFoundException.cs" />
+    <Compile Include="ProcessAutomation\DirectionEnum.cs" />
+    <Compile Include="ProcessAutomation\OrientationEnum.cs" />
     <Compile Include="SAP\App.cs" />
     <Compile Include="SAP\Button.cs" />
     <Compile Include="SAP\Connection.cs" />
@@ -261,6 +263,7 @@
     <Compile Include="SDKs\AutoIt\Exceptions\ProcessNotFoundException.cs" />
     <Compile Include="SDKs\AutoIt\SendKeysFlagEnum.cs" />
     <Compile Include="SDKs\AutoIt\WindowStateEnum.cs" />
+    <Compile Include="Tracing\CellCoords.cs" />
     <Compile Include="Tracing\Excel.cs" />
     <Compile Include="Tracing\ExcelColumnEnum.cs" />
     <Compile Include="Tracing\Exceptions\ExcelException.cs" />
@@ -273,7 +276,7 @@
     <Compile Include="Tracing\Log.cs" />
     <Compile Include="Tracing\LogTypeEnum.cs" />
     <Compile Include="Tracing\SheetInfo.cs" />
-    <Compile Include="Tracing\UsedRange.cs" />
+    <Compile Include="Tracing\RangeCoords.cs" />
     <Compile Include="Tracing\Trace.cs" />
     <Compile Include="Web\Selenium.cs" />
     <Compile Include="Web\SeleniumExceptions.cs" />

@@ -25,6 +25,16 @@ namespace RpaLibXunit
         }
 
         [Fact]
+        public void ReadAllStatic()
+        {
+            var excelFileToRead = @"%USERPROFILE%\Downloads\Bicalho_TemplatealteraodeestruturaV3 (4).xlsx";
+            var tabName = "Template para Alterações";
+
+            //var content = Exc.ReadAll(excelFileToRead, "Template para Alterações", startCol: ExcelColumn.C, visible: true, disableMacros: true);
+            var content = Exc.ReadAll(excelFileToRead, tabName, disableMacros: true);
+        }
+
+        [Fact]
         public void InsertFormula()
         {
             var excelFile = @"%USERPROFILE%\Downloads\Test.xlsx";
@@ -65,9 +75,19 @@ namespace RpaLibXunit
             var firstRow = 2;
             var usedRange = excel.GetUsedRange($"{ExcelColumn.F}:{ExcelColumn.H}");
 
-            excel.DeleteCells($"{ExcelColumn.F}{firstRow}:{ExcelColumn.H}{usedRange.LastRow}");
+            excel.DeleteCells($"{ExcelColumn.F}{firstRow}:{ExcelColumn.H}{usedRange.Last.Row}");
 
             excel.SaveAndQuit();
+        }
+
+        [Fact]
+        public void WriteNextFreeRow()
+        {
+            var excelFileToWrite = @"%USERPROFILE%\Downloads\log_935906739.xlsx";
+            var excelFileToRead = @"%USERPROFILE%\Downloads\934377571.xlsx";
+
+            var content = Exc.ReadAll(excelFileToRead, "Template para Alterações", startCol: ExcelColumn.C, visible: true, disableMacros: true);
+            Exc.WriteNextFreeRow(excelFileToWrite, content, startCol: ExcelColumn.E, visible: false);
         }
     }
 }
