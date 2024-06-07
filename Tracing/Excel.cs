@@ -26,7 +26,7 @@ namespace RpaLib.Tracing
         public const ExcelColumn MaxLoadColumn = ExcelColumn.XFD;
         public const int MaxLoadLine = 1048576;
 
-        public Application Application { get; }
+        public Application Application { get; private set; }
         public Workbook Workbook { get; private set; }
         public string FullFilePath { get; private set; }
         public Worksheet CurrentWorksheet { get; private set; }
@@ -275,13 +275,22 @@ namespace RpaLib.Tracing
             return Ut.IsMatch(FullFilePath, @"\.xlsm$");
         }
 
-        public void AccessWorksheet(string worksheetName)
+        private void ReleaseCurrentWorksheet()
         {
-            ValidateSheetName(worksheetName);
+            if (CurrentWorksheet != null)
+            {
+                Marshal.ReleaseComObject(CurrentWorksheet);
+            }
+        }
+
+        public void AccessWorksheet(string worksheetNameRegex)
+        {
+            var realSheetName = GetRealWorksheetName(worksheetNameRegex);
+            ReleaseCurrentWorksheet();
             try
             {
                 //CurrentWorksheet = Workbook.Sheets.Item[CurrentSheetName];
-                CurrentWorksheet = Workbook.Worksheets[worksheetName];
+                CurrentWorksheet = Workbook.Worksheets[realSheetName];
                 CurrentWorksheet.Activate();
             }
             catch (COMException ex)
@@ -295,7 +304,7 @@ namespace RpaLib.Tracing
                 //    throw ex;
                 //}
 
-                throw new WorksheetNotFoundException(worksheetName, FullFilePath);
+                throw new WorksheetNotFoundException(worksheetNameRegex, FullFilePath);
             }
 
             UpdateWorksheetUsedRange();
@@ -611,9 +620,25 @@ namespace RpaLib.Tracing
         {
             try
             {
+                if (Application != null)
+                    Application.DisplayAlerts = false; // disable confirmation popups
+
                 //Workbook.Close(SaveChanges: false);
-                Application.DisplayAlerts = false; // disable confirmation popups
-                Application.Quit(); // Maybe an interop bug: just puts in background instead of closing.
+                ReleaseCurrentWorksheet();
+
+                if (Workbook != null)
+                    Marshal.ReleaseComObject(Workbook);
+                
+                
+                if (Application != null)
+                {
+                    Application.Quit(); // Maybe an interop bug: just puts in background instead of closing.
+                    Marshal.ReleaseComObject(Application);
+                }
+
+                CurrentWorksheet = null;
+                Workbook = null;
+                Application = null;
 
                 /*
                 // try quit while instance still alive
@@ -712,7 +737,7 @@ namespace RpaLib.Tracing
 
         public DataTable ReadAll()
         {
-            return ReadAll(1, ExcelColumn.A, WorksheetUsedRange.Last.Row, WorksheetUsedRange.Last.Col);
+            return ReadAll(WorksheetUsedRange.First.Row, WorksheetUsedRange.First.Col, WorksheetUsedRange.Last.Row, WorksheetUsedRange.Last.Col);
         }
 
         public DataTable ReadAll(int startRow, ExcelColumn startCol)
@@ -727,7 +752,7 @@ namespace RpaLib.Tracing
 
         public DataTable ReadAll(ExcelColumn startCol, ExcelColumn endCol)
         {
-            return ReadAll(1, startCol, WorksheetUsedRange.Last.Row, endCol);
+            return ReadAll(WorksheetUsedRange.First.Row, startCol, WorksheetUsedRange.Last.Row, endCol);
         }
 
         public DataTable ReadAll(SheetInfo sheet, bool breakAtEmptyLine = true)
@@ -886,11 +911,13 @@ namespace RpaLib.Tracing
             return ReadCell(row, Ut.Seq(startCol, endCol));
         }
 
-        private void ValidateSheetName(string sheetName)
+        private string GetRealWorksheetName(string sheetNameRegex)
         {
-            var tryFindSheetName = AllSheetNames.Where(x => Ut.IsMatch(x, sheetName)).FirstOrDefault();
-            if (tryFindSheetName == null)
-                throw new ExcelException($"The worksheet named \"{sheetName}\" was not found.");
+            var realSheetName = AllSheetNames.Where(x => Ut.IsMatch(x, sheetNameRegex)).FirstOrDefault();
+            if (realSheetName == null)
+                throw new ExcelException($"The worksheet named \"{sheetNameRegex}\" was not found.");
+
+            return realSheetName;
         }
 
         public void WriteNextFreeRow(DataTable table)
@@ -1045,8 +1072,9 @@ namespace RpaLib.Tracing
 
         public static DataTable ReadAll(string filePath, SheetInfo sheetInfo, bool visible = false, bool disableMacros = false, bool breakAtEmptyLine = true)
         {
-            Excel excel = new Excel(filePath, sheetInfo.Name, disableMacros);
+            Excel excel = new Excel(filePath, disableMacros);
             excel.ToggleVisible(visible);
+            excel.AccessWorksheet(sheetInfo.Name);
 
             var sheetInfoFixed = FixReadAllInput(sheetInfo, excel);
             var content = excel.ReadAll(sheetInfoFixed, breakAtEmptyLine);
@@ -1056,11 +1084,12 @@ namespace RpaLib.Tracing
             return content;
         }
 
-        public static DataTable ReadAll(string filePath, string sheetName, bool visible = false, bool disableMacros = false, bool breakAtEmptyLine = true,
+        public static DataTable ReadAll(string filePath, string sheetNameRegex, bool visible = false, bool disableMacros = false, bool breakAtEmptyLine = true,
             int startRow = 1, ExcelColumn startCol = ExcelColumn.A, int endRow = 0, ExcelColumn endCol = ExcelColumn.None)
         {
-            Excel excel = new Excel(filePath, sheetName, disableMacros);
+            Excel excel = new Excel(filePath, disableMacros);
             excel.ToggleVisible(visible);
+            excel.AccessWorksheet(sheetNameRegex);
 
             var sheetInfo = FixReadAllInput(startRow, startCol, endRow, endCol, excel);
             var content = excel.ReadAll(sheetInfo, breakAtEmptyLine);
@@ -1242,6 +1271,22 @@ namespace RpaLib.Tracing
         // converts an 2 dimensional array of strings (aka String Table) to a DataTable
         public static DataTable ArrayStrTableToDataTable(string[][] arrayStrTable)
         {
+            if (arrayStrTable.Count() == 0)
+            {
+                throw new RpaLibException("Array string table came with 0 rows.");
+            }
+            else if (arrayStrTable == null)
+            {
+                throw new RpaLibException("Array string table came nulled.");
+            }
+            else if (arrayStrTable.Where(x => x?.Count() == 0).Count() > 1) {
+                throw new RpaLibException("Array string table came with 0 columns in, at least, one row.");
+            }
+            else if (arrayStrTable.Where(x => x == null).Count() > 1)
+            {
+                throw new RpaLibException("Array string table came with null in, at least, one row.");
+            }
+
             DataTable dataTable = new DataTable();
 
             // Define dataColumns according to arrayStrTable header
