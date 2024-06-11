@@ -1170,13 +1170,13 @@ namespace RpaLib.APIs.Pipefy
             return infoMsg.ToString();
         }
 
-        public void ShowInfo(PipefyInfo infoType, string phaseId = null, string cardId = null)
+        public string ShowInfo(PipefyInfo infoType, string phaseId = null, string cardId = null)
         {
             Task<string> t1 = ShowInfoAsync(infoType, phaseId, cardId);
 
             t1.Wait();
 
-            Trace.WriteLine(t1.Result, withTimeSpec: false, color: ConsoleColor.Yellow);
+            return t1.Result;
         }
 
         #endregion
