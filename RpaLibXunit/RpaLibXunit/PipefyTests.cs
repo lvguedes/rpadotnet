@@ -12,9 +12,8 @@ namespace RpaLibXunit
 {
     public class PipefyTests
     {
-        //private string jwt = "Bearer {enter token here}";
         private string jwt = "Bearer eyJ0eXAiOiJK...";
-        private string pipeId = "902791";
+        private string pipeId = "1123273";
 
         private Pipefy GetPipefyWithouPipeId()
         {
@@ -109,7 +108,8 @@ namespace RpaLibXunit
         public async Task ExportPipeReportAsync()
         {
             var pipefy = GetPipefyWithPipeId();
-            var reportNameRegex = @"Automação Cronograma de Fechamento - Visualização Sharepoint";
+            //var reportNameRegex = @"Automação Cronograma de Fechamento - Visualização Sharepoint";
+            var reportNameRegex = @"Relatório SLA Atividades do Mês";
 
             var downloadUrl = await pipefy.ExportPipeReportAsync(reportNameRegex, @"%USERPROFILE%\Downloads");
         } 

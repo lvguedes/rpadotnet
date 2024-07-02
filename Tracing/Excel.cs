@@ -528,6 +528,42 @@ namespace RpaLib.Tracing
             return usedRange;
         }
 
+        public bool IsRangeSingleCell(Range range)
+        {
+            return range.Count == 1;
+        }
+
+        public void CustomFormatRange(string excelRange, string customFormat)
+        {
+            CustomFormatRange(GetRange(excelRange), customFormat);
+        }
+
+        public void CustomFormatRange(string firstCell, string lastCell, string customFormat)
+        {
+            CustomFormatRange(GetRange(firstCell, lastCell), customFormat);
+        }
+
+        public void CustomFormatRange(Range range, string customFormat)
+        {
+            try
+            {
+                if (IsRangeSingleCell(range))
+                {
+                    range.NumberFormat = customFormat;
+                }
+                else
+                {
+                    foreach (Range cell in range)
+                        cell.NumberFormat = customFormat;
+                }
+            }
+            catch (COMException ex)
+            {
+                throw new ExcelException("Could not set custom format in range", ex);
+            }
+            
+        }
+
         public void DeleteCells(string excelRange)
         {
             DeleteCells(GetRange(excelRange));
@@ -942,23 +978,23 @@ namespace RpaLib.Tracing
             WriteCell(startRow, startCol, rowList.ToArray());
         }
 
-        public void WriteCell(int row, ExcelColumn col, string value)
+        public void WriteCell(int row, ExcelColumn col, object value)
         {
             WriteCell(row, (int)col, value);
         }
 
-        public void WriteCell(int row, int col, string value)
+        public void WriteCell(int row, int col, object value)
         {
             CurrentWorksheet.Rows.Item[row].Columns.Item[col] = value;
             UpdateWorksheetUsedRange();
         }
 
-        public void WriteCell(int firstCellRow, ExcelColumn firstCellCol, string[] values, InsertMethod rowOrCol)
+        public void WriteCell(int firstCellRow, ExcelColumn firstCellCol, object[] values, InsertMethod rowOrCol)
         {
             WriteCell(firstCellRow, (int)firstCellCol, values, rowOrCol);
         }
 
-        public void WriteCell(int firstCellRow, int firstCellCol, string[] values, InsertMethod rowOrCol)
+        public void WriteCell(int firstCellRow, int firstCellCol, object[] values, InsertMethod rowOrCol)
         {
             for (int j = 0; j < values.Count(); j++)
             {
@@ -977,12 +1013,12 @@ namespace RpaLib.Tracing
             UpdateWorksheetUsedRange();
         }
 
-        public void WriteCell(int firstCellRow, ExcelColumn firstCellCol, string[][] tableOfValues)
+        public void WriteCell(int firstCellRow, ExcelColumn firstCellCol, object[][] tableOfValues)
         {
             WriteCell(firstCellRow, (int)firstCellCol, tableOfValues);
         }
 
-        public void WriteCell(int firstCellRow, int firstCellCol, string[][] tableOfValues)
+        public void WriteCell(int firstCellRow, int firstCellCol, object[][] tableOfValues)
         {
             for (int i = 0; i < tableOfValues.Count(); i++)
                 WriteCell(i + firstCellRow, firstCellCol, tableOfValues[i], InsertMethod.AsRow);
